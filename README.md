@@ -1,2 +1,2 @@
 # spatialpandas
-Pandas extension arrays for spatial/geometric operations
+Pandas and Dask extensions for vectorized spatial and geometric operations.
