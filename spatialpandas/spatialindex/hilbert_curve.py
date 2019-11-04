@@ -3,7 +3,7 @@ from numba import vectorize, int64
 import numpy as np
 import os
 
-from spatialpandas.geometry.base import ngjit
+from spatialpandas.utils import ngjit
 
 """
 Initially based on https://github.com/galtay/hilbert_curve, but specialized
