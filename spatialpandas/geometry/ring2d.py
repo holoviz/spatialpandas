@@ -34,7 +34,8 @@ class Ring2dArray(Line2dArray):
 
 def ring_array_non_empty(dtype):
     return Ring2dArray([
-        [0, 0, 1, 0, 1, 1, 0, 0], [2, 2, 2, 3, 3, 3, 2, 2]
+        [0, 0, 1, 0, 1, 1, 0, 0],
+        [2, 2, 2, 3, 3, 3, 2, 2]
     ], dtype=dtype)
 
 

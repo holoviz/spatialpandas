@@ -79,9 +79,10 @@ class MultiLine2dArray(GeometryArray):
 
 
 def multi_line_array_non_empty(dtype):
-    return MultiLine2dArray(
-        [[[1, 0, 1, 1], [1, 2, 0, 0]], [[3, 3, 4, 4]]], dtype=dtype
-    )
+    return MultiLine2dArray([
+        [[1, 0, 1, 1], [1, 2, 0, 0]],
+        [[3, 3, 4, 4]]
+    ], dtype=dtype)
 
 
 if make_array_nonempty:

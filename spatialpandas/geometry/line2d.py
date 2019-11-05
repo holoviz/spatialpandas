@@ -74,7 +74,10 @@ class Line2dArray(GeometryArray):
 
 
 def line_array_non_empty(dtype):
-    return Line2dArray([[1, 0, 1, 1], [1, 2, 0, 0]], dtype=dtype)
+    return Line2dArray([
+        [1, 0, 1, 1],
+        [1, 2, 0, 0]
+    ], dtype=dtype)
 
 
 if make_array_nonempty:
