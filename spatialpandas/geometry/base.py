@@ -254,6 +254,15 @@ class Geometry(_ArrowBufferMixin):
 
     @classmethod
     def from_shapely(cls, shape):
+        """
+        Build a spatialpandas geometry object from a shapely shape
+
+        Args:
+            shape: A shapely shape
+
+        Returns:
+            spatialpandas geometry object with type of the calling class
+        """
         shape_parts = cls._shapely_to_coordinates(shape)
         return cls(shape_parts)
 
@@ -343,7 +352,7 @@ class Geometry2(Geometry):
             return self.data.flatten().flatten().to_numpy()
 
 
-# class GeometryArray(FletcherArray):
+
 class GeometryArray(ExtensionArray, _ArrowBufferMixin):
     _can_hold_na = True
     _element_type = Geometry
@@ -352,9 +361,29 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
     # Import / export methods
     @classmethod
     def from_geopandas(cls, ga):
-        return cls([np.asarray(cls._element_type.from_shapely(p).data) for p in ga])
+        """
+        Build a spatialpandas geometry array from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries to import
+
+        Returns:
+            spatialpandas geometry array with type of the calling class
+        """
+        if cls is GeometryArray:
+            raise ValueError(
+                "from_geopandas must be called on a subclass of GeometryArray"
+            )
+        return cls([cls._element_type._shapely_to_coordinates(shape) for shape in ga])
 
     def to_geopandas(self):
+        """
+        Convert a spatialpandas geometry array into a geopandas GeometryArray
+
+        Returns:
+            geopandas GeometryArray
+        """
         from geopandas.array import from_shapely
         return from_shapely([el.to_shapely() for el in self])
 

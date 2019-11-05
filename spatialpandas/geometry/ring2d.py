@@ -12,16 +12,33 @@ class Ring2dDtype(Line2dDtype):
 
     @classmethod
     def construct_array_type(cls, *args):
-        if len(args) > 0:
-            raise NotImplementedError("construct_array_type does not support arguments")
-        return Line2dArray
+        return Ring2dArray
 
 
 class Ring2d(Line2d):
     def to_shapely(self):
+        """
+        Convert to shapely shape
+
+        Returns:
+            shapely LinearRing shape
+        """
         import shapely.geometry as sg
         line_coords = self.data.to_numpy()
         return sg.LinearRing(line_coords.reshape(len(line_coords) // 2, 2))
+
+    @classmethod
+    def from_shapely(cls, shape):
+        """
+        Build a spatialpandas Ring2d object from a shapely shape
+
+        Args:
+            shape: A shapely LinearRing shape
+
+        Returns:
+            spatialpandas Ring2d
+        """
+        return super(Ring2d, cls).from_shapely(shape)
 
 
 class Ring2dArray(Line2dArray):
@@ -30,6 +47,20 @@ class Ring2dArray(Line2dArray):
     @property
     def _dtype_class(self):
         return Ring2dDtype
+
+    @classmethod
+    def from_geopandas(cls, ga):
+        """
+        Build a spatialpandas Ring2dArray from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries of LinearRing shapes.
+
+        Returns:
+            Ring2dArray
+        """
+        return super(Line2dArray, cls).from_geopandas(ga)
 
 
 def ring_array_non_empty(dtype):

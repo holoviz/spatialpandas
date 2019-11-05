@@ -33,9 +33,28 @@ Received invalid value of type {typ}. Must be an instance of LineString
 or LinearRing""".format(typ=type(shape).__name__))
 
     def to_shapely(self):
+        """
+        Convert to shapely shape
+
+        Returns:
+            shapely LineString shape
+        """
         import shapely.geometry as sg
         line_coords = self.data.to_numpy()
         return sg.LineString(line_coords.reshape(len(line_coords) // 2, 2))
+
+    @classmethod
+    def from_shapely(cls, shape):
+        """
+        Build a spatialpandas Line2d object from a shapely shape
+
+        Args:
+            shape: A shapely LineString or LinearRing shape
+
+        Returns:
+            spatialpandas Line2d
+        """
+        return super(Line2d, cls).from_shapely(shape)
 
     @property
     def length(self):
@@ -53,6 +72,21 @@ class Line2dArray(GeometryArray):
     @property
     def _dtype_class(self):
         return Line2dDtype
+
+    @classmethod
+    def from_geopandas(cls, ga):
+        """
+        Build a spatialpandas Line2dArray from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries of `LineString` or
+            `LinearRing`shapes.
+
+        Returns:
+            Line2dArray
+        """
+        return super(Line2dArray, cls).from_geopandas(ga)
 
     @property
     def length(self):

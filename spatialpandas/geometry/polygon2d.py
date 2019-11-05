@@ -25,10 +25,11 @@ class Polygon2dDtype(GeometryDtype):
 
 class Polygon2d(Geometry1):
     @classmethod
-    def _shapely_to_coordinates(cls, shape):
+    def _shapely_to_coordinates(cls, shape, orient=True):
         import shapely.geometry as sg
         if isinstance(shape, sg.Polygon):
-            shape = sg.polygon.orient(shape)
+            if orient:
+                shape = sg.polygon.orient(shape)
             exterior = np.asarray(shape.exterior.ctypes)
             polygon_coords = [exterior]
             for ring in shape.interiors:
@@ -42,11 +43,36 @@ Received invalid value of type {typ}. Must be an instance of Polygon
 """.format(typ=type(shape).__name__))
 
     def to_shapely(self):
+        """
+        Convert to shapely shape
+
+        Returns:
+            shapely Polygon shape
+        """
         import shapely.geometry as sg
         ring_arrays = [line_coords.reshape(len(line_coords) // 2, 2)
                        for line_coords in np.asarray(self.data)]
         rings = [sg.LinearRing(ring_array) for ring_array in ring_arrays]
         return sg.Polygon(shell=rings[0], holes=rings[1:])
+
+    @classmethod
+    def from_shapely(cls, shape, orient=True):
+        """
+        Build a spatialpandas Polygon2d object from a shapely shape
+
+        Args:
+            shape: A shapely Polygon shape
+            orient: If True (default), reorder polygon vertices so that outer shells
+                    are stored in counter clockwise order and holes are stored in
+                    clockwise order.  If False, accept vertices as given. Note that
+                    some algorithms will not behave properly if the above ordering
+                    convention is not followed, so only set orient=False if it is
+                    known that this conventions is followed in the input data.
+        Returns:
+            spatialpandas Polygon2d
+        """
+        shape_parts = cls._shapely_to_coordinates(shape, orient)
+        return cls(shape_parts)
 
     @property
     def boundary(self):
@@ -69,6 +95,25 @@ class Polygon2dArray(GeometryArray):
     @property
     def _dtype_class(self):
         return Polygon2dDtype
+
+    @classmethod
+    def from_geopandas(cls, ga, orient=True):
+        """
+        Build a spatialpandas Polygon2dArray from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries of Polygon shapes.
+            orient: If True (default), reorder polygon vertices so that outer shells
+                    are stored in counter clockwise order and holes are stored in
+                    clockwise order.  If False, accept vertices as given. Note that
+                    some algorithms will not behave properly if the above ordering
+                    convention is not followed, so only set orient=False if it is
+                    known that this conventions is followed in the input data.
+        Returns:
+            Polygon2dArray
+        """
+        return cls([Polygon2d._shapely_to_coordinates(shape, orient) for shape in ga])
 
     @property
     def boundary(self):

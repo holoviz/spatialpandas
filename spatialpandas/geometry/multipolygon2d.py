@@ -28,23 +28,29 @@ class MultiPolygon2dDtype(GeometryDtype):
 class MultiPolygon2d(Geometry2):
 
     @classmethod
-    def _shapely_to_coordinates(cls, shape):
+    def _shapely_to_coordinates(cls, shape, orient=True):
         import shapely.geometry as sg
         if isinstance(shape, sg.MultiPolygon):
             multipolygon = []
             for polygon in shape:
-                polygon_coords = Polygon2d._shapely_to_coordinates(polygon)
+                polygon_coords = Polygon2d._shapely_to_coordinates(polygon, orient)
                 multipolygon.append(polygon_coords)
 
             return multipolygon
         elif isinstance(shape, sg.Polygon):
-            return [Polygon2d._shapely_to_coordinates(shape)]
+            return [Polygon2d._shapely_to_coordinates(shape, orient)]
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of Polygon or MultiPolygon
 """.format(typ=type(shape).__name__))
 
     def to_shapely(self):
+        """
+        Convert to shapely shape
+
+        Returns:
+            shapely MultiPolygon shape
+        """
         import shapely.geometry as sg
         polygon_arrays = np.asarray(self.data)
 
@@ -57,6 +63,26 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
             polygons.append(sg.Polygon(shell=rings[0], holes=rings[1:]))
 
         return sg.MultiPolygon(polygons=polygons)
+
+    @classmethod
+    def from_shapely(cls, shape, orient=True):
+        """
+        Build a spatialpandas MultiPolygon2d object from a shapely shape
+
+        Args:
+            shape: A shapely Polygon or MultiPolygon shape
+            orient: If True (default), reorder polygon vertices so that outer shells
+                    are stored in counter clockwise order and holes are stored in
+                    clockwise order.  If False, accept vertices as given. Note that
+                    some algorithms will not behave properly if the above ordering
+                    convention is not followed, so only set orient=False if it is
+                    known that this conventions is followed in the input data.
+        Returns:
+            spatialpandas MultiPolygon2d
+        """
+        shape_parts = cls._shapely_to_coordinates(shape, orient)
+        return cls(shape_parts)
+
 
     @property
     def boundary(self):
@@ -80,6 +106,27 @@ class MultiPolygon2dArray(GeometryArray):
     @property
     def _dtype_class(self):
         return MultiPolygon2dDtype
+
+    @classmethod
+    def from_geopandas(cls, ga, orient=True):
+        """
+        Build a spatialpandas MultiPolygon2dArray from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries of MultiPolygon or
+                Polygon shapes.
+            orient: If True (default), reorder polygon vertices so that outer shells
+                    are stored in counter clockwise order and holes are stored in
+                    clockwise order.  If False, accept vertices as given. Note that
+                    some algorithms will not behave properly if the above ordering
+                    convention is not followed, so only set orient=False if it is
+                    known that this conventions is followed in the input data.
+
+        Returns:
+            MultiPolygon2dArray
+        """
+        return cls([MultiPolygon2d._shapely_to_coordinates(shape, orient) for shape in ga])
 
     @property
     def boundary(self):

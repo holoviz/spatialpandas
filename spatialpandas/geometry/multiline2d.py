@@ -30,17 +30,38 @@ class MultiLine2d(Geometry1):
             for line in shape:
                 line_parts.append(np.asarray(line.ctypes))
             return line_parts
+        elif isinstance(shape, (sg.LineString, sg.LinearRing)):
+            return [np.asarray(shape.ctypes)]
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of MultiLineString
 """.format(typ=type(shape).__name__))
 
     def to_shapely(self):
+        """
+        Convert to shapely shape
+
+        Returns:
+            shapely MultiLineString shape
+        """
         import shapely.geometry as sg
         line_arrays = [line_coords.reshape(len(line_coords) // 2, 2)
                        for line_coords in np.asarray(self.data)]
         lines = [sg.LineString(line_array) for line_array in line_arrays]
         return sg.MultiLineString(lines=lines)
+
+    @classmethod
+    def from_shapely(cls, shape):
+        """
+        Build a spatialpandas MultiLine2d object from a shapely shape
+
+        Args:
+            shape: A shapely MultiLineString, LineString, or LinearRing shape
+
+        Returns:
+            spatialpandas MultiLine2d
+        """
+        return super(MultiLine2d, cls).from_shapely(shape)
 
     @property
     def length(self):
@@ -58,6 +79,21 @@ class MultiLine2dArray(GeometryArray):
     @property
     def _dtype_class(self):
         return MultiLine2dDtype
+
+    @classmethod
+    def from_geopandas(cls, ga):
+        """
+        Build a spatialpandas MultiLine2dArray from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries of MultiLineString,
+            LineString, or LinearRing shapes.
+
+        Returns:
+            MultiLine2dArray
+        """
+        return super(MultiLine2dArray, cls).from_geopandas(ga)
 
     @property
     def length(self):

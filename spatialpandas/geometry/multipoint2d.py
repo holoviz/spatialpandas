@@ -31,9 +31,28 @@ Received invalid value of type {typ}. Must be an instance of Point,
 or MultiPoint2d""".format(typ=type(shape).__name__))
 
     def to_shapely(self):
+        """
+        Convert to shapely shape
+
+        Returns:
+            shapely MultiPoint shape
+        """
         import shapely.geometry as sg
         line_coords = self.data.to_numpy()
         return sg.MultiPoint(line_coords.reshape(len(line_coords) // 2, 2))
+
+    @classmethod
+    def from_shapely(cls, shape):
+        """
+        Build a spatialpandas MultiPoint2d object from a shapely shape
+
+        Args:
+            shape: A shapely MultiPoint or Point shape
+
+        Returns:
+            spatialpandas MultiPoint2d
+        """
+        return super(MultiPoint2d, cls).from_shapely(shape)
 
     @property
     def length(self):
@@ -51,6 +70,21 @@ class MultiPoint2dArray(GeometryArray):
     @property
     def _dtype_class(self):
         return MultiPoint2dDtype
+
+    @classmethod
+    def from_geopandas(cls, ga):
+        """
+        Build a spatialpandas MultiPoint2dArray from a geopandas GeometryArray or
+        GeoSeries.
+
+        Args:
+            ga: A geopandas GeometryArray or GeoSeries of MultiPoint or
+            Point shapes.
+
+        Returns:
+            MultiPoint2dArray
+        """
+        return super(MultiPoint2dArray, cls).from_geopandas(ga)
 
     @property
     def length(self):
