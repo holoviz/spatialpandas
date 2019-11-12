@@ -119,7 +119,7 @@ class GeometryDtype(ExtensionDtype):
         self.arrow_dtype = arrow_dtype
 
     def __hash__(self):
-        return hash(self.arrow_dtype)
+        return hash((self.__class__, self.arrow_dtype))
 
     def __str__(self):
         return "{}[{}]".format(self._geometry_name, str(self.subtype.name))
@@ -235,7 +235,7 @@ class Geometry(_ArrowBufferMixin):
         return "{}({})".format(self.__class__.__name__, self.data.to_pylist())
 
     def __hash__(self):
-        return hash(np.asarray(self.data).tobytes())
+        return hash((self.__class__, np.asarray(self.data).tobytes()))
 
     def __eq__(self, other):
         if type(other) is not type(self):
