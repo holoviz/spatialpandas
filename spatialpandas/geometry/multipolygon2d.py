@@ -74,6 +74,7 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
             orient: If True (default), reorder polygon vertices so that outer shells
                     are stored in counter clockwise order and holes are stored in
                     clockwise order.  If False, accept vertices as given. Note that
+                    while there is a performance cost associated with this operation
                     some algorithms will not behave properly if the above ordering
                     convention is not followed, so only set orient=False if it is
                     known that this convention is followed in the input data.
@@ -119,6 +120,7 @@ class MultiPolygon2dArray(GeometryArray):
             orient: If True (default), reorder polygon vertices so that outer shells
                     are stored in counter clockwise order and holes are stored in
                     clockwise order.  If False, accept vertices as given. Note that
+                    while there is a performance cost associated with this operation
                     some algorithms will not behave properly if the above ordering
                     convention is not followed, so only set orient=False if it is
                     known that this convention is followed in the input data.
