@@ -94,7 +94,6 @@ class _ArrowBufferMixin(object):
         return self.buffer_values[start:stop]
 
 
-@register_extension_dtype
 class GeometryDtype(ExtensionDtype):
     _geometry_name = 'geometry'
     base = np.dtype('O')
@@ -350,7 +349,6 @@ class Geometry2(Geometry):
             return np.array([], dtype=np.float64)
         else:
             return self.data.flatten().flatten().to_numpy()
-
 
 
 class GeometryArray(ExtensionArray, _ArrowBufferMixin):
