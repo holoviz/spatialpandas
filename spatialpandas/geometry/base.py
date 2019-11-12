@@ -471,7 +471,7 @@ an even number of elements. Received specification with an odd number of element
 
     def astype(self, dtype, copy=True):
         if self.dtype == dtype:
-            return self
+            return self.copy() if copy else self
 
         if dtype == np.dtype('object'):
             return np.array(self, dtype='object')
