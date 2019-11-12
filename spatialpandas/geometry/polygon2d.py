@@ -109,7 +109,7 @@ class Polygon2dArray(GeometryArray):
                     clockwise order.  If False, accept vertices as given. Note that
                     some algorithms will not behave properly if the above ordering
                     convention is not followed, so only set orient=False if it is
-                    known that this conventions is followed in the input data.
+                    known that this convention is followed in the input data.
         Returns:
             Polygon2dArray
         """
