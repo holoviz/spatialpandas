@@ -494,9 +494,7 @@ an even number of elements. Received specification with an odd number of element
 
     isna.__doc__ = ExtensionArray.isna.__doc__
 
-    def copy(self, deep=False):
-        if deep:
-            raise NotImplementedError("Deep copy is not supported")
+    def copy(self):
         return type(self)(self.data)
 
     copy.__doc__ = ExtensionArray.copy.__doc__
