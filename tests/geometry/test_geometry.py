@@ -1,8 +1,8 @@
 import numpy as np
 from spatialpandas.geometry import (
-    MultiPoint2d, MultiPoint2dArray, Line2d, Line2dArray,
-    MultiLine2d, MultiLine2dArray, Polygon2d, Polygon2dArray,
-    MultiPolygon2d, MultiPolygon2dArray
+    MultiPoint, MultiPointArray, Line, LineArray,
+    MultiLine, MultiLineArray, Polygon, PolygonArray,
+    MultiPolygon, MultiPolygonArray
 )
 
 unit_square_cw = np.array([1, 1,  1, 2,  2, 2,  2, 1,  1, 1], dtype='float64')
@@ -10,13 +10,13 @@ large_square_ccw = np.array([0, 0, 3, 0, 3, 3, 0, 3, 0, 0], dtype='float64')
 
 
 def test_points():
-    points = MultiPoint2d(unit_square_cw)
+    points = MultiPoint(unit_square_cw)
     assert points.length == 0.0
     assert points.area == 0.0
 
 
 def test_points_array():
-    points = MultiPoint2dArray([
+    points = MultiPointArray([
         unit_square_cw,
         large_square_ccw,
         np.concatenate([large_square_ccw, unit_square_cw])
@@ -28,13 +28,13 @@ def test_points_array():
 
 
 def test_lines():
-    lines = Line2d(unit_square_cw)
+    lines = Line(unit_square_cw)
     assert lines.length == 4.0
     assert lines.area == 0.0
 
 
 def test_lines_array():
-    lines = Line2dArray([
+    lines = LineArray([
         unit_square_cw,
         large_square_ccw,
         np.concatenate([large_square_ccw, [np.nan, np.nan], unit_square_cw])
@@ -46,13 +46,13 @@ def test_lines_array():
 
 
 def test_polygon():
-    polygon = Polygon2d([large_square_ccw, unit_square_cw])
+    polygon = Polygon([large_square_ccw, unit_square_cw])
     assert polygon.length == 16.0
     assert polygon.area == 8.0
 
 
 def test_polygon_array():
-    polygons = Polygon2dArray([
+    polygons = PolygonArray([
         [large_square_ccw],
         [large_square_ccw, unit_square_cw],
         [unit_square_cw]
@@ -63,7 +63,7 @@ def test_polygon_array():
 
 
 def test_multipolygon():
-    multipolygon = MultiPolygon2d([
+    multipolygon = MultiPolygon([
         [large_square_ccw, unit_square_cw],
         [large_square_ccw + 4.0]
     ])
@@ -72,7 +72,7 @@ def test_multipolygon():
 
 
 def test_multipolygon_array():
-    multipolygon = MultiPolygon2dArray([
+    multipolygon = MultiPolygonArray([
         [
             [large_square_ccw, unit_square_cw],
             [large_square_ccw + 4.0]

@@ -11,16 +11,16 @@ from dask.dataframe.extensions import make_array_nonempty
 
 
 @register_extension_dtype
-class MultiLine2dDtype(GeometryDtype):
-    _geometry_name = 'multiline2d'
+class MultiLineDtype(GeometryDtype):
+    _geometry_name = 'multiline'
     @classmethod
     def construct_array_type(cls, *args):
         if len(args) > 0:
             raise NotImplementedError("construct_array_type does not support arguments")
-        return MultiLine2dArray
+        return MultiLineArray
 
 
-class MultiLine2d(Geometry1):
+class MultiLine(Geometry1):
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
@@ -53,15 +53,15 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
     @classmethod
     def from_shapely(cls, shape):
         """
-        Build a spatialpandas MultiLine2d object from a shapely shape
+        Build a spatialpandas MultiLine object from a shapely shape
 
         Args:
             shape: A shapely MultiLineString, LineString, or LinearRing shape
 
         Returns:
-            spatialpandas MultiLine2d
+            spatialpandas MultiLine
         """
-        return super(MultiLine2d, cls).from_shapely(shape)
+        return super(MultiLine, cls).from_shapely(shape)
 
     @property
     def length(self):
@@ -72,18 +72,18 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
         return 0.0
 
 
-class MultiLine2dArray(GeometryArray):
-    _element_type = MultiLine2d
+class MultiLineArray(GeometryArray):
+    _element_type = MultiLine
     _nesting_levels = 2
 
     @property
     def _dtype_class(self):
-        return MultiLine2dDtype
+        return MultiLineDtype
 
     @classmethod
     def from_geopandas(cls, ga):
         """
-        Build a spatialpandas MultiLine2dArray from a geopandas GeometryArray or
+        Build a spatialpandas MultiLineArray from a geopandas GeometryArray or
         GeoSeries.
 
         Args:
@@ -91,9 +91,9 @@ class MultiLine2dArray(GeometryArray):
             LineString, or LinearRing shapes.
 
         Returns:
-            MultiLine2dArray
+            MultiLineArray
         """
-        return super(MultiLine2dArray, cls).from_geopandas(ga)
+        return super(MultiLineArray, cls).from_geopandas(ga)
 
     @property
     def length(self):
@@ -119,11 +119,11 @@ def _multi_line_array_non_empty(dtype):
     Create an example length 2 array to register with Dask.
     See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
     """
-    return MultiLine2dArray([
+    return MultiLineArray([
         [[1, 0, 1, 1], [1, 2, 0, 0]],
         [[3, 3, 4, 4]]
     ], dtype=dtype)
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(MultiLine2dDtype)(_multi_line_array_non_empty)
+    make_array_nonempty.register(MultiLineDtype)(_multi_line_array_non_empty)

@@ -8,16 +8,16 @@ from dask.dataframe.extensions import make_array_nonempty
 
 
 @register_extension_dtype
-class MultiPoint2dDtype(GeometryDtype):
-    _geometry_name = 'multipoint2d'
+class MultiPointDtype(GeometryDtype):
+    _geometry_name = 'multipoint'
     @classmethod
     def construct_array_type(cls, *args):
         if len(args) > 0:
             raise NotImplementedError("construct_array_type does not support arguments")
-        return MultiPoint2dArray
+        return MultiPointArray
 
 
-class MultiPoint2d(Geometry0):
+class MultiPoint(Geometry0):
 
     @classmethod
     def _shapely_to_coordinates(cls, shape):
@@ -28,7 +28,7 @@ class MultiPoint2d(Geometry0):
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of Point,
-or MultiPoint2d""".format(typ=type(shape).__name__))
+or MultiPoint""".format(typ=type(shape).__name__))
 
     def to_shapely(self):
         """
@@ -44,15 +44,15 @@ or MultiPoint2d""".format(typ=type(shape).__name__))
     @classmethod
     def from_shapely(cls, shape):
         """
-        Build a spatialpandas MultiPoint2d object from a shapely shape
+        Build a spatialpandas MultiPoint object from a shapely shape
 
         Args:
             shape: A shapely MultiPoint or Point shape
 
         Returns:
-            spatialpandas MultiPoint2d
+            spatialpandas MultiPoint
         """
-        return super(MultiPoint2d, cls).from_shapely(shape)
+        return super(MultiPoint, cls).from_shapely(shape)
 
     @property
     def length(self):
@@ -63,18 +63,18 @@ or MultiPoint2d""".format(typ=type(shape).__name__))
         return 0.0
 
 
-class MultiPoint2dArray(GeometryArray):
-    _element_type = MultiPoint2d
+class MultiPointArray(GeometryArray):
+    _element_type = MultiPoint
     _nesting_levels = 1
 
     @property
     def _dtype_class(self):
-        return MultiPoint2dDtype
+        return MultiPointDtype
 
     @classmethod
     def from_geopandas(cls, ga):
         """
-        Build a spatialpandas MultiPoint2dArray from a geopandas GeometryArray or
+        Build a spatialpandas MultiPointArray from a geopandas GeometryArray or
         GeoSeries.
 
         Args:
@@ -82,9 +82,9 @@ class MultiPoint2dArray(GeometryArray):
             Point shapes.
 
         Returns:
-            MultiPoint2dArray
+            MultiPointArray
         """
-        return super(MultiPoint2dArray, cls).from_geopandas(ga)
+        return super(MultiPointArray, cls).from_geopandas(ga)
 
     @property
     def length(self):
@@ -100,11 +100,11 @@ def _multi_points_array_non_empty(dtype):
     Create an example length 2 array to register with Dask.
     See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
     """
-    return MultiPoint2dArray([
+    return MultiPointArray([
         [1, 0, 1, 1],
         [1, 2, 0, 0]
     ], dtype=dtype)
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(MultiPoint2dDtype)(_multi_points_array_non_empty)
+    make_array_nonempty.register(MultiPointDtype)(_multi_points_array_non_empty)

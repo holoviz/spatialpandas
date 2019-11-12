@@ -1,21 +1,21 @@
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from spatialpandas.geometry.line2d import (
-    Line2dDtype, Line2d, Line2dArray
+from spatialpandas.geometry.line import (
+    LineDtype, Line, LineArray
 )
 from dask.dataframe.extensions import make_array_nonempty
 
 
 @register_extension_dtype
-class Ring2dDtype(Line2dDtype):
-    _geometry_name = 'ring2d'
+class RingDtype(LineDtype):
+    _geometry_name = 'ring'
 
     @classmethod
     def construct_array_type(cls, *args):
-        return Ring2dArray
+        return RingArray
 
 
-class Ring2d(Line2d):
+class Ring(Line):
     def to_shapely(self):
         """
         Convert to shapely shape
@@ -30,37 +30,37 @@ class Ring2d(Line2d):
     @classmethod
     def from_shapely(cls, shape):
         """
-        Build a spatialpandas Ring2d object from a shapely shape
+        Build a spatialpandas Ring object from a shapely shape
 
         Args:
             shape: A shapely LinearRing shape
 
         Returns:
-            spatialpandas Ring2d
+            spatialpandas Ring
         """
-        return super(Ring2d, cls).from_shapely(shape)
+        return super(Ring, cls).from_shapely(shape)
 
 
-class Ring2dArray(Line2dArray):
-    _element_type = Line2d
+class RingArray(LineArray):
+    _element_type = Line
 
     @property
     def _dtype_class(self):
-        return Ring2dDtype
+        return RingDtype
 
     @classmethod
     def from_geopandas(cls, ga):
         """
-        Build a spatialpandas Ring2dArray from a geopandas GeometryArray or
+        Build a spatialpandas RingArray from a geopandas GeometryArray or
         GeoSeries.
 
         Args:
             ga: A geopandas GeometryArray or GeoSeries of LinearRing shapes.
 
         Returns:
-            Ring2dArray
+            RingArray
         """
-        return super(Line2dArray, cls).from_geopandas(ga)
+        return super(RingArray, cls).from_geopandas(ga)
 
 
 def _ring_array_non_empty(dtype):
@@ -68,11 +68,11 @@ def _ring_array_non_empty(dtype):
     Create an example length 2 array to register with Dask.
     See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
     """
-    return Ring2dArray([
+    return RingArray([
         [0, 0, 1, 0, 1, 1, 0, 0],
         [2, 2, 2, 3, 3, 3, 2, 2]
     ], dtype=dtype)
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(Ring2dDtype)(_ring_array_non_empty)
+    make_array_nonempty.register(RingDtype)(_ring_array_non_empty)

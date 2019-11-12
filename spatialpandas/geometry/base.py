@@ -135,7 +135,7 @@ class GeometryDtype(ExtensionDtype):
         Parameters
         ----------
         dtype_string: str
-            A string like Line2d[subtype]
+            A string like line[subtype]
 
         Returns
         -------

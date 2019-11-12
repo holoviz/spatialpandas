@@ -10,17 +10,17 @@ from dask.dataframe.extensions import make_array_nonempty
 
 
 @register_extension_dtype
-class Line2dDtype(GeometryDtype):
-    _geometry_name = 'line2d'
+class LineDtype(GeometryDtype):
+    _geometry_name = 'line'
 
     @classmethod
     def construct_array_type(cls, *args):
         if len(args) > 0:
             raise NotImplementedError("construct_array_type does not support arguments")
-        return Line2dArray
+        return LineArray
 
 
-class Line2d(Geometry0):
+class Line(Geometry0):
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
@@ -46,15 +46,15 @@ or LinearRing""".format(typ=type(shape).__name__))
     @classmethod
     def from_shapely(cls, shape):
         """
-        Build a spatialpandas Line2d object from a shapely shape
+        Build a spatialpandas Line object from a shapely shape
 
         Args:
             shape: A shapely LineString or LinearRing shape
 
         Returns:
-            spatialpandas Line2d
+            spatialpandas Line
         """
-        return super(Line2d, cls).from_shapely(shape)
+        return super(Line, cls).from_shapely(shape)
 
     @property
     def length(self):
@@ -65,18 +65,18 @@ or LinearRing""".format(typ=type(shape).__name__))
         return 0.0
 
 
-class Line2dArray(GeometryArray):
-    _element_type = Line2d
+class LineArray(GeometryArray):
+    _element_type = Line
     _nesting_levels = 1
 
     @property
     def _dtype_class(self):
-        return Line2dDtype
+        return LineDtype
 
     @classmethod
     def from_geopandas(cls, ga):
         """
-        Build a spatialpandas Line2dArray from a geopandas GeometryArray or
+        Build a spatialpandas LineArray from a geopandas GeometryArray or
         GeoSeries.
 
         Args:
@@ -84,9 +84,9 @@ class Line2dArray(GeometryArray):
             `LinearRing`shapes.
 
         Returns:
-            Line2dArray
+            LineArray
         """
-        return super(Line2dArray, cls).from_geopandas(ga)
+        return super(LineArray, cls).from_geopandas(ga)
 
     @property
     def length(self):
@@ -112,11 +112,11 @@ def _line_array_non_empty(dtype):
     Create an example length 2 array to register with Dask.
     See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
     """
-    return Line2dArray([
+    return LineArray([
         [1, 0, 1, 1],
         [1, 2, 0, 0]
     ], dtype=dtype)
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(Line2dDtype)(_line_array_non_empty)
+    make_array_nonempty.register(LineDtype)(_line_array_non_empty)

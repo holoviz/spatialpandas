@@ -1,6 +1,7 @@
 import pandas.tests.extension.base as eb
 import pytest
-from spatialpandas.geometry import Line2dArray, Line2dDtype
+from spatialpandas.geometry import LineArray, LineDtype
+
 
 # Pandas-provided extension array tests
 # -------------------------------------
@@ -10,7 +11,7 @@ from spatialpandas.geometry import Line2dArray, Line2dDtype
 @pytest.fixture
 def dtype():
     """A fixture providing the ExtensionDtype to validate."""
-    return Line2dDtype(subtype='float64')
+    return LineDtype(subtype='float64')
 
 
 @pytest.fixture
@@ -19,7 +20,7 @@ def data():
         * data[0] and data[1] should both be non missing
         * data[0] and data[1] should not gbe equal
         """
-    return Line2dArray(
+    return LineArray(
         [[0, 1], [1, 2, 3, 4], None, [-1, -2], []]*20, dtype='float64')
 
 
@@ -45,7 +46,7 @@ def data_repeated(data):
 @pytest.fixture
 def data_missing():
     """Length-2 array with [NA, Valid]"""
-    return Line2dArray([None, [-1, 0, 1, 2]], dtype='int64')
+    return LineArray([None, [-1, 0, 1, 2]], dtype='int64')
 
 
 @pytest.fixture(params=['data', 'data_missing'])
@@ -63,7 +64,7 @@ def data_for_sorting():
     This should be three items [B, C, A] with
     A < B < C
     """
-    return Line2dArray([[1, 0], [2, 0], [0, 0]])
+    return LineArray([[1, 0], [2, 0], [0, 0]])
 
 
 @pytest.fixture
@@ -72,7 +73,7 @@ def data_missing_for_sorting():
     This should be three items [B, NA, A] with
     A < B and NA missing.
     """
-    return Line2dArray([[1, 0], None, [0, 0]])
+    return LineArray([[1, 0], None, [0, 0]])
 
 
 @pytest.fixture
@@ -81,7 +82,7 @@ def data_for_grouping():
     Expected to be like [B, B, NA, NA, A, A, B, C]
     Where A < B < C and NA is missing
     """
-    return Line2dArray(
+    return LineArray(
         [[1, 0], [1, 0], None, None, [0, 0], [0, 0], [1, 0], [2, 0]])
 
 
