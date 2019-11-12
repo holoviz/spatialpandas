@@ -1,9 +1,14 @@
-This work includes components that were originally developed in the fletcher library by
-Uwe L. Korn which is distributed under the following licence:
+The geometry extension arrays in this project include components that were
+originally developed in the fletcher library (https://github.com/xhochy/fletcher)
+by Uwe L. Korn  (copyright 2018) which is distributed under the MIT License.
 
+The Hilbert curve functions include components that were originally developed in the
+hilbertcurve library (https://github.com/galtay/hilbertcurve) by Gabriel Altay
+(copyright 2017) which is distributed under the MIT License.
+
+Licenses
+--------
 MIT License
-
-Copyright (c) 2018 Uwe L. Korn
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
