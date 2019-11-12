@@ -2,9 +2,10 @@ import numpy as np
 from numba import jitclass
 from numba import int64, float64
 
-from spatialpandas.geometry.base import ngjit
-from spatialpandas.spatialindex.hilbert_curve import _data2coord, \
-    distance_from_coordinates
+from spatialpandas.spatialindex.hilbert_curve import (
+    _data2coord, distance_from_coordinates
+)
+from spatialpandas.utils import ngjit
 
 
 @ngjit
