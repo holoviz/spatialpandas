@@ -267,7 +267,7 @@ class Geometry(_ArrowBufferMixin):
 
     @property
     def numpy_dtype(self):
-        return self.data.type.to_pandas_dtype()().dtype
+        return np.dtype(self.data.type.to_pandas_dtype())
 
 
 class Geometry0(Geometry):
@@ -275,7 +275,7 @@ class Geometry0(Geometry):
 
     @property
     def numpy_dtype(self):
-        return self.data.type.to_pandas_dtype()().dtype
+        return np.dtype(self.data.type.to_pandas_dtype())
 
     @property
     def _values(self):
@@ -294,7 +294,7 @@ class Geometry1(Geometry):
         if isinstance(self.data, pa.NullArray):
             return None
         else:
-            return self.data.type.value_type.to_pandas_dtype()().dtype
+            return np.dtype(self.data.type.value_type.to_pandas_dtype())
 
     @property
     def _value_offsets(self):
@@ -326,7 +326,7 @@ class Geometry2(Geometry):
         if isinstance(self.data, pa.NullArray):
             return None
         else:
-            return self.data.type.value_type.value_type.to_pandas_dtype()().dtype
+            return np.dtype(self.data.type.value_type.value_type.to_pandas_dtype())
 
     @property
     def _value_offsets(self):
