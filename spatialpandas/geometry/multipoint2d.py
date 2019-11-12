@@ -95,7 +95,11 @@ class MultiPoint2dArray(GeometryArray):
         return np.zeros(len(self), dtype=np.float64)
 
 
-def multi_points_array_non_empty(dtype):
+def _multi_points_array_non_empty(dtype):
+    """
+    Create an example length 2 array to register with Dask.
+    See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
+    """
     return MultiPoint2dArray([
         [1, 0, 1, 1],
         [1, 2, 0, 0]
@@ -103,4 +107,4 @@ def multi_points_array_non_empty(dtype):
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(MultiPoint2dDtype)(multi_points_array_non_empty)
+    make_array_nonempty.register(MultiPoint2dDtype)(_multi_points_array_non_empty)

@@ -151,7 +151,11 @@ class Polygon2dArray(GeometryArray):
         return result
 
 
-def polygon_array_non_empty(dtype):
+def _polygon_array_non_empty(dtype):
+    """
+    Create an example length 2 array to register with Dask.
+    See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
+    """
     return Polygon2dArray(
         [
             [[1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 1.0, 2.0, 1.0, 1.0],
@@ -162,4 +166,4 @@ def polygon_array_non_empty(dtype):
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(Polygon2dDtype)(polygon_array_non_empty)
+    make_array_nonempty.register(Polygon2dDtype)(_polygon_array_non_empty)

@@ -63,7 +63,11 @@ class Ring2dArray(Line2dArray):
         return super(Line2dArray, cls).from_geopandas(ga)
 
 
-def ring_array_non_empty(dtype):
+def _ring_array_non_empty(dtype):
+    """
+    Create an example length 2 array to register with Dask.
+    See https://docs.dask.org/en/latest/dataframe-extend.html#extension-arrays
+    """
     return Ring2dArray([
         [0, 0, 1, 0, 1, 1, 0, 0],
         [2, 2, 2, 3, 3, 3, 2, 2]
@@ -71,4 +75,4 @@ def ring_array_non_empty(dtype):
 
 
 if make_array_nonempty:
-    make_array_nonempty.register(Ring2dDtype)(ring_array_non_empty)
+    make_array_nonempty.register(Ring2dDtype)(_ring_array_non_empty)
