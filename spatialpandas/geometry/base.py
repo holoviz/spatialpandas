@@ -7,9 +7,9 @@ import numpy as np
 import re
 
 from pandas.api.types import is_array_like
-from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import register_extension_dtype
+from pandas.api.extensions import (
+    ExtensionArray, ExtensionDtype, register_extension_dtype
+)
 
 from spatialpandas.geometry._algorithms import (
     bounds_interleaved, bounds_interleaved_1d, _lexographic_lt,
