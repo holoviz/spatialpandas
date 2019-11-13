@@ -152,7 +152,7 @@ class HilbertRtree(object):
             p: The Hilbert curve order parameter that determines the resolution
                 of the 2D grid that data points are rounded to before computing
                 their Hilbert distance. Points will be discretized into 2 ** p
-                bins in each the x and y dimensions.
+                bins in both the x and y dimensions.
             page_size: Number of elements per leaf of the tree.
         """
         # Validate/coerce inputs
