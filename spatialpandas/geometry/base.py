@@ -449,7 +449,7 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
 Geometry objects are represented by interleaved x and y coordinates, so they must have
 an even number of elements. Received specification with an odd number of elements.""")
 
-        # Initialize backing property for spacial index
+        # Initialize backing property for spatial index
         self._sindex = None
 
     def __eq__(self, other):
