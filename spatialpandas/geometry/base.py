@@ -787,7 +787,11 @@ class _CoordinateIndexer(object):
             ys = slice(ys, ys)
 
         if xs.step is not None or ys.step is not None:
-            raise ValueError("step not supported")
+            raise ValueError(
+                "Slice step not supported. The cx indexer uses slices to represent "
+                "intervals in continuous coordinate space, and a slice step has no "
+                "clear interpretation in this context."
+            )
         xmin, ymin, xmax, ymax = obj.sindex.total_bounds
         x0, y0, x1, y1 = (
             xs.start if xs.start is not None else xmin,
