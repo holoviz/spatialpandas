@@ -165,8 +165,8 @@ def multipoints_intersect_bounds(
         flat_values: Interleaved point coordinates
         start_offsets, stop_offsets:  start and stop offsets into flat_values
             separating individual multipoints
-        result: boolean array at least as long as start_offsets into which the
-            intersection results will be written
+        result: boolean array to be provided by the caller into which intersection
+            results will be written; must be at least as long as start_offsets
 
     Returns:
         None
@@ -279,8 +279,8 @@ def lines_intersect_bounds(
         flat_values: Interleaved line coordinates
         start_offsets, stop_offsets:  start and stop offsets into flat_values
             separating individual lines
-        result: boolean array at least as long as start_offsets into which the
-            intersection results will be written
+        result: boolean array to be provided by the caller into which intersection
+            results will be written; must be at least as long as start_offsets
 
     Returns:
         None
@@ -321,8 +321,8 @@ def multilines_intersect_bounds(
         start_offsets0, stop_offsets0:  start and stop offsets into offsets1
             separating individual multilines
         offsets1: Offsets into flat_values separating individual lines
-        result: boolean array at least as long as start_offsets0 into which the
-            intersection results will be written
+        result: boolean array to be provided by the caller into which intersection
+            results will be written; must be at least as long as start_offsets
 
     Returns:
         None
@@ -458,8 +458,8 @@ def polygons_intersect_bounds(
         start_offsets0, stop_offsets0: start and stop offsets into offsets1 separating
             individual polygons
         offsets1:  offsets into flat_values separating individual polygons rings
-        result: boolean array at least as long as start_offsets0 into which the
-            intersection results will be written
+        result: boolean array to be provided by the caller into which intersection
+            results will be written; must be at least as long as start_offsets
 
     Returns:
         None
@@ -503,8 +503,8 @@ def multipolygons_intersect_bounds(
             individual multipolygons
         offsets1: offsets into offsets2 separating individual polygons
         offsets2: offsets into flat_values separating individual polygon rings
-        result: boolean array at least as long as start_offsets0 into which the
-            intersection results will be written
+        result: boolean array to be provided by the caller into which intersection
+            results will be written; must be at least as long as start_offsets
 
     Returns:
         None
