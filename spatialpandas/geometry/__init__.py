@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from .polygon import Polygon, PolygonArray, PolygonDtype
 from .multipolygon import MultiPolygon, MultiPolygonArray, MultiPolygonDtype
 from .line import Line, LineArray, LineDtype

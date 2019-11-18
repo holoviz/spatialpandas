@@ -1,9 +1,9 @@
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from spatialpandas.geometry._algorithms import compute_line_length, \
-    geometry_map_nested1
+from spatialpandas.geometry._algorithms.intersection import lines_intersect_bounds
+from spatialpandas.geometry._algorithms.measures import compute_line_length
 from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry0
+    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested1
 )
 import numpy as np
 from dask.dataframe.extensions import make_array_nonempty
@@ -20,7 +20,13 @@ class LineDtype(GeometryDtype):
         return LineArray
 
 
-class Line(Geometry0):
+class Line(Geometry):
+    _nesting_levels = 0
+
+    @classmethod
+    def construct_array_type(cls):
+        return LineArray
+
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
@@ -58,11 +64,21 @@ or LinearRing""".format(typ=type(shape).__name__))
 
     @property
     def length(self):
-        return compute_line_length(self._values, self._value_offsets)
+        return compute_line_length(self.flat_values, self.flat_inner_offsets)
 
     @property
     def area(self):
         return 0.0
+
+    def intersects_bounds(self, bounds):
+        x0, y0, x1, y1 = bounds
+        result = np.zeros(1, dtype=np.bool_)
+        offsets = self.flat_outer_offsets
+        lines_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, offsets[:-1], offsets[1:], result
+        )
+        return result[0]
 
 
 class LineArray(GeometryArray):
@@ -92,7 +108,7 @@ class LineArray(GeometryArray):
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
         for c, result_offset in enumerate(self.offsets):
-            geometry_map_nested1(
+            _geometry_map_nested1(
                 compute_line_length,
                 result,
                 result_offset,
@@ -105,6 +121,22 @@ class LineArray(GeometryArray):
     @property
     def area(self):
         return np.zeros(len(self), dtype=np.float64)
+
+    def intersects_bounds(self, bounds, inds=None):
+        x0, y0, x1, y1 = bounds
+        offsets = self.flat_outer_offsets
+        start_offsets0 = offsets[:-1]
+        stop_offsets0 = offsets[1:]
+        if inds is not None:
+            start_offsets0 = start_offsets0[inds]
+            stop_offsets0 = stop_offsets0[inds]
+
+        result = np.zeros(len(stop_offsets0), dtype=np.bool_)
+        lines_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, start_offsets0, stop_offsets0, result
+        )
+        return result
 
 
 def _line_array_non_empty(dtype):

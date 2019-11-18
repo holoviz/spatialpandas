@@ -3,6 +3,13 @@ import pytest
 from spatialpandas.geometry import LineArray, LineDtype
 
 
+def test_equality():
+    a = LineArray([[0, 1], [1, 2, 3, 4], None, [-1, -2], []], dtype='float64')
+    assert all(a == a)
+    assert all(a[1:-1] == a[[1, 2, 3]])
+    assert not any(a[1:-1] == a[[2, 3, 1]])
+
+
 # Pandas-provided extension array tests
 # -------------------------------------
 # See http://pandas-docs.github.io/pandas-docs-travis/extending.html

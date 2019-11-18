@@ -1,17 +1,19 @@
 from __future__ import absolute_import
-from pandas.core.dtypes.dtypes import register_extension_dtype
-
-from spatialpandas.geometry import Polygon
-from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry2
-)
-from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
 import numpy as np
-from spatialpandas.geometry._algorithms import (
-    compute_line_length, compute_area, geometry_map_nested3
+import pyarrow as pa
+from pandas.core.dtypes.dtypes import register_extension_dtype
+from spatialpandas.geometry import Polygon
+from spatialpandas.geometry._algorithms.intersection import (
+    multipolygons_intersect_bounds
+)
+from spatialpandas.geometry.base import (
+    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested3)
+from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
+
+from spatialpandas.geometry._algorithms.measures import (
+    compute_line_length, compute_area
 )
 from dask.dataframe.extensions import make_array_nonempty
-import pyarrow as pa
 
 
 @register_extension_dtype
@@ -25,7 +27,12 @@ class MultiPolygonDtype(GeometryDtype):
         return MultiPolygonArray
 
 
-class MultiPolygon(Geometry2):
+class MultiPolygon(Geometry):
+    _nesting_levels = 2
+
+    @classmethod
+    def construct_array_type(cls):
+        return MultiPolygonArray
 
     @classmethod
     def _shapely_to_coordinates(cls, shape, orient=True):
@@ -84,7 +91,6 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
         shape_parts = cls._shapely_to_coordinates(shape, orient)
         return cls(shape_parts)
 
-
     @property
     def boundary(self):
         new_offsets = self.buffer_offsets[1]
@@ -93,11 +99,22 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
 
     @property
     def length(self):
-        return compute_line_length(self._values, self._value_offsets)
+        return compute_line_length(self.flat_values, self.flat_inner_offsets)
 
     @property
     def area(self):
-        return compute_area(self._values, self._value_offsets)
+        return compute_area(self.flat_values, self.flat_inner_offsets)
+
+    def intersects_bounds(self, bounds):
+        x0, y0, x1, y1 = bounds
+        result = np.zeros(1, dtype=np.bool_)
+        offsets1, offsets2 = self.buffer_offsets
+        offsets0 = np.array([0, len(offsets1) - 1], dtype=np.uint32)
+        multipolygons_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1), self.flat_values,
+            offsets0[:-1], offsets0[1:], offsets1, offsets2, result
+        )
+        return result[0]
 
 
 class MultiPolygonArray(GeometryArray):
@@ -141,7 +158,7 @@ class MultiPolygonArray(GeometryArray):
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
         for c, result_offset in enumerate(self.offsets):
-            geometry_map_nested3(
+            _geometry_map_nested3(
                 compute_line_length,
                 result,
                 result_offset,
@@ -155,7 +172,7 @@ class MultiPolygonArray(GeometryArray):
     def area(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
         for c, result_offset in enumerate(self.offsets):
-            geometry_map_nested3(
+            _geometry_map_nested3(
                 compute_area,
                 result,
                 result_offset,
@@ -163,6 +180,22 @@ class MultiPolygonArray(GeometryArray):
                 self.buffer_offsets,
                 self.isna(),
             )
+        return result
+
+    def intersects_bounds(self, bounds, inds=None):
+        x0, y0, x1, y1 = bounds
+        offsets0, offsets1, offsets2 = self.buffer_offsets
+        start_offsets0 = offsets0[:-1]
+        stop_offsets0 = offsets0[1:]
+        if inds is not None:
+            start_offsets0 = start_offsets0[inds]
+            stop_offsets0 = stop_offsets0[inds]
+
+        result = np.zeros(len(start_offsets0), dtype=np.bool_)
+        multipolygons_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1), self.flat_values,
+            start_offsets0, stop_offsets0, offsets1, offsets2, result
+        )
         return result
 
 

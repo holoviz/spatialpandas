@@ -57,10 +57,6 @@ def test_bounds_array_generation(bounds_array):
 
 
 # ### utilities ###
-def rtree_intersection(rt, bounds):
-    return set(rt.intersection(np.array(bounds)))
-
-
 def intersects_bruteforce(query_bounds, bounds):
     if len(bounds) == 0:
         return set()
@@ -74,17 +70,30 @@ def intersects_bruteforce(query_bounds, bounds):
     return set(np.nonzero(~outside_mask)[0])
 
 
+def covers_bruteforce(query_bounds, bounds):
+    if len(bounds) == 0:
+        return set()
+
+    not_covers_mask = np.zeros(bounds.shape[0], dtype=np.bool_)
+    n = bounds.shape[1] // 2
+    for d in range(n):
+        not_covers_mask |= (bounds[:, d] < query_bounds[d])
+        not_covers_mask |= (bounds[:, d + n] > query_bounds[d + n])
+
+    return set(np.nonzero(~not_covers_mask)[0])
+
+
 # ### Hypothesis tests ###
 @given(st_bounds_array(), st_page_size)
 @hyp_settings
-def test_rtree_query_input_bounds(bounds_array, page_size):
+def test_rtree_intersects_input_bounds(bounds_array, page_size):
     # Build rtree
     rt = HilbertRtree(bounds_array, page_size=page_size)
 
     # query with bounds array, these were the input
     for i in range(bounds_array.shape[0]):
         b = bounds_array[i, :]
-        intersected = set(rt.intersection(np.array(b)))
+        intersected = set(rt.intersects(np.array(b)))
 
         # Should at least select itself
         assert i in intersected
@@ -99,14 +108,14 @@ def test_rtree_query_input_bounds(bounds_array, page_size):
     st_page_size
 )
 @hyp_settings
-def test_rtree_query_different_bounds_2d(bounds_array, query_array, page_size):
+def test_rtree_intersects_different_bounds_2d(bounds_array, query_array, page_size):
     # Build rtree
     rt = HilbertRtree(bounds_array, page_size=page_size)
 
     # query with query array
     for i in range(query_array.shape[0]):
         b = query_array[i, :]
-        intersected = set(rt.intersection(np.array(b)))
+        intersected = set(rt.intersects(np.array(b)))
 
         # Compare to brute force implementation
         assert intersected == intersects_bruteforce(b, bounds_array)
@@ -114,7 +123,7 @@ def test_rtree_query_different_bounds_2d(bounds_array, query_array, page_size):
 
 @given(st_bounds_array(), st_page_size)
 @hyp_settings
-def test_rtree_query_all(bounds_array, page_size):
+def test_rtree_intersects_all(bounds_array, page_size):
     # Build rtree
     rt = HilbertRtree(bounds_array, page_size=page_size)
 
@@ -123,7 +132,7 @@ def test_rtree_query_all(bounds_array, page_size):
     b_mins = bounds_array[:, :n].min(axis=0)
     b_maxes = bounds_array[:, n:].max(axis=0)
     b = np.concatenate([b_mins, b_maxes])
-    intersected = set(rt.intersection(np.array(b)))
+    intersected = set(rt.intersects(np.array(b)))
 
     # All indices should be selected
     assert intersected == set(range(bounds_array.shape[0]))
@@ -131,14 +140,14 @@ def test_rtree_query_all(bounds_array, page_size):
 
 @given(st_bounds_array(), st_page_size)
 @hyp_settings
-def test_rtree_query_none(bounds_array, page_size):
+def test_rtree_intersects_none(bounds_array, page_size):
     # Build rtree
     rt = HilbertRtree(bounds_array, page_size=page_size)
 
     # query with query array
     n = bounds_array.shape[1] // 2
     b = ([11] * n) + ([100] * n)
-    intersected = set(rt.intersection(np.array(b)))
+    intersected = set(rt.intersects(np.array(b)))
 
     # Nothing should be selected
     assert intersected == set()
@@ -146,18 +155,46 @@ def test_rtree_query_none(bounds_array, page_size):
 
 @given(st_bounds_array(), st_page_size)
 @hyp_settings
-def test_rtree_query_input_bounds_pickle(bounds_array, page_size):
+def test_rtree_covers_overlaps_input_bounds(bounds_array, page_size):
+    # Build rtree
+    rt = HilbertRtree(bounds_array, page_size=page_size)
+
+    # query with bounds array, these were the input
+    for i in range(bounds_array.shape[0]):
+        b = bounds_array[i, :]
+        covers, overlaps = rt.covers_overlaps(np.array(b))
+        covers = set(covers)
+        overlaps = set(overlaps)
+
+        # Should have nothing in common
+        assert covers.isdisjoint(overlaps)
+
+        # covered should contain all bounding boxes that are fully covered by query
+        all_covers = covers_bruteforce(b, bounds_array)
+        if covers != all_covers:
+            rt.covers_overlaps(np.array(b))
+        assert covers == all_covers
+
+        # covered and overlaps together should contain all intersecting bounding
+        # boxes (overlaps will typically contain others as well)
+        intersects = intersects_bruteforce(b, bounds_array)
+        assert intersects == covers.union(overlaps)
+
+
+@given(st_bounds_array(), st_page_size)
+@hyp_settings
+def test_rtree_pickle(bounds_array, page_size):
     # Build rtree
     rt = HilbertRtree(bounds_array, page_size=page_size)
 
     # Serialize uninitialized rtree
     rt2 = pickle.loads(pickle.dumps(rt))
-    rt2_result = set(rt2.intersection(bounds_array[0, :]))
+    rt2_result = set(rt2.intersects(bounds_array[0, :]))
 
     # Call intersection to construct numba rtree
-    rt_result = set(rt.intersection(bounds_array[0, :]))
+    rt_result = set(rt.intersects(bounds_array[0, :]))
 
     # Serialize initialized rtree
     rt3 = pickle.loads(pickle.dumps(rt))
-    rt3_result = set(rt3.intersection(bounds_array[0, :]))
+    rt3_result = set(rt3.intersects(bounds_array[0, :]))
     assert rt_result == rt2_result and rt_result == rt3_result

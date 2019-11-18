@@ -16,6 +16,11 @@ class RingDtype(LineDtype):
 
 
 class Ring(Line):
+
+    @classmethod
+    def construct_array_type(cls):
+        return RingArray
+
     def to_shapely(self):
         """
         Convert to shapely shape
@@ -42,7 +47,7 @@ class Ring(Line):
 
 
 class RingArray(LineArray):
-    _element_type = Line
+    _element_type = Ring
 
     @property
     def _dtype_class(self):
