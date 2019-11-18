@@ -113,7 +113,7 @@ class _ArrowBufferMixin(object):
     def flat_inner_offsets(self):
         """
         Array of the offsets into flat_values that separate the innermost nested
-        structure of geometry object(s), regardless of the number of testing levels.
+        structure of geometry object(s), regardless of the number of nesting levels.
         """
         buffer_offsets = self.buffer_offsets
         start = buffer_offsets[0][0]
