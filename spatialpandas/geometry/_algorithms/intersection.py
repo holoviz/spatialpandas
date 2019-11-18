@@ -94,7 +94,7 @@ def point_intersects_polygon(x, y, values, value_offsets):
         x, y: coordinates of test point
         values: array of interleaved coordinates of the polygon and holes
         value_offsets: array of offsets into values that separate the rings that
-            compose the polygon. The fist ring is the outer shell and subsequent rings
+            compose the polygon. The first ring is the outer shell and subsequent rings
             are holes contained in this shell.
 
     Returns:
