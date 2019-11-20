@@ -64,6 +64,17 @@ class DaskGeoSeries(dd.Series):
     def intersects_bounds(self, bounds):
         return self.map_partitions(lambda s: s.intersects_bounds(bounds))
 
+    # Override some standard Dask Series methods to propagate extra properties
+    def _propagate_props_to_series(self, new_series):
+        new_series._partition_bounds = self._partition_bounds
+        new_series._partition_sindex = self._partition_sindex
+        return new_series
+
+    def persist(self, **kwargs):
+        return self._propagate_props_to_series(
+            super(DaskGeoSeries, self).persist(**kwargs)
+        )
+
 
 @make_meta.register(GeoSeries)
 def make_meta_series(s, index=None):
@@ -86,31 +97,97 @@ def get_parallel_type_dataframe(df):
 class DaskGeoDataFrame(dd.DataFrame):
     def __init__(self, dsk, name, meta, divisions):
         super().__init__(dsk, name, meta, divisions)
-        self._partition_sindex = None
+        self._partition_sindex = {}
+        self._partition_bounds = {}
 
     @property
     def geometry(self):
         # Use self._meta.geometry.name rather than self._meta._geometry so that an
-        # infomative error message is raised if there is no valid geometry column
+        # informative error message is raised if there is no valid geometry column
         return self[self._meta.geometry.name]
 
     def set_geometry(self, geometry):
         if geometry != self._meta._geometry:
-            # Clear spatial index
-            self._partition_sindex = None
             return self.map_partitions(lambda df: df.set_geometry(geometry))
         else:
             return self
 
     @property
     def partition_sindex(self):
-        if self._partition_sindex is None:
-            self._partition_sindex = self.geometry.partition_sindex
-        return self._partition_sindex
+        geometry_name = self._meta.geometry.name
+        if geometry_name not in self._partition_sindex:
+
+            # Apply partition_bounds to geometry Series before creating the spatial
+            # index. This removes the need to scan partitions to compute bounds
+            geometry = self.geometry
+            if geometry_name in self._partition_bounds:
+                geometry._partition_bounds = self._partition_bounds[geometry_name]
+
+            self._partition_sindex[geometry.name] = geometry.partition_sindex
+            self._partition_bounds[geometry_name] = geometry.partition_bounds
+        return self._partition_sindex[geometry_name]
 
     @property
     def cx(self):
         return _DaskCoordinateIndexer(self, self.partition_sindex)
+
+    def pack_partitions(self, p=10, npartitions=None, shuffle='tasks'):
+        # Get geometry column
+        geometry = self.geometry
+
+        # Compute npartitions if needed
+        if npartitions is None:
+            # Make partitions of ~8 million rows with a minimum of 8
+            # partitions
+            nrows = len(self)
+            npartitions = max(nrows // 2**23, 8)
+
+        # Compute distance of points along the Hilbert-curve
+        total_bounds = geometry.total_bounds
+        ddf = self.assign(_distance=geometry.map_partitions(
+            lambda s: s.hilbert_distance(total_bounds=total_bounds, p=p))
+        )
+
+        # Set index to distance. This will trigger an expensive shuffle
+        # sort operation
+        ddf = ddf.set_index('_distance', npartitions=npartitions, shuffle=shuffle)
+
+        # Drop distance index to save storage space
+        ddf = ddf.reset_index(drop=True)
+
+        # Trigger calculation of partition bounds and spatial index
+        ddf.partition_sindex
+
+        return ddf
+
+    # Override some standard Dask Dataframe methods to propagate extra properties
+    def _propagate_props_to_dataframe(self, new_frame):
+        new_frame._partition_sindex = self._partition_sindex
+        new_frame._partition_bounds = self._partition_bounds
+        return new_frame
+
+    def _propagate_props_to_series(self, new_series):
+        if new_series.name in self._partition_bounds:
+            new_series._partition_bounds = self._partition_bounds[new_series.name]
+        if new_series.name in self._partition_sindex:
+            new_series._partition_sindex = self._partition_sindex[new_series.name]
+        return new_series
+
+    def persist(self, **kwargs):
+        return self._propagate_props_to_dataframe(
+            super(DaskGeoDataFrame, self).persist(**kwargs)
+        )
+
+    def __getitem__(self, key):
+        result = super(DaskGeoDataFrame, self).__getitem__(key)
+        if np.isscalar(key) or isinstance(key, (tuple, str)):
+            # New series of single column, partition props apply if we have them
+            self._propagate_props_to_series(result)
+        elif isinstance(key, (np.ndarray, list)):
+            # New dataframe with same length and same partitions as self so partition
+            # properties still apply
+            self._propagate_props_to_dataframe(result)
+        return result
 
 
 @make_meta.register(GeoDataFrame)

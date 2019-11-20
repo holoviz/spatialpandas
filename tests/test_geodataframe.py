@@ -1,4 +1,4 @@
-from spatialpandas import GeoDataFrame
+from spatialpandas import GeoDataFrame, GeoSeries
 import pandas as pd
 from collections import OrderedDict
 import pytest
@@ -45,3 +45,17 @@ def test_active_geometry(use_dask):
         selected_gdf.geometry
 
     assert selected_gdf.set_geometry('points').geometry.name == 'points'
+
+
+def test_dataframe_slice_types():
+    gdf = GeoDataFrame({
+        'a': [3, 2, 1],
+        'b': [10, 11, 12],
+        'points': pd.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4]], dtype='multipoint'),
+        'line': pd.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4]], dtype='line'),
+    })
+
+    assert isinstance(gdf['a'], pd.Series)
+    assert isinstance(gdf['points'], GeoSeries)
+    assert isinstance(gdf[['a', 'b']], pd.DataFrame)
+    assert isinstance(gdf[['a', 'line']], GeoDataFrame)

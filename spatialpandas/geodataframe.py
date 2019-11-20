@@ -4,6 +4,14 @@ from .geoseries import GeoSeries
 from ._optional_imports import gp
 
 
+def _maybe_geo_frame(data, **kwargs):
+    try:
+        return GeoDataFrame(data, **kwargs)
+    except ValueError:
+        # No geometry compatible columns
+        return pd.DataFrame(data, **kwargs)
+
+
 class GeoDataFrame(pd.DataFrame):
     # properties to propagate
     _metadata = ['_geometry']
@@ -38,7 +46,7 @@ class GeoDataFrame(pd.DataFrame):
 
     @property
     def _constructor(self):
-        return GeoDataFrame
+        return _maybe_geo_frame
 
     @property
     def _constructor_sliced(self):

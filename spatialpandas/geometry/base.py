@@ -3,12 +3,14 @@ from numbers import Integral
 from typing import Iterable
 import pyarrow as pa
 import numpy as np
+import pandas as pd
 import re
 
 from numba import jit, prange
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
 from pandas.api.types import is_array_like
 
+from spatialpandas.spatialindex.rtree import _distances_from_bounds
 from ._algorithms.bounds import (
     total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
 )
@@ -135,6 +137,10 @@ class GeometryDtype(ExtensionDtype):
     base = np.dtype('O')
     _metadata = ('_dtype',)
     na_value = np.nan
+
+    @classmethod
+    def __from_arrow__(cls, data):
+        return cls.construct_array_type()(data)
 
     def __init__(self, subtype):
         if isinstance(subtype, GeometryDtype):
@@ -359,10 +365,6 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
     def __arrow_array__(self, type=None):
         return self.data
 
-    @classmethod
-    def __from_arrow__(cls, data):
-        return cls(data)
-
     # Constructor
     def __init__(self, array, dtype=None, copy=None):
         # Choose default dtype for empty arrays
@@ -394,7 +396,7 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
         elif isinstance(array, pa.Array):
             self.data = array
         elif isinstance(array, pa.ChunkedArray):
-            self.data = pa.concat_arrays(array)
+            self.data = pa.concat_arrays(array.chunks)
         elif isinstance(array, dict) and 'offsets' in array and 'values' in array:
             # Dict of flat values / offsets
             offsets = array['offsets']
@@ -753,6 +755,20 @@ Cannot check equality of {typ} of length {a_len} with:
     def bounds(self):
         return bounds_interleaved(self.buffer_values, self.buffer_outer_offsets)
 
+    def hilbert_distance(self, total_bounds=None, p=10):
+        # Handle defualt total_bounds
+        if total_bounds is None:
+            total_bounds = list(self.total_bounds)
+
+        # Expand zero width bounds
+        if total_bounds[0] == total_bounds[2]:
+            total_bounds[2] += 1.0
+        if total_bounds[1] == total_bounds[3]:
+            total_bounds[3] += 1.0
+        total_bounds = tuple(total_bounds)
+
+        return _distances_from_bounds(self.bounds, total_bounds, p)
+
     def intersects_bounds(self, bounds, inds=None):
         """
         Test whether each element in the array intersects with the supplied bounds
@@ -1004,6 +1020,10 @@ def to_geometry_array(data, dtype=None):
         }
     else:
         shapely_to_spatialpandas = {}
+
+    # Normalize dtype from string
+    if dtype is not None:
+        dtype = pd.array([], dtype=dtype).dtype
 
     err_msg = "Unable to convert data argument to a Geometry array"
     if is_geometry_array(data):

@@ -44,6 +44,25 @@ def _parent(node):
     return (node - 1) // 2
 
 
+@ngjit
+def _distances_from_bounds(bounds, total_bounds, p):
+    n = bounds.shape[1] // 2
+    dim_ranges = [(total_bounds[d], total_bounds[d + n]) for d in range(n)]
+    # Avoid degenerate case where there is a single unique rectangle that is a
+    # single point. Increase the range by 1.0 to prevent divide by zero error
+    for d in range(n):
+        if dim_ranges[d][0] == dim_ranges[d][1]:
+            dim_ranges[d] = (dim_ranges[d][0], dim_ranges[d][1] + 1)
+    # Compute hilbert distance of the middle of each bounding box
+    dim_mids = [(bounds[:, d] + bounds[:, d + n]) / 2.0 for d in range(n)]
+    side_length = 2 ** p
+    coords = np.zeros((bounds.shape[0], n), dtype=np.int64)
+    for d in range(n):
+        coords[:, d] = _data2coord(dim_mids[d], dim_ranges[d], side_length)
+    hilbert_distances = distances_from_coordinates(p, coords)
+    return hilbert_distances
+
+
 class HilbertRtree(object):
     """
     This class provides a numba implementation of a read-only Hilbert R-tree
@@ -80,21 +99,9 @@ class HilbertRtree(object):
         leaf_start = tree_length - next_pow2
 
         # Compute Hilbert distances for inputs
-        side_length = 2 ** p
-        dim_ranges = [(bounds[:, d].min(), bounds[:, d + n].max()) for d in range(n)]
-
-        # Avoid degenerate case where there is a single unique rectangle that is a
-        # single point. Increase the range by 1.0 to prevent divide by zero error
-        for d in range(n):
-            if dim_ranges[d][0] == dim_ranges[d][1]:
-                dim_ranges[d] = (dim_ranges[d][0], dim_ranges[d][1] + 1)
-
-        # Compute hilbert distance of the middle of each bounding box
-        dim_mids = [(bounds[:, d] + bounds[:, d + n]) / 2.0 for d in range(n)]
-        coords = np.zeros((bounds.shape[0], n), dtype=np.int64)
-        for d in range(n):
-            coords[:, d] = _data2coord(dim_mids[d], dim_ranges[d], side_length)
-        hilbert_distances = distances_from_coordinates(p, coords)
+        total_bounds = ([bounds[:, d].min() for d in range(n)] +
+                        [bounds[:, d + n].max() for d in range(n)])
+        hilbert_distances = _distances_from_bounds(bounds, total_bounds, p)
 
         # Calculate indices needed to sort bounds by hilbert distance
         keys = np.argsort(hilbert_distances)
@@ -141,6 +148,7 @@ class HilbertRtree(object):
             layer -= 1
 
         return sorted_bounds, keys, bounds_tree
+
 
     def __init__(self, bounds, p=10, page_size=512):
         """
