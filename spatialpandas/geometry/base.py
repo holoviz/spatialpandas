@@ -7,7 +7,7 @@ import re
 
 from numba import jit, prange
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.api.types import is_array_like
 
 from ._algorithms.bounds import (
     total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
