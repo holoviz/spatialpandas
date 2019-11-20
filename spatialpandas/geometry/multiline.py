@@ -1,12 +1,13 @@
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
+from spatialpandas.geometry._algorithms.intersection import (
+    lines_intersect_bounds, multilines_intersect_bounds
+)
 from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry1
+    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested2
 )
 import numpy as np
-from spatialpandas.geometry._algorithms import (
-    compute_line_length, geometry_map_nested2
-)
+from spatialpandas.geometry._algorithms.measures import compute_line_length
 from dask.dataframe.extensions import make_array_nonempty
 
 
@@ -20,15 +21,25 @@ class MultiLineDtype(GeometryDtype):
         return MultiLineArray
 
 
-class MultiLine(Geometry1):
+class MultiLine(Geometry):
+    _nesting_levels = 1
+
+    @classmethod
+    def construct_array_type(cls):
+        return MultiLineArray
+
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
         if isinstance(shape, sg.MultiLineString):
             shape = list(shape)
             line_parts = []
-            for line in shape:
-                line_parts.append(np.asarray(line.ctypes))
+            if len(shape) == 0:
+                # Add single empty line so we have the right number of nested levels
+                line_parts.append([])
+            else:
+                for line in shape:
+                    line_parts.append(np.asarray(line.ctypes))
             return line_parts
         elif isinstance(shape, (sg.LineString, sg.LinearRing)):
             return [np.asarray(shape.ctypes)]
@@ -65,11 +76,23 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
 
     @property
     def length(self):
-        return compute_line_length(self._values, self._value_offsets)
+        return compute_line_length(self.flat_values, self.flat_inner_offsets)
 
     @property
     def area(self):
         return 0.0
+
+    def intersects_bounds(self, bounds):
+        x0, y0, x1, y1 = bounds
+        offsets = self.flat_outer_offsets
+        start_offsets = offsets[:-1]
+        stop_offstes = offsets[1:]
+        result = np.zeros(len(start_offsets), dtype=np.bool_)
+        lines_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, start_offsets, stop_offstes, result
+        )
+        return result.any()
 
 
 class MultiLineArray(GeometryArray):
@@ -99,7 +122,7 @@ class MultiLineArray(GeometryArray):
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
         for c, result_offset in enumerate(self.offsets):
-            geometry_map_nested2(
+            _geometry_map_nested2(
                 compute_line_length,
                 result,
                 result_offset,
@@ -112,6 +135,22 @@ class MultiLineArray(GeometryArray):
     @property
     def area(self):
         return np.zeros(len(self), dtype=np.float64)
+
+    def intersects_bounds(self, bounds, inds=None):
+        x0, y0, x1, y1 = bounds
+        offsets0, offsets1 = self.buffer_offsets
+        start_offsets0 = offsets0[:-1]
+        stop_offsets0 = offsets0[1:]
+        if inds is not None:
+            start_offsets0 = start_offsets0[inds]
+            stop_offsets0 = stop_offsets0[inds]
+
+        result = np.zeros(len(start_offsets0), dtype=np.bool_)
+        multilines_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, start_offsets0, stop_offsets0, offsets1, result
+        )
+        return result
 
 
 def _multi_line_array_non_empty(dtype):

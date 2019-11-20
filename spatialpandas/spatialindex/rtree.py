@@ -190,20 +190,47 @@ class HilbertRtree(object):
             )
         return self._numba_rtree
 
-    def intersection(self, query_bounds):
+    def intersects(self, bounds):
         """
         Compute the indices of the input bounding boxes that intersect with the
         supplied query bounds
 
         Args:
-            query_bounds: An array of the form [min0, min1, ..., max0, max1, ...]
+            bounds: An array of the form [min0, min1, ..., max0, max1, ...]
                 representing the bounds to calculate intersections against
 
         Returns:
             1d numpy array of the indices of all of the rows in the input bounds array
-            that intersect with query_bounds
+            that intersect with the query bounds
         """
-        return self.numba_rtree.intersection(query_bounds)
+        bounds = tuple(float(b) for b in bounds)
+        return self.numba_rtree.intersects(bounds)
+
+    def covers_overlaps(self, bounds):
+        """
+        Simultaneously compute the indices of the input bounding boxes that are covered
+        by the query bounds and those that overlap with the query bounds
+
+        Args:
+            bounds: An array of the form [min0, min1, ..., max0, max1, ...]
+                representing the bounds to calculate intersections against
+
+        Returns:
+            Tuple of two 1d numpy arrays of indices into the input bounds array.
+              * The first array contains indices of all bounding boxes that are fully
+              covered by the query bounds.
+              * The second array contains the indices of all bounding boxes that
+              overlap with one or more edges of the query bounds.
+        """
+        bounds = tuple(float(b) for b in bounds)
+        return self.numba_rtree.covers_overlaps(bounds)
+
+    @property
+    def total_bounds(self):
+        """
+        Tuple of the total bounds of all bounding boxes
+        """
+        return tuple(self.numba_rtree._bounds_tree[0, :])
 
 
 _numbartree_spec = [
@@ -259,21 +286,15 @@ class _NumbaRtree(object):
             else:
                 node = child
 
-    def intersection(self, query_bounds):
-        """
-        See HilbertRtree.intersection
-        """
+    def _maybe_intersects_ranges(self, query_bounds):
         if len(query_bounds) % 2 != 0:
             raise ValueError(
                 'query_bounds must an array with an even number of elements'
             )
-
         n = len(query_bounds) // 2
-
         nodes = [0]
-        intersect_ranges = []
+        covered_ranges = []
         maybe_intersect_ranges = []
-
         # Find ranges of indices that overlap with query bounds
         while nodes:
             next_node = nodes.pop()
@@ -302,7 +323,7 @@ class _NumbaRtree(object):
                 # Node's bounds are fully inside query bounds
                 start = self._start_index(next_node)
                 stop = self._stop_index(next_node)
-                intersect_ranges.append((start, stop))
+                covered_ranges.append((start, stop))
             else:
                 start = self._start_index(next_node)
                 stop = self._stop_index(next_node)
@@ -312,9 +333,19 @@ class _NumbaRtree(object):
                     # Partial overlap of interior bounding box, recurse to children
                     nodes.extend([_right_child(next_node), _left_child(next_node)])
 
+        return covered_ranges, maybe_intersect_ranges
+
+    def intersects(self, query_bounds):
+        """
+        See HilbertRtree.intersection
+        """
+        n = len(query_bounds) // 2
+        covered_ranges, maybe_intersect_ranges = self._maybe_intersects_ranges(
+            query_bounds)
+
         # Compute max result length
         max_len = 0
-        for start, stop in intersect_ranges:
+        for start, stop in covered_ranges:
             max_len += stop - start
         for start, stop in maybe_intersect_ranges:
             max_len += stop - start
@@ -322,10 +353,10 @@ class _NumbaRtree(object):
         # Initialize result buffer with max length
         result = np.zeros(max_len, dtype=np.uint32)
 
-        # populate result from intersect_ranges. In this case, we have certainty that
+        # populate result from covered_ranges. In this case, we have certainty that
         # all bounding boxes in each slice intersect with query_bounds.
         result_start = 0
-        for start, stop in intersect_ranges:
+        for start, stop in covered_ranges:
             next_slice = self._keys[start:stop]
             result[result_start:result_start + len(next_slice)] = next_slice
             result_start += len(next_slice)
@@ -347,3 +378,62 @@ class _NumbaRtree(object):
 
         # Return populated portion of result
         return result[:result_start]
+
+    def covers_overlaps(self, query_bounds):
+        """
+        See HilbertRtree.covers_overlaps
+        """
+        n = len(query_bounds) // 2
+        covered_ranges, maybe_intersect_ranges = self._maybe_intersects_ranges(
+            query_bounds)
+
+        # Initialize results arrays
+        max_len0 = 0
+        for start, stop in covered_ranges:
+            max_len0 += stop - start
+
+        max_len1 = 0
+        for start, stop in maybe_intersect_ranges:
+            max_len1 += stop - start
+
+        covers_inds = np.zeros(max_len0 + max_len1, dtype=np.uint32)
+        overlaps_inds = np.zeros(max_len1, dtype=np.uint32)
+
+        # Process covered_ranges, all of these will be added to covered_inds
+        covers_start = 0
+        for start, stop in covered_ranges:
+            next_slice = self._keys[start:stop]
+            covers_inds[covers_start:covers_start + len(next_slice)] = next_slice
+            covers_start += len(next_slice)
+
+        # Process maybe_intersect_ranges. Some of these will populate covered_inds,
+        # some overlaps_inds, and some will be excluded
+        overlaps_start = 0
+        for start, stop in maybe_intersect_ranges:
+            next_slice = self._keys[start:stop]
+            bounds_slice = self._bounds[start:stop, :]
+
+            # Check which bounds are fully outside query region
+            outside_mask = np.zeros(bounds_slice.shape[0], dtype=np.bool_)
+            for d in range(n):
+                outside_mask |= (bounds_slice[:, d + n] < query_bounds[d])
+                outside_mask |= (bounds_slice[:, d] > query_bounds[d + n])
+
+            # Check which bounds are fully covered by query region
+            covers_mask = np.ones(bounds_slice.shape[0], dtype=np.bool_)
+            for d in range(n):
+                covers_mask &= (bounds_slice[:, d] >= query_bounds[d])
+                covers_mask &= (bounds_slice[:, d + n] <= query_bounds[d + n])
+
+            # Update covers_inds
+            covers_slice = next_slice[covers_mask]
+            covers_inds[covers_start:covers_start + len(covers_slice)] = covers_slice
+            covers_start += len(covers_slice)
+
+            # Update overlaps_inds
+            overlaps_slice = next_slice[~(outside_mask | covers_mask)]
+            overlaps_stop = overlaps_start + len(overlaps_slice)
+            overlaps_inds[overlaps_start:overlaps_stop] = overlaps_slice
+            overlaps_start += len(overlaps_slice)
+
+        return covers_inds[:covers_start], overlaps_inds[:overlaps_start]

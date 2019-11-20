@@ -2,6 +2,7 @@ import numpy as np
 from numba import jit
 
 ngjit = jit(nopython=True, nogil=True)
+ngpjit = jit(nopython=True, nogil=True, parallel=True)
 
 
 @ngjit

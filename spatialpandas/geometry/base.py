@@ -1,24 +1,20 @@
 from functools import total_ordering
 from numbers import Integral
 from typing import Iterable
-
 import pyarrow as pa
 import numpy as np
 import re
 
-from pandas.api.types import is_array_like
-from pandas.api.extensions import (
-    ExtensionArray, ExtensionDtype, register_extension_dtype
+from numba import jit, prange
+from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.core.dtypes.inference import is_array_like
+
+from ._algorithms.bounds import (
+    total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
 )
-
-from spatialpandas.geometry._algorithms import (
-    bounds_interleaved, bounds_interleaved_1d, _lexographic_lt,
-    extract_isnull_bytemap)
-
-try:
-    import shapely.geometry as sg
-except ImportError:
-    sg = None
+from ..spatialindex import HilbertRtree
+from ..utils import ngjit
+from .._optional_imports import sg, gp
 
 
 def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
@@ -57,16 +53,23 @@ def _unwrap_geometry(a, element_dtype):
 
 
 class _ArrowBufferMixin(object):
+
     @property
     def buffer_values(self):
-        buffers = self.data.buffers()
-        return np.asarray(buffers[-1]).view(self.numpy_dtype)
+        value_buffer = self.data.buffers()[-1]
+        if value_buffer is None:
+            return np.array([], dtype=self.numpy_dtype)
+        else:
+            return np.asarray(value_buffer).view(self.numpy_dtype)
 
     @property
     def buffer_offsets(self):
         buffers = self.data.buffers()
         if len(buffers) < 2:
             return (np.array([0]),)
+        elif len(buffers) < 3:
+            # offset values that include everything
+            return (np.array([0, len(self.data)]),)
 
         # Slice first offsets array to match any current extension array slice
         # All other buffers remain unchanged
@@ -92,6 +95,33 @@ class _ArrowBufferMixin(object):
             stop = offsets[stop]
 
         return self.buffer_values[start:stop]
+
+    @property
+    def flat_outer_offsets(self):
+        """
+        Array of the offsets into flat_values that separate the outermost nested
+        structure of geometry object(s), regardless of the number of nesting levels.
+        """
+        buffer_offsets = self.buffer_offsets
+        flat_offsets = buffer_offsets[0]
+        for offsets in buffer_offsets[1:]:
+            flat_offsets = offsets[flat_offsets]
+
+        return flat_offsets
+
+    @property
+    def flat_inner_offsets(self):
+        """
+        Array of the offsets into flat_values that separate the innermost nested
+        structure of geometry object(s), regardless of the number of nesting levels.
+        """
+        buffer_offsets = self.buffer_offsets
+        start = buffer_offsets[0][0]
+        stop = buffer_offsets[0][-1]
+        for offsets in buffer_offsets[1:-1]:
+            start = offsets[start]
+            stop = offsets[stop]
+        return buffer_offsets[-1][start:stop + 1]
 
 
 class GeometryDtype(ExtensionDtype):
@@ -247,6 +277,13 @@ class Geometry(_ArrowBufferMixin):
             return NotImplemented
         return _lexographic_lt(np.asarray(self.data), np.asarray(other.data))
 
+    def __len__(self):
+        return len(self.flat_outer_offsets - 1)
+
+    @classmethod
+    def construct_array_type(cls):
+        return GeometryArray
+
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         raise NotImplementedError()
@@ -267,88 +304,16 @@ class Geometry(_ArrowBufferMixin):
 
     @property
     def numpy_dtype(self):
-        return np.dtype(self.data.type.to_pandas_dtype())
-
-
-class Geometry0(Geometry):
-    _nesting_levels = 0
-
-    @property
-    def numpy_dtype(self):
-        return np.dtype(self.data.type.to_pandas_dtype())
-
-    @property
-    def _values(self):
-        return np.asarray(self.data)
-
-    @property
-    def _value_offsets(self):
-        return np.array([0, len(self.data)])
-
-
-class Geometry1(Geometry):
-    _nesting_levels = 1
-
-    @property
-    def numpy_dtype(self):
         if isinstance(self.data, pa.NullArray):
             return None
         else:
-            return np.dtype(self.data.type.value_type.to_pandas_dtype())
+            typ = self.data.type
+            for _ in range(self._nesting_levels):
+                typ = typ.value_type
+            return np.dtype(typ.to_pandas_dtype())
 
-    @property
-    def _value_offsets(self):
-        buffers = self.data.buffers()
-        if len(buffers) <= 1:
-            # Treat NullArray as empty double array so numba can handle it
-            return np.array([0], dtype=np.uint32)
-        else:
-            offsets0 = np.asarray(buffers[1]).view(np.uint32)
-
-            start = self.data.offset
-            stop = start + len(self.data) + 1
-            return offsets0[start:stop]
-
-    @property
-    def _values(self):
-        if isinstance(self.data, pa.NullArray):
-            # Treat NullArray as empty double array so numba can handle it
-            return np.array([], dtype=np.float64)
-        else:
-            return self.data.flatten().to_numpy()
-
-
-class Geometry2(Geometry):
-    _nesting_levels = 2
-
-    @property
-    def numpy_dtype(self):
-        if isinstance(self.data, pa.NullArray):
-            return None
-        else:
-            return np.dtype(self.data.type.value_type.value_type.to_pandas_dtype())
-
-    @property
-    def _value_offsets(self):
-        buffers = self.data.buffers()
-        if len(buffers) <= 1:
-            # Treat NullArray as empty double array so numba can handle it
-            return np.array([0], dtype=np.uint32)
-        else:
-            offsets0 = np.asarray(buffers[1]).view(np.uint32)
-            offsets1 = np.asarray(buffers[3]).view(np.uint32)
-
-            start = offsets0[self.data.offset]
-            stop = offsets0[self.data.offset + len(self.data)]
-            return offsets1[start:stop + 1]
-
-    @property
-    def _values(self):
-        if isinstance(self.data, pa.NullArray):
-            # Treat NullArray as empty double array so numba can handle it
-            return np.array([], dtype=np.float64)
-        else:
-            return self.data.flatten().flatten().to_numpy()
+    def intersects_bounds(self, bounds):
+        raise NotImplementedError()
 
 
 class GeometryArray(ExtensionArray, _ArrowBufferMixin):
@@ -424,6 +389,39 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
             self.data = array
         elif isinstance(array, pa.ChunkedArray):
             self.data = pa.concat_arrays(array)
+        elif isinstance(array, dict) and 'offsets' in array and 'values' in array:
+            # Dict of flat values / offsets
+            offsets = array['offsets']
+            values = array['values']
+            isna = array.get('isna', None)
+
+            # Build list of missing bitmasks
+            masks = [None] * len(offsets)
+            if isna is not None:
+                mask = np.packbits(~isna, bitorder='little')
+                masks[0] = pa.py_buffer(mask)
+
+            # Build scalar arrow dtype
+            arrow_dtype = pa.from_numpy_dtype(values.dtype)
+
+            # Build inner ListArray
+            array = pa.ListArray.from_buffers(
+                arrow_dtype, length=len(values), buffers=[None, pa.py_buffer(values)]
+            )
+
+            # Wrap nested lists
+            for i in reversed(range(len(offsets))):
+                offset = offsets[i]
+                mask = masks[i]
+                arrow_dtype = pa.list_(arrow_dtype)
+                array = pa.ListArray.from_buffers(
+                    arrow_dtype,
+                    length=len(offset) - 1,
+                    buffers=[mask, pa.py_buffer(offset)],
+                    children=[array]
+                )
+
+            self.data = array
         else:
             raise ValueError(
                 "Unsupported type passed for {}: {}".format(
@@ -450,6 +448,74 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
             raise ValueError("""
 Geometry objects are represented by interleaved x and y coordinates, so they must have
 an even number of elements. Received specification with an odd number of elements.""")
+
+        # Initialize backing property for spatial index
+        self._sindex = None
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            if len(other) != len(self):
+                raise ValueError("""
+Cannot check equality of {typ} instances of unequal length
+    len(ra1) == {len_a1}
+    len(ra2) == {len_a2}""".format(
+                    typ=type(self).__name__,
+                    len_a1=len(self),
+                    len_a2=len(other)))
+            result = np.zeros(len(self), dtype=np.bool_)
+            self_offsets = self.buffer_offsets
+            other_offsets = other.buffer_offsets
+            self_values = self.buffer_values
+            other_values = other.buffer_values
+            for i in range(len(self)):
+                self_start = other_start = i
+                self_stop = other_stop = i + 1
+
+                # Recurse through nested levels and look for a length mismatch
+                length_mismatch = False
+                for j in range(len(self_offsets)):
+                    self_start = self_offsets[j][self_start]
+                    self_stop = self_offsets[j][self_stop]
+                    other_start = other_offsets[j][other_start]
+                    other_stop = other_offsets[j][other_stop]
+
+                    if self_stop - self_start != other_stop - other_start:
+                        length_mismatch = True
+                        break
+
+                if length_mismatch:
+                    result[i] = False
+                    continue
+
+                # Lengths all match, check equality of values
+                result[i] = np.array_equal(
+                    self_values[self_start:self_stop],
+                    other_values[other_start:other_stop]
+                )
+            return result
+        else:
+            raise ValueError("""
+Cannot check equality of {typ} of length {a_len} with:
+    {other}""".format(typ=type(self).__name__, a_len=len(self), other=repr(other)))
+
+    @property
+    def sindex(self):
+        if self._sindex is None:
+            self._sindex = HilbertRtree(self.bounds)
+        return self._sindex
+
+    @property
+    def cx(self):
+        """
+        Geopandas-style spatial indexer to select a subset of the array by intersection
+        with a bounding box
+
+        Format of input should be ``.cx[xmin:xmax, ymin:ymax]``. Any of
+        ``xmin``, ``xmax``, ``ymin``, and ``ymax`` can be provided, but input
+        must include a comma separating x and y slices. That is, ``.cx[:, :]``
+        will return the full series/frame, but ``.cx[:]`` is not implemented.
+        """
+        return _CoordinateIndexer(self)
 
     @property
     def _dtype_class(self):
@@ -488,7 +554,7 @@ an even number of elements. Received specification with an odd number of element
     astype.__doc__ = ExtensionArray.astype.__doc__
 
     def isna(self):
-        return extract_isnull_bytemap(self.data)
+        return _extract_isnull_bytemap(self.data)
 
     isna.__doc__ = ExtensionArray.isna.__doc__
 
@@ -518,23 +584,26 @@ an even number of elements. Received specification with an odd number of element
                 else:
                     return None
         elif isinstance(item, slice):
-            data = []
-            selected_indices = np.arange(len(self))[item]
-
-            for selected_index in selected_indices:
-                data.append(self[selected_index])
-
-            return self.__class__(data, dtype=self.dtype)
+            if item.step is None or item.step == 1:
+                # pyarrow only supports slice with step of 1
+                return self.__class__(self.data[item], dtype=self.dtype)
+            else:
+                selected_indices = np.arange(len(self))[item]
+                return self.take(selected_indices, allow_fill=False)
         elif isinstance(item, Iterable):
             item = np.asarray(item)
             if item.dtype == 'bool':
-                data = []
-
-                for i, m in enumerate(item):
-                    if m:
-                        data.append(self[i])
-
-                return self.__class__(data, dtype=self.dtype)
+                # Convert to unsigned integer array of indices
+                indices = np.nonzero(item)[0].astype(self.buffer_offsets[0].dtype)
+                new_offsets, new_values = _take_offsets(
+                    indices,
+                    self.buffer_offsets,
+                    self.buffer_values
+                )
+                new_isna = self.isna()[indices]
+                return self.__class__(
+                    dict(isna=new_isna, offsets=new_offsets, values=new_values)
+                )
 
             elif item.dtype.kind in ('i', 'u'):
                 return self.take(item, allow_fill=False)
@@ -557,14 +626,60 @@ an even number of elements. Received specification with an odd number of element
     def take(self, indices, allow_fill=False, fill_value=None):
         from pandas.core.algorithms import take
 
-        data = self.astype(object)
-        if allow_fill and fill_value is None:
-            fill_value = self.dtype.na_value
-        # fill value should always be translated from the scalar
-        # type for the array, to the physical storage type for
-        # the data, before passing to take.
-        result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
-        return self._from_sequence(result, dtype=self.dtype.subtype)
+        if allow_fill:
+            # fill value should always be translated from the scalar
+            # type for the array, to the physical storage type for
+            # the data, before passing to take.
+            if fill_value is None:
+                fill_value = self.dtype.na_value
+
+            data = self.astype(object)
+            result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
+            return self._from_sequence(result, dtype=self.dtype.subtype)
+        else:
+            if len(self) == 0:
+                raise IndexError("cannot do a non-empty take on {typ}".format(
+                    typ=self.__class__.__name__,
+                ))
+            # standardize indices
+            offset_dtype = self.buffer_offsets[0].dtype
+            if not isinstance(indices, np.ndarray) or indices.dtype.kind != 'u':
+                indices = np.array(indices)
+                invalid_mask = indices < 0
+                if any(indices[invalid_mask] < -len(self)):
+                    raise IndexError(
+                        "Index value out of bounds for {typ} of length {n}: "
+                        "{idx}".format(
+                            typ=self.__class__.__name__,
+                            n=len(self),
+                            idx=indices[invalid_mask][0]
+                        )
+                    )
+
+                indices[invalid_mask] = indices[invalid_mask] + len(self)
+
+            indices = np.asarray(indices, dtype=offset_dtype)
+            invalid_mask = indices >= len(self)
+            if any(invalid_mask):
+                raise IndexError(
+                    "Index value out of bounds for {typ} of length {n}: "
+                    "{idx}".format(
+                        typ=self.__class__.__name__,
+                        n=len(self),
+                        idx=indices[invalid_mask][0]
+                    )
+                )
+
+            # Perform take on offsets
+            new_offsets, new_values = _take_offsets(
+                indices,
+                self.buffer_offsets,
+                self.buffer_values
+            )
+            new_isna = self.isna()[indices]
+            return self.__class__(
+                dict(isna=new_isna, offsets=new_offsets, values=new_values)
+            )
 
     take.__doc__ = ExtensionArray.take.__doc__
 
@@ -624,13 +739,343 @@ an even number of elements. Received specification with an odd number of element
 
     # Base geometry methods
     @property
+    def total_bounds(self):
+        return total_bounds_interleaved(self.flat_values)
+
+    @property
+    def total_bounds_x(self):
+        return total_bounds_interleaved_1d(self.flat_values, 0)
+
+    @property
+    def total_bounds_y(self):
+        return total_bounds_interleaved_1d(self.flat_values, 1)
+
+    @property
     def bounds(self):
-        return bounds_interleaved(self.flat_values)
+        return bounds_interleaved(self.flat_values, self.flat_outer_offsets)
 
-    @property
-    def bounds_x(self):
-        return bounds_interleaved_1d(self.flat_values, 0)
+    def intersects_bounds(self, bounds, inds=None):
+        """
+        Test whether each element in the array intersects with the supplied bounds
 
-    @property
-    def bounds_y(self):
-        return bounds_interleaved_1d(self.flat_values, 1)
+        Args:
+            bounds: Tuple of bounds coordinates of the form (x0, y0, x1, y1)
+            inds: Optional array of indices into the array. If supplied, intersection
+                calculations will be performed only on the elements selected by this
+                array.  If not supplied, intersection calculations are performed
+                on all elements.
+
+        Returns:
+            Array of boolean values indicating which elements of the array intersect
+            with the supplied bounds
+        """
+        raise NotImplementedError()
+
+
+class _CoordinateIndexer(object):
+    def __init__(self, obj, parent=None):
+        self._obj = obj
+        self._parent = parent
+
+    def __getitem__(self, key):
+        obj = self._obj
+        xs, ys = key
+        # Handle xs and ys as scalar numeric values
+        if type(xs) is not slice:
+            xs = slice(xs, xs)
+        if type(ys) is not slice:
+            ys = slice(ys, ys)
+
+        if xs.step is not None or ys.step is not None:
+            raise ValueError(
+                "Slice step not supported. The cx indexer uses slices to represent "
+                "intervals in continuous coordinate space, and a slice step has no "
+                "clear interpretation in this context."
+            )
+        xmin, ymin, xmax, ymax = obj.sindex.total_bounds
+        x0, y0, x1, y1 = (
+            xs.start if xs.start is not None else xmin,
+            ys.start if ys.start is not None else ymin,
+            xs.stop if xs.stop is not None else xmax,
+            ys.stop if ys.stop is not None else ymax,
+        )
+
+        # Handle inverted bounds
+        if x1 < x0:
+            x0, x1 = x1, x0
+        if y1 < y0:
+            y0, y1 = y1, y0
+
+        covers_inds, overlaps_inds = obj.sindex.covers_overlaps((x0, y0, x1, y1))
+        overlaps_inds_mask = obj.intersects_bounds((x0, y0, x1, y1), overlaps_inds)
+        selected_inds = np.sort(
+            np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
+        )
+        if self._parent is not None:
+            return self._parent.iloc[selected_inds]
+        else:
+            return obj[selected_inds]
+
+
+@jit(nopython=True, nogil=True)
+def _lexographic_lt0(a1, a2):
+    """
+    Compare two 1D numpy arrays lexographically
+    Parameters
+    ----------
+    a1: ndarray
+        1D numpy array
+    a2: ndarray
+        1D numpy array
+
+    Returns
+    -------
+    comparison:
+        True if a1 < a2, False otherwise
+    """
+    for e1, e2 in zip(a1, a2):
+        if e1 < e2:
+            return True
+        elif e1 > e2:
+            return False
+    return len(a1) < len(a2)
+
+
+def _lexographic_lt(a1, a2):
+    if a1.dtype != np.object and a1.dtype != np.object:
+        # a1 and a2 primitive
+        return _lexographic_lt0(a1, a2)
+    elif a1.dtype == np.object and a1.dtype == np.object:
+        # a1 and a2 object, process recursively
+        for e1, e2 in zip(a1, a2):
+            if _lexographic_lt(e1, e2):
+                return True
+            elif _lexographic_lt(e2, e1):
+                return False
+        return len(a1) < len(a2)
+    elif a1.dtype != np.object:
+        # a2 is object array, a1 primitive
+        return True
+    else:
+        # a1 is object array, a2 primitive
+        return False
+
+
+@ngjit
+def _take_offsets(inds, all_offsets, values):
+    # Initialize new offsets
+    start_offsets = inds
+    stop_offsets = inds + inds.dtype.type(1)
+    all_new_offsets = []
+    for offsets in all_offsets:
+        new_buffer_len = (stop_offsets - start_offsets).sum() + inds.dtype.type(1)
+        all_new_offsets.append(np.zeros(new_buffer_len, dtype=offsets.dtype))
+        start_offsets = offsets[start_offsets]
+        stop_offsets = offsets[stop_offsets]
+
+    # populate new offsets
+    start_offsets = inds
+    stop_offsets = inds + inds.dtype.type(1)
+    for offsets, new_offsets in zip(all_offsets, all_new_offsets):
+        new_start = 0
+        cumsum = inds.dtype.type(0)
+        for i in range(len(inds)):
+            start = start_offsets[i]
+            stop = stop_offsets[i]
+            if start == stop:
+                # Empty or None element
+                continue
+            offsets_slice = offsets[start_offsets[i]:stop_offsets[i] + 1]
+            offsets_slice = offsets_slice + cumsum - offsets_slice[0]
+            new_stop = new_start + stop - start
+            new_offsets[new_start:new_stop + 1] = offsets_slice
+            cumsum = offsets_slice[-1]
+            new_start = new_stop
+
+        start_offsets = offsets[start_offsets]
+        stop_offsets = offsets[stop_offsets]
+
+    # Initialize new values
+    new_values_len = (stop_offsets - start_offsets).sum()
+    new_values = np.zeros(new_values_len, dtype=values.dtype)
+
+    # Populate new values
+    new_start = 0
+    for i in range(len(inds)):
+        start = start_offsets[i]
+        stop = stop_offsets[i]
+        if start == stop:
+            # Empty or None element
+            continue
+        values_slice = values[start:stop]
+        new_stop = new_start + stop - start
+        new_values[new_start:new_stop] = values_slice
+        new_start = new_stop
+
+    return all_new_offsets, new_values
+
+
+@ngjit
+def _perform_extract_isnull_bytemap(bitmap, bitmap_length, bitmap_offset, dst_offset, dst):
+    """
+    Note: Copied from fletcher: See NOTICE for license info
+
+    (internal) write the values of a valid bitmap as bytes to a pre-allocatored
+    isnull bytemap.
+
+    Parameters
+    ----------
+    bitmap: pyarrow.Buffer
+        bitmap where a set bit indicates that a value is valid
+    bitmap_length: int
+        Number of bits to read from the bitmap
+    bitmap_offset: int
+        Number of bits to skip from the beginning of the bitmap.
+    dst_offset: int
+        Number of bytes to skip from the beginning of the output
+    dst: numpy.array(dtype=bool)
+        Pre-allocated numpy array where a byte is set when a value is null
+    """
+    for i in range(bitmap_length):
+        idx = bitmap_offset + i
+        byte_idx = idx // 8
+        bit_mask = 1 << (idx % 8)
+        dst[dst_offset + i] = (bitmap[byte_idx] & bit_mask) == 0
+
+
+def _extract_isnull_bytemap(list_array):
+    """
+    Note: Copied from fletcher: See NOTICE for license info
+
+    Extract the valid bitmaps of a chunked array into numpy isnull bytemaps.
+
+    Parameters
+    ----------
+    chunked_array: pyarrow.ChunkedArray
+
+    Returns
+    -------
+    valid_bytemap: numpy.array
+    """
+    result = np.zeros(len(list_array), dtype=bool)
+
+    offset = 0
+    chunk = list_array
+    valid_bitmap = chunk.buffers()[0]
+    if valid_bitmap:
+        buf = memoryview(valid_bitmap)
+        _perform_extract_isnull_bytemap(buf, len(chunk), chunk.offset, offset, result)
+    else:
+        return np.full(len(list_array), False)
+
+    return result
+
+
+@jit(nogil=True, nopython=True, parallel=True)
+def _geometry_map_nested1(
+        fn, result, result_offset, values, value_offsets, missing
+):
+    assert len(value_offsets) == 1
+    value_offsets0 = value_offsets[0]
+    n = len(value_offsets0) - 1
+    for i in prange(n):
+        if not missing[i]:
+            result[i + result_offset] = fn(values, value_offsets0[i:i + 2])
+
+
+@jit(nogil=True, nopython=True, parallel=True)
+def _geometry_map_nested2(
+        fn, result, result_offset, values, value_offsets, missing
+):
+    assert len(value_offsets) == 2
+    value_offsets0 = value_offsets[0]
+    value_offsets1 = value_offsets[1]
+    n = len(value_offsets0) - 1
+    for i in prange(n):
+        if not missing[i]:
+            start = value_offsets0[i]
+            stop = value_offsets0[i + 1]
+            result[i + result_offset] = fn(values, value_offsets1[start:stop + 1])
+
+
+@jit(nogil=True, nopython=True, parallel=True)
+def _geometry_map_nested3(
+        fn, result, result_offset, values, value_offsets, missing
+):
+    assert len(value_offsets) == 3
+    value_offsets0 = value_offsets[0]
+    value_offsets1 = value_offsets[1]
+    value_offsets2 = value_offsets[2]
+    n = len(value_offsets0) - 1
+    for i in prange(n):
+        if not missing[i]:
+            start = value_offsets1[value_offsets0[i]]
+            stop = value_offsets1[value_offsets0[i + 1]]
+            result[i + result_offset] = fn(values, value_offsets2[start:stop + 1])
+
+
+def is_geometry_array(data):
+    """
+    Check if the data is of geometry dtype.
+    Does not include object array of Geometry/shapely scalars
+    """
+    if isinstance(getattr(data, "dtype", None), GeometryDtype):
+        return True
+    else:
+        return False
+
+
+def to_geometry_array(data):
+    from . import (
+        LineArray, RingArray, MultiLineArray, PolygonArray, MultiPolygonArray
+    )
+    if sg is not None:
+        shapely_to_spatialpandas = {
+            sg.MultiPoint: MultiPolygonArray,
+            sg.Point: MultiPolygonArray,
+            sg.LineString: LineArray,
+            sg.LinearRing: RingArray,
+            sg.MultiLineString: MultiLineArray,
+            sg.Polygon: PolygonArray,
+            sg.MultiPolygon: MultiPolygonArray,
+        }
+    else:
+        shapely_to_spatialpandas = {}
+
+    err_msg = "Unable to convert data argument to a Geometry array"
+    if is_geometry_array(data):
+        # Keep data as is
+        pass
+    elif (is_array_like(data) or
+          isinstance(data, (list, tuple))
+          or gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray))):
+        # Check for list/array of geometry scalars.
+        first_valid = None
+        for val in data:
+            if val is not None:
+                first_valid = val
+                break
+        if isinstance(first_valid, Geometry):
+            # Pass data to constructor of appropriate geometry array
+            data = first_valid.construct_array_type()(data)
+        elif type(first_valid) in shapely_to_spatialpandas:
+            if isinstance(first_valid, sg.LineString):
+                # Handle mix of sg.LineString and sg.MultiLineString
+                for val in data:
+                    if isinstance(val, sg.MultiLineString):
+                        first_valid = val
+                        break
+            elif isinstance(first_valid, sg.Polygon):
+                # Handle mix of sg.Polygon and sg.MultiPolygon
+                for val in data:
+                    if isinstance(val, sg.MultiPolygon):
+                        first_valid = val
+                        break
+
+            array_type = shapely_to_spatialpandas[type(first_valid)]
+            data = array_type(data)
+        else:
+            raise ValueError(err_msg)
+    else:
+        raise ValueError(err_msg)
+    return data

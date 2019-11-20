@@ -24,7 +24,7 @@ def test_points_array():
 
     np.testing.assert_equal(points.length, [0.0, 0.0, 0.0])
     np.testing.assert_equal(points.area, [0.0, 0.0, 0.0])
-    assert points.bounds == (0.0, 0.0, 3.0, 3.0)
+    assert points.total_bounds == (0.0, 0.0, 3.0, 3.0)
 
 
 def test_lines():
@@ -42,7 +42,7 @@ def test_lines_array():
 
     np.testing.assert_equal(lines.length, [4.0, 12.0, 16.0])
     np.testing.assert_equal(lines.area, [0.0, 0.0, 0.0])
-    assert lines.bounds == (0.0, 0.0, 3.0, 3.0)
+    assert lines.total_bounds == (0.0, 0.0, 3.0, 3.0)
 
 
 def test_polygon():
@@ -59,7 +59,7 @@ def test_polygon_array():
     ])
     np.testing.assert_equal(polygons.length, [12.0, 16.0, 4.0])
     np.testing.assert_equal(polygons.area, [9.0, 8.0, -1.0])
-    assert polygons.bounds == (0.0, 0.0, 3.0, 3.0)
+    assert polygons.total_bounds == (0.0, 0.0, 3.0, 3.0)
 
 
 def test_multipolygon():
@@ -82,4 +82,4 @@ def test_multipolygon_array():
     ])
     np.testing.assert_equal(multipolygon.length, [28.0, 12.0])
     np.testing.assert_equal(multipolygon.area, [17.0, 9.0])
-    assert multipolygon.bounds == (0.0, 0.0, 11.0, 11.0)
+    assert multipolygon.total_bounds == (0.0, 0.0, 11.0, 11.0)

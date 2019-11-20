@@ -1,9 +1,8 @@
 import numpy as np
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry0
-)
+from spatialpandas.geometry._algorithms.intersection import multipoints_intersect_bounds
+from spatialpandas.geometry.base import GeometryArray, GeometryDtype, Geometry
 from dask.dataframe.extensions import make_array_nonempty
 
 
@@ -17,7 +16,12 @@ class MultiPointDtype(GeometryDtype):
         return MultiPointArray
 
 
-class MultiPoint(Geometry0):
+class MultiPoint(Geometry):
+    _nesting_levels = 0
+
+    @classmethod
+    def construct_array_type(cls):
+        return MultiPointArray
 
     @classmethod
     def _shapely_to_coordinates(cls, shape):
@@ -62,6 +66,16 @@ or MultiPoint""".format(typ=type(shape).__name__))
     def area(self):
         return 0.0
 
+    def intersects_bounds(self, bounds):
+        x0, y0, x1, y1 = bounds
+        result = np.zeros(1, dtype=np.bool_)
+        offsets = self.flat_outer_offsets
+        multipoints_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, offsets[:-1], offsets[1:], result
+        )
+        return result[0]
+
 
 class MultiPointArray(GeometryArray):
     _element_type = MultiPoint
@@ -93,6 +107,23 @@ class MultiPointArray(GeometryArray):
     @property
     def area(self):
         return np.zeros(len(self), dtype=np.float64)
+
+    def intersects_bounds(self, bounds, inds=None):
+        x0, y0, x1, y1 = bounds
+        offsets0 = self.flat_outer_offsets
+        start_offsets0 = offsets0[:-1]
+        stop_offsets0 = offsets0[1:]
+
+        if inds is not None:
+            start_offsets0 = start_offsets0[inds]
+            stop_offsets0 = stop_offsets0[inds]
+
+        result = np.zeros(len(start_offsets0), dtype=np.bool_)
+        multipoints_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, start_offsets0, stop_offsets0, result
+        )
+        return result
 
 
 def _multi_points_array_non_empty(dtype):

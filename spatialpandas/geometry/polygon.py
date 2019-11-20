@@ -1,15 +1,18 @@
 from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
+from spatialpandas.geometry._algorithms.intersection import polygons_intersect_bounds
 from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry1
+    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested2
 )
 from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
 import numpy as np
-from spatialpandas.geometry._algorithms import (
-    compute_line_length, compute_area, geometry_map_nested2
+from spatialpandas.geometry._algorithms.measures import (
+    compute_line_length, compute_area
 )
 from dask.dataframe.extensions import make_array_nonempty
+
+from spatialpandas.utils import ngjit
 
 
 @register_extension_dtype
@@ -23,7 +26,13 @@ class PolygonDtype(GeometryDtype):
         return PolygonArray
 
 
-class Polygon(Geometry1):
+class Polygon(Geometry):
+    _nesting_levels = 1
+
+    @classmethod
+    def construct_array_type(cls):
+        return PolygonArray
+
     @classmethod
     def _shapely_to_coordinates(cls, shape, orient=True):
         import shapely.geometry as sg
@@ -82,11 +91,23 @@ Received invalid value of type {typ}. Must be an instance of Polygon
 
     @property
     def length(self):
-        return compute_line_length(self._values, self._value_offsets)
+        return compute_line_length(self.flat_values, self.flat_inner_offsets)
 
     @property
     def area(self):
-        return compute_area(self._values, self._value_offsets)
+        return compute_area(self.flat_values, self.flat_inner_offsets)
+
+    def intersects_bounds(self, bounds):
+        x0, y0, x1, y1 = bounds
+        result = np.zeros(1, dtype=np.bool_)
+        offsets1 = self.flat_inner_offsets
+        start_offsets0 = np.array([0], dtype=np.uint32)
+        stop_offsets0 = np.array([len(offsets1) - 1], dtype=np.uint32)
+        polygons_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, start_offsets0, stop_offsets0, offsets1, result
+        )
+        return result[0]
 
 
 class PolygonArray(GeometryArray):
@@ -126,7 +147,7 @@ class PolygonArray(GeometryArray):
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
         for c, result_offset in enumerate(self.offsets):
-            geometry_map_nested2(
+            _geometry_map_nested2(
                 compute_line_length,
                 result,
                 result_offset,
@@ -140,7 +161,7 @@ class PolygonArray(GeometryArray):
     def area(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
         for c, result_offset in enumerate(self.offsets):
-            geometry_map_nested2(
+            _geometry_map_nested2(
                 compute_area,
                 result,
                 result_offset,
@@ -148,6 +169,22 @@ class PolygonArray(GeometryArray):
                 self.buffer_offsets,
                 self.isna(),
             )
+        return result
+
+    def intersects_bounds(self, bounds, inds=None):
+        x0, y0, x1, y1 = bounds
+        offsets0, offsets1 = self.buffer_offsets
+        start_offsets0 = offsets0[:-1]
+        stop_offsets0 = offsets0[1:]
+        if inds is not None:
+            start_offsets0 = start_offsets0[inds]
+            stop_offsets0 = stop_offsets0[inds]
+
+        result = np.zeros(len(start_offsets0), dtype=np.bool_)
+        polygons_intersect_bounds(
+            float(x0), float(y0), float(x1), float(y1),
+            self.flat_values, start_offsets0, stop_offsets0, offsets1, result
+        )
         return result
 
 
