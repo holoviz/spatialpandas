@@ -76,7 +76,7 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
 
     @property
     def length(self):
-        return compute_line_length(self.flat_values, self.flat_inner_offsets)
+        return compute_line_length(self.buffer_values, self.buffer_inner_offsets)
 
     @property
     def area(self):
@@ -84,13 +84,13 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
 
     def intersects_bounds(self, bounds):
         x0, y0, x1, y1 = bounds
-        offsets = self.flat_outer_offsets
+        offsets = self.buffer_outer_offsets
         start_offsets = offsets[:-1]
         stop_offstes = offsets[1:]
         result = np.zeros(len(start_offsets), dtype=np.bool_)
         lines_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, start_offsets, stop_offstes, result
+            self.buffer_values, start_offsets, stop_offstes, result
         )
         return result.any()
 
@@ -148,7 +148,7 @@ class MultiLineArray(GeometryArray):
         result = np.zeros(len(start_offsets0), dtype=np.bool_)
         multilines_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, start_offsets0, stop_offsets0, offsets1, result
+            self.buffer_values, start_offsets0, stop_offsets0, offsets1, result
         )
         return result
 

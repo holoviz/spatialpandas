@@ -86,6 +86,12 @@ class _ArrowBufferMixin(object):
 
     @property
     def flat_values(self):
+        """
+        Flat array of the valid values. This differs from buffer_values if the pyarrow
+        ListArray backing this object is a slice. buffer_values will contain all
+        values from the original (pre-sliced) object whereas flat_values will contain
+        only the sliced values.
+        """
         # Compute valid start/stop index into buffer values array.
         buffer_offsets = self.buffer_offsets
         start = buffer_offsets[0][0]
@@ -97,9 +103,9 @@ class _ArrowBufferMixin(object):
         return self.buffer_values[start:stop]
 
     @property
-    def flat_outer_offsets(self):
+    def buffer_outer_offsets(self):
         """
-        Array of the offsets into flat_values that separate the outermost nested
+        Array of the offsets into buffer_values that separate the outermost nested
         structure of geometry object(s), regardless of the number of nesting levels.
         """
         buffer_offsets = self.buffer_offsets
@@ -110,9 +116,9 @@ class _ArrowBufferMixin(object):
         return flat_offsets
 
     @property
-    def flat_inner_offsets(self):
+    def buffer_inner_offsets(self):
         """
-        Array of the offsets into flat_values that separate the innermost nested
+        Array of the offsets into buffer_values that separate the innermost nested
         structure of geometry object(s), regardless of the number of nesting levels.
         """
         buffer_offsets = self.buffer_offsets
@@ -278,7 +284,7 @@ class Geometry(_ArrowBufferMixin):
         return _lexographic_lt(np.asarray(self.data), np.asarray(other.data))
 
     def __len__(self):
-        return len(self.flat_outer_offsets - 1)
+        return len(self.buffer_outer_offsets - 1)
 
     @classmethod
     def construct_array_type(cls):
@@ -549,7 +555,7 @@ Cannot check equality of {typ} of length {a_len} with:
         else:
             dtype = np.dtype(dtype)
 
-        return GeometryArray(np.asarray(self).astype(dtype), dtype=dtype)
+        return self.__class__(np.asarray(self.data), dtype=dtype)
 
     astype.__doc__ = ExtensionArray.astype.__doc__
 
@@ -626,7 +632,8 @@ Cannot check equality of {typ} of length {a_len} with:
     def take(self, indices, allow_fill=False, fill_value=None):
         from pandas.core.algorithms import take
 
-        if allow_fill:
+        indices = np.asarray(indices)
+        if allow_fill and any(indices < 0):
             # fill value should always be translated from the scalar
             # type for the array, to the physical storage type for
             # the data, before passing to take.
@@ -752,7 +759,7 @@ Cannot check equality of {typ} of length {a_len} with:
 
     @property
     def bounds(self):
-        return bounds_interleaved(self.flat_values, self.flat_outer_offsets)
+        return bounds_interleaved(self.buffer_values, self.buffer_outer_offsets)
 
     def intersects_bounds(self, bounds, inds=None):
         """
@@ -772,49 +779,66 @@ Cannot check equality of {typ} of length {a_len} with:
         raise NotImplementedError()
 
 
-class _CoordinateIndexer(object):
-    def __init__(self, obj, parent=None):
-        self._obj = obj
-        self._parent = parent
+class _BaseCoordinateIndexer(object):
+    def __init__(self, sindex):
+        self._sindex = sindex
 
-    def __getitem__(self, key):
-        obj = self._obj
+    def _get_bounds(self, key):
         xs, ys = key
         # Handle xs and ys as scalar numeric values
         if type(xs) is not slice:
             xs = slice(xs, xs)
         if type(ys) is not slice:
             ys = slice(ys, ys)
-
         if xs.step is not None or ys.step is not None:
             raise ValueError(
                 "Slice step not supported. The cx indexer uses slices to represent "
                 "intervals in continuous coordinate space, and a slice step has no "
                 "clear interpretation in this context."
             )
-        xmin, ymin, xmax, ymax = obj.sindex.total_bounds
+        xmin, ymin, xmax, ymax = self._sindex.total_bounds
         x0, y0, x1, y1 = (
             xs.start if xs.start is not None else xmin,
             ys.start if ys.start is not None else ymin,
             xs.stop if xs.stop is not None else xmax,
             ys.stop if ys.stop is not None else ymax,
         )
-
         # Handle inverted bounds
         if x1 < x0:
             x0, x1 = x1, x0
         if y1 < y0:
             y0, y1 = y1, y0
+        return x0, x1, y0, y1
 
-        covers_inds, overlaps_inds = obj.sindex.covers_overlaps((x0, y0, x1, y1))
-        overlaps_inds_mask = obj.intersects_bounds((x0, y0, x1, y1), overlaps_inds)
+    def __getitem__(self, key):
+        x0, x1, y0, y1 = self._get_bounds(key)
+        covers_inds, overlaps_inds = self._sindex.covers_overlaps((x0, y0, x1, y1))
+        return self._perform_get_item(covers_inds, overlaps_inds, x0, x1, y0, y1)
+
+    def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
+        raise NotImplementedError()
+
+
+class _CoordinateIndexer(_BaseCoordinateIndexer):
+    def __init__(self, obj, parent=None):
+        super(_CoordinateIndexer, self).__init__(obj.sindex)
+        self._obj = obj
+        self._parent = parent
+
+    def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
+        overlaps_inds_mask = self._obj.intersects_bounds(
+            (x0, y0, x1, y1), overlaps_inds
+        )
         selected_inds = np.sort(
             np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
         )
         if self._parent is not None:
-            return self._parent.iloc[selected_inds]
+            if len(self._parent) > 0:
+                return self._parent.iloc[selected_inds]
+            else:
+                return self._parent
         else:
-            return obj[selected_inds]
+            return self._obj[selected_inds]
 
 
 @jit(nopython=True, nogil=True)
@@ -1025,14 +1049,15 @@ def is_geometry_array(data):
         return False
 
 
-def to_geometry_array(data):
+def to_geometry_array(data, dtype=None):
     from . import (
-        LineArray, RingArray, MultiLineArray, PolygonArray, MultiPolygonArray
+        MultiPointArray,  LineArray, RingArray,
+        MultiLineArray, PolygonArray, MultiPolygonArray
     )
     if sg is not None:
         shapely_to_spatialpandas = {
-            sg.MultiPoint: MultiPolygonArray,
-            sg.Point: MultiPolygonArray,
+            sg.MultiPoint: MultiPointArray,
+            sg.Point: MultiPointArray,
             sg.LineString: LineArray,
             sg.LinearRing: RingArray,
             sg.MultiLineString: MultiLineArray,
@@ -1047,35 +1072,44 @@ def to_geometry_array(data):
         # Keep data as is
         pass
     elif (is_array_like(data) or
-          isinstance(data, (list, tuple))
-          or gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray))):
-        # Check for list/array of geometry scalars.
-        first_valid = None
-        for val in data:
-            if val is not None:
-                first_valid = val
-                break
-        if isinstance(first_valid, Geometry):
-            # Pass data to constructor of appropriate geometry array
-            data = first_valid.construct_array_type()(data)
-        elif type(first_valid) in shapely_to_spatialpandas:
-            if isinstance(first_valid, sg.LineString):
-                # Handle mix of sg.LineString and sg.MultiLineString
-                for val in data:
-                    if isinstance(val, sg.MultiLineString):
-                        first_valid = val
-                        break
-            elif isinstance(first_valid, sg.Polygon):
-                # Handle mix of sg.Polygon and sg.MultiPolygon
-                for val in data:
-                    if isinstance(val, sg.MultiPolygon):
-                        first_valid = val
-                        break
+            isinstance(data, (list, tuple))
+            or gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray))):
 
-            array_type = shapely_to_spatialpandas[type(first_valid)]
-            data = array_type(data)
+        if dtype is not None:
+            data = dtype.construct_array_type()(data, dtype=dtype)
+        elif len(data) == 0:
+            raise ValueError(
+                "Cannot infer spatialpandas geometry type from empty collection "
+                "without dtype.\n"
+            )
         else:
-            raise ValueError(err_msg)
+            # Check for list/array of geometry scalars.
+            first_valid = None
+            for val in data:
+                if val is not None:
+                    first_valid = val
+                    break
+            if isinstance(first_valid, Geometry):
+                # Pass data to constructor of appropriate geometry array
+                data = first_valid.construct_array_type()(data)
+            elif type(first_valid) in shapely_to_spatialpandas:
+                if isinstance(first_valid, sg.LineString):
+                    # Handle mix of sg.LineString and sg.MultiLineString
+                    for val in data:
+                        if isinstance(val, sg.MultiLineString):
+                            first_valid = val
+                            break
+                elif isinstance(first_valid, sg.Polygon):
+                    # Handle mix of sg.Polygon and sg.MultiPolygon
+                    for val in data:
+                        if isinstance(val, sg.MultiPolygon):
+                            first_valid = val
+                            break
+
+                array_type = shapely_to_spatialpandas[type(first_valid)]
+                data = array_type(data)
+            else:
+                raise ValueError(err_msg)
     else:
         raise ValueError(err_msg)
     return data

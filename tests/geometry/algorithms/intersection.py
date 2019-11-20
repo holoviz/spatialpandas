@@ -34,7 +34,7 @@ def test_point_intersects_polygon(sg_polygon, points):
     for r in range(points.shape[0]):
         x, y = points[r, :]
         result = point_intersects_polygon(
-            x, y, polygon.flat_values, polygon.flat_inner_offsets
+            x, y, polygon.buffer_values, polygon.buffer_inner_offsets
         )
 
         expected = sg_polygon.intersects(sg.Point([x, y]))

@@ -64,7 +64,7 @@ or LinearRing""".format(typ=type(shape).__name__))
 
     @property
     def length(self):
-        return compute_line_length(self.flat_values, self.flat_inner_offsets)
+        return compute_line_length(self.buffer_values, self.buffer_inner_offsets)
 
     @property
     def area(self):
@@ -73,10 +73,10 @@ or LinearRing""".format(typ=type(shape).__name__))
     def intersects_bounds(self, bounds):
         x0, y0, x1, y1 = bounds
         result = np.zeros(1, dtype=np.bool_)
-        offsets = self.flat_outer_offsets
+        offsets = self.buffer_outer_offsets
         lines_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, offsets[:-1], offsets[1:], result
+            self.buffer_values, offsets[:-1], offsets[1:], result
         )
         return result[0]
 
@@ -124,7 +124,7 @@ class LineArray(GeometryArray):
 
     def intersects_bounds(self, bounds, inds=None):
         x0, y0, x1, y1 = bounds
-        offsets = self.flat_outer_offsets
+        offsets = self.buffer_outer_offsets
         start_offsets0 = offsets[:-1]
         stop_offsets0 = offsets[1:]
         if inds is not None:
@@ -134,7 +134,7 @@ class LineArray(GeometryArray):
         result = np.zeros(len(stop_offsets0), dtype=np.bool_)
         lines_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, start_offsets0, stop_offsets0, result
+            self.buffer_values, start_offsets0, stop_offsets0, result
         )
         return result
 

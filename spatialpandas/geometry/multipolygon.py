@@ -99,11 +99,11 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
 
     @property
     def length(self):
-        return compute_line_length(self.flat_values, self.flat_inner_offsets)
+        return compute_line_length(self.buffer_values, self.buffer_inner_offsets)
 
     @property
     def area(self):
-        return compute_area(self.flat_values, self.flat_inner_offsets)
+        return compute_area(self.buffer_values, self.buffer_inner_offsets)
 
     def intersects_bounds(self, bounds):
         x0, y0, x1, y1 = bounds
@@ -111,7 +111,7 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
         offsets1, offsets2 = self.buffer_offsets
         offsets0 = np.array([0, len(offsets1) - 1], dtype=np.uint32)
         multipolygons_intersect_bounds(
-            float(x0), float(y0), float(x1), float(y1), self.flat_values,
+            float(x0), float(y0), float(x1), float(y1), self.buffer_values,
             offsets0[:-1], offsets0[1:], offsets1, offsets2, result
         )
         return result[0]
@@ -193,7 +193,7 @@ class MultiPolygonArray(GeometryArray):
 
         result = np.zeros(len(start_offsets0), dtype=np.bool_)
         multipolygons_intersect_bounds(
-            float(x0), float(y0), float(x1), float(y1), self.flat_values,
+            float(x0), float(y0), float(x1), float(y1), self.buffer_values,
             start_offsets0, stop_offsets0, offsets1, offsets2, result
         )
         return result

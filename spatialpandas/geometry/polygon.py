@@ -91,21 +91,21 @@ Received invalid value of type {typ}. Must be an instance of Polygon
 
     @property
     def length(self):
-        return compute_line_length(self.flat_values, self.flat_inner_offsets)
+        return compute_line_length(self.buffer_values, self.buffer_inner_offsets)
 
     @property
     def area(self):
-        return compute_area(self.flat_values, self.flat_inner_offsets)
+        return compute_area(self.buffer_values, self.buffer_inner_offsets)
 
     def intersects_bounds(self, bounds):
         x0, y0, x1, y1 = bounds
         result = np.zeros(1, dtype=np.bool_)
-        offsets1 = self.flat_inner_offsets
+        offsets1 = self.buffer_inner_offsets
         start_offsets0 = np.array([0], dtype=np.uint32)
         stop_offsets0 = np.array([len(offsets1) - 1], dtype=np.uint32)
         polygons_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, start_offsets0, stop_offsets0, offsets1, result
+            self.buffer_values, start_offsets0, stop_offsets0, offsets1, result
         )
         return result[0]
 
@@ -183,7 +183,7 @@ class PolygonArray(GeometryArray):
         result = np.zeros(len(start_offsets0), dtype=np.bool_)
         polygons_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, start_offsets0, stop_offsets0, offsets1, result
+            self.buffer_values, start_offsets0, stop_offsets0, offsets1, result
         )
         return result
 
