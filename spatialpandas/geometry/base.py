@@ -601,16 +601,10 @@ Cannot check equality of {typ} of length {a_len} with:
             if item.dtype == 'bool':
                 # Convert to unsigned integer array of indices
                 indices = np.nonzero(item)[0].astype(self.buffer_offsets[0].dtype)
-                new_offsets, new_values = _take_offsets(
-                    indices,
-                    self.buffer_offsets,
-                    self.buffer_values
-                )
-                new_isna = self.isna()[indices]
-                return self.__class__(
-                    dict(isna=new_isna, offsets=new_offsets, values=new_values)
-                )
-
+                if len(indices):
+                    return self.take(indices, allow_fill=False)
+                else:
+                    return self[:0]
             elif item.dtype.kind in ('i', 'u'):
                 return self.take(item, allow_fill=False)
             else:
@@ -630,46 +624,43 @@ Cannot check equality of {typ} of length {a_len} with:
         return cls(scalars, dtype=dtype)
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
 
         indices = np.asarray(indices)
-        if allow_fill and any(indices < 0):
-            # fill value should always be translated from the scalar
-            # type for the array, to the physical storage type for
-            # the data, before passing to take.
-            if fill_value is None:
-                fill_value = self.dtype.na_value
 
-            data = self.astype(object)
-            result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
-            return self._from_sequence(result, dtype=self.dtype.subtype)
-        else:
-            if len(self) == 0:
-                raise IndexError("cannot do a non-empty take on {typ}".format(
+        # Validate self non-empty (Pandas expects this error when array is empty)
+        if len(self) == 0 and (not allow_fill or any(indices >= 0)):
+            raise IndexError("cannot do a non-empty take on {typ}".format(
+                typ=self.__class__.__name__,
+            ))
+
+        # Validate fill values
+        if allow_fill and not (
+                fill_value is None or
+                np.isscalar(fill_value) and np.isnan(fill_value)):
+
+            raise ValueError('non-None fill value not supported')
+
+        # Validate indices
+        invalid_mask = indices >= len(self)
+        if not allow_fill:
+            invalid_mask |= indices < -len(self)
+
+        if any(invalid_mask):
+            raise IndexError(
+                "Index value out of bounds for {typ} of length {n}: "
+                "{idx}".format(
                     typ=self.__class__.__name__,
-                ))
-            # standardize indices
-            offset_dtype = self.buffer_offsets[0].dtype
-            if not isinstance(indices, np.ndarray) or indices.dtype.kind != 'u':
-                indices = np.array(indices)
-                invalid_mask = indices < 0
-                if any(indices[invalid_mask] < -len(self)):
-                    raise IndexError(
-                        "Index value out of bounds for {typ} of length {n}: "
-                        "{idx}".format(
-                            typ=self.__class__.__name__,
-                            n=len(self),
-                            idx=indices[invalid_mask][0]
-                        )
-                    )
+                    n=len(self),
+                    idx=indices[invalid_mask][0]
+                )
+            )
 
-                indices[invalid_mask] = indices[invalid_mask] + len(self)
-
-            indices = np.asarray(indices, dtype=offset_dtype)
-            invalid_mask = indices >= len(self)
+        if allow_fill:
+            invalid_mask = indices < -1
             if any(invalid_mask):
-                raise IndexError(
-                    "Index value out of bounds for {typ} of length {n}: "
+                # ValueError expected by pandas ExtensionArray test suite
+                raise ValueError(
+                    "Invalid index value for {typ} with allow_fill=True: "
                     "{idx}".format(
                         typ=self.__class__.__name__,
                         n=len(self),
@@ -677,16 +668,17 @@ Cannot check equality of {typ} of length {a_len} with:
                     )
                 )
 
-            # Perform take on offsets
-            new_offsets, new_values = _take_offsets(
-                indices,
-                self.buffer_offsets,
-                self.buffer_values
-            )
-            new_isna = self.isna()[indices]
-            return self.__class__(
-                dict(isna=new_isna, offsets=new_offsets, values=new_values)
-            )
+            # Build pyarrow array of indices
+            indices = pa.array(indices, mask=indices < 0)
+        else:
+            # Convert negative indices to positive
+            negative_mask = indices < 0
+            indices[negative_mask] = indices[negative_mask] + len(self)
+
+            # Build pyarrow array of indices
+            indices = pa.array(indices)
+
+        return self.__class__(self.data.take(indices))
 
     take.__doc__ = ExtensionArray.take.__doc__
 
@@ -883,60 +875,6 @@ def _lexographic_lt(a1, a2):
     else:
         # a1 is object array, a2 primitive
         return False
-
-
-@ngjit
-def _take_offsets(inds, all_offsets, values):
-    # Initialize new offsets
-    start_offsets = inds
-    stop_offsets = inds + inds.dtype.type(1)
-    all_new_offsets = []
-    for offsets in all_offsets:
-        new_buffer_len = (stop_offsets - start_offsets).sum() + inds.dtype.type(1)
-        all_new_offsets.append(np.zeros(new_buffer_len, dtype=offsets.dtype))
-        start_offsets = offsets[start_offsets]
-        stop_offsets = offsets[stop_offsets]
-
-    # populate new offsets
-    start_offsets = inds
-    stop_offsets = inds + inds.dtype.type(1)
-    for offsets, new_offsets in zip(all_offsets, all_new_offsets):
-        new_start = 0
-        cumsum = inds.dtype.type(0)
-        for i in range(len(inds)):
-            start = start_offsets[i]
-            stop = stop_offsets[i]
-            if start == stop:
-                # Empty or None element
-                continue
-            offsets_slice = offsets[start_offsets[i]:stop_offsets[i] + 1]
-            offsets_slice = offsets_slice + cumsum - offsets_slice[0]
-            new_stop = new_start + stop - start
-            new_offsets[new_start:new_stop + 1] = offsets_slice
-            cumsum = offsets_slice[-1]
-            new_start = new_stop
-
-        start_offsets = offsets[start_offsets]
-        stop_offsets = offsets[stop_offsets]
-
-    # Initialize new values
-    new_values_len = (stop_offsets - start_offsets).sum()
-    new_values = np.zeros(new_values_len, dtype=values.dtype)
-
-    # Populate new values
-    new_start = 0
-    for i in range(len(inds)):
-        start = start_offsets[i]
-        stop = stop_offsets[i]
-        if start == stop:
-            # Empty or None element
-            continue
-        values_slice = values[start:stop]
-        new_stop = new_start + stop - start
-        new_values[new_start:new_stop] = values_slice
-        new_start = new_stop
-
-    return all_new_offsets, new_values
 
 
 @ngjit
