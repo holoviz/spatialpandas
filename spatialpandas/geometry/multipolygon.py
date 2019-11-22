@@ -6,6 +6,7 @@ from spatialpandas.geometry import Polygon
 from spatialpandas.geometry._algorithms.intersection import (
     multipolygons_intersect_bounds
 )
+from spatialpandas.geometry._algorithms.orientation import orient_polygons
 from spatialpandas.geometry.base import (
     GeometryArray, GeometryDtype, Geometry, _geometry_map_nested3)
 from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
@@ -13,6 +14,7 @@ from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
 from spatialpandas.geometry._algorithms.measures import (
     compute_line_length, compute_area
 )
+
 from dask.dataframe.extensions import make_array_nonempty
 
 
@@ -35,17 +37,17 @@ class MultiPolygon(Geometry):
         return MultiPolygonArray
 
     @classmethod
-    def _shapely_to_coordinates(cls, shape, orient=True):
+    def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
         if isinstance(shape, sg.MultiPolygon):
             multipolygon = []
             for polygon in shape:
-                polygon_coords = Polygon._shapely_to_coordinates(polygon, orient)
+                polygon_coords = Polygon._shapely_to_coordinates(polygon)
                 multipolygon.append(polygon_coords)
 
             return multipolygon
         elif isinstance(shape, sg.Polygon):
-            return [Polygon._shapely_to_coordinates(shape, orient)]
+            return [Polygon._shapely_to_coordinates(shape)]
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of Polygon or MultiPolygon
@@ -88,7 +90,11 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
         Returns:
             spatialpandas MultiPolygon
         """
-        shape_parts = cls._shapely_to_coordinates(shape, orient)
+        import shapely.geometry as sg
+        if orient:
+            shape = sg.polygon.orient(shape)
+
+        shape_parts = cls._shapely_to_coordinates(shape)
         return cls(shape_parts)
 
     @property
@@ -145,7 +151,29 @@ class MultiPolygonArray(GeometryArray):
         Returns:
             MultiPolygonArray
         """
-        return cls([MultiPolygon._shapely_to_coordinates(shape, orient) for shape in ga])
+        mpa = cls([MultiPolygon._shapely_to_coordinates(shape) for shape in ga])
+        if orient:
+            return mpa.oriented()
+        else:
+            return mpa
+
+    def oriented(self):
+        missing = np.concatenate([self.isna(), [False]])
+        buffer_values = self.buffer_values.copy()
+        multipoly_offsets, poly_offsets, ring_offsets = self.buffer_offsets
+
+        orient_polygons(buffer_values, poly_offsets, ring_offsets)
+
+        pa_rings = pa.ListArray.from_arrays(
+            pa.array(ring_offsets), pa.array(buffer_values)
+        )
+        pa_polys = pa.ListArray.from_arrays(
+            pa.array(poly_offsets), pa_rings,
+        )
+        pa_multipolys = pa.ListArray.from_arrays(
+            pa.array(multipoly_offsets, mask=missing), pa_polys
+        )
+        return self.__class__(pa_multipolys)
 
     @property
     def boundary(self):
