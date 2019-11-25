@@ -140,7 +140,7 @@ def st_polygon(draw, n=10, num_holes=None, xmid=0, ymid=0):
 
 
 @st.composite
-def st_polygons_array(draw, min_size=0, max_size=5, geoseries=False):
+def st_polygon_array(draw, min_size=0, max_size=5, geoseries=False):
     n = draw(st.integers(min_value=min_size, max_value=max_size))
     sg_polygons = [
         draw(st_polygon(xmid=draw(st.floats(-50, 50)), ymid=draw(st.floats(-50, 50))))
@@ -154,7 +154,7 @@ def st_polygons_array(draw, min_size=0, max_size=5, geoseries=False):
 
 
 @st.composite
-def st_multipolygons_array(draw, min_size=0, max_size=5, geoseries=False):
+def st_multipolygon_array(draw, min_size=0, max_size=5, geoseries=False):
     n = draw(st.integers(min_value=min_size, max_value=max_size))
     sg_multipolygons = []
     for _ in range(n):

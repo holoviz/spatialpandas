@@ -60,8 +60,12 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
             shapely MultiLineString shape
         """
         import shapely.geometry as sg
-        line_arrays = [line_coords.reshape(len(line_coords) // 2, 2)
-                       for line_coords in np.asarray(self.data)]
+
+        def to_numpy_2d(v):
+            a = np.array(v.as_py(), dtype=self.numpy_dtype)
+            return a.reshape(len(v) // 2, 2)
+
+        line_arrays = [to_numpy_2d(line_coords) for line_coords in self.data]
         lines = [sg.LineString(line_array) for line_array in line_arrays]
         return sg.MultiLineString(lines=lines)
 

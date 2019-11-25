@@ -44,8 +44,8 @@ or MultiPoint""".format(typ=type(shape).__name__))
             shapely MultiPoint shape
         """
         import shapely.geometry as sg
-        line_coords = self.data.to_numpy()
-        return sg.MultiPoint(line_coords.reshape(len(line_coords) // 2, 2))
+        point_coords = np.array(self.data.as_py(), dtype=self.numpy_dtype)
+        return sg.MultiPoint(point_coords.reshape(len(point_coords) // 2, 2))
 
     @classmethod
     def from_shapely(cls, shape):

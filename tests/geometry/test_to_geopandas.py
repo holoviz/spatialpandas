@@ -1,0 +1,43 @@
+from hypothesis import given
+from pandas.testing import assert_series_equal
+from spatialpandas import GeoSeries
+from tests.geometry.strategies import (
+    st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
+    st_polygon_array, st_multipolygon_array, hyp_settings
+)
+
+
+@given(st_multipoint_array(geoseries=True))
+@hyp_settings
+def test_multipoint_array_to_geopandas(gp_multipoint):
+    result = GeoSeries(gp_multipoint, dtype='multipoint').to_geopandas()
+    assert_series_equal(result, gp_multipoint)
+
+
+@given(st_line_array(geoseries=True))
+@hyp_settings
+def test_line_array_to_geopandas(gp_line):
+    result = GeoSeries(gp_line, dtype='line').to_geopandas()
+    assert_series_equal(result, gp_line)
+
+
+@given(st_multiline_array(geoseries=True))
+@hyp_settings
+def test_multiline_array_to_geopandas(gp_multiline):
+    result = GeoSeries(gp_multiline, dtype='multiline').to_geopandas()
+    assert_series_equal(result, gp_multiline)
+
+
+@given(st_polygon_array(geoseries=True))
+@hyp_settings
+def test_polygon_array_to_geopandas(gp_polygon):
+    result = GeoSeries(gp_polygon, dtype='polygon').to_geopandas()
+    assert_series_equal(result, gp_polygon)
+
+
+@given(st_multipolygon_array(geoseries=True))
+@hyp_settings
+def test_multipolygon_array_to_geopandas(gp_multipolygon):
+    result = GeoSeries(gp_multipolygon, dtype='multipolygon').to_geopandas()
+    assert_series_equal(result, gp_multipolygon)
+

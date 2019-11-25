@@ -47,7 +47,7 @@ or LinearRing""".format(typ=type(shape).__name__))
             shapely LineString shape
         """
         import shapely.geometry as sg
-        line_coords = self.data.to_numpy()
+        line_coords = np.array(self.data.as_py(), dtype=self.numpy_dtype)
         return sg.LineString(line_coords.reshape(len(line_coords) // 2, 2))
 
     @classmethod
