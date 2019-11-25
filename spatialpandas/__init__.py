@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from . import geometry
 from . import spatialindex
 from .geoseries import GeoSeries

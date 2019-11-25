@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import copy
 import json
 import os
@@ -13,14 +14,15 @@ from pyarrow import parquet as pq
 
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
-from spatialpandas.geometry.base import to_geometry_array, GeometryDtype
+from spatialpandas.geometry.base import to_geometry_array
 from spatialpandas.geometry import (
     MultiPointDtype, RingDtype, LineDtype,
-    MultiLineDtype, PolygonDtype, MultiPolygonDtype,
-    GeometryDtype)
+    MultiLineDtype, PolygonDtype, MultiPolygonDtype, GeometryDtype
+)
 
 _geometry_dtypes = [
-    MultiPointDtype, RingDtype, LineDtype, MultiLineDtype, PolygonDtype, MultiPolygonDtype
+    MultiPointDtype, RingDtype, LineDtype,
+    MultiLineDtype, PolygonDtype, MultiPolygonDtype
 ]
 
 

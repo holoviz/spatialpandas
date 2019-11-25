@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import dask.dataframe as dd
 
 from spatialpandas.geometry.base import _BaseCoordinateIndexer

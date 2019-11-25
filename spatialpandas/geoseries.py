@@ -1,7 +1,7 @@
+from __future__ import absolute_import
 import pandas as pd
 
-from spatialpandas.geometry import GeometryDtype
-from .geometry.base import Geometry
+from .geometry import GeometryDtype, Geometry
 
 
 def _maybe_geo_series(data, **kwargs):

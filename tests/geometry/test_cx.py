@@ -7,7 +7,7 @@ from spatialpandas.geometry import (
 )
 from tests.geometry.strategies import (
     st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
-    st_polygons_array, st_multipolygons_array, hyp_settings
+    st_polygon_array, st_multipolygon_array, hyp_settings
 )
 
 
@@ -49,7 +49,7 @@ def test_multiline_cx_selection(gp_multiline, rect):
 
 
 @given(
-    st_polygons_array(min_size=1, geoseries=True),
+    st_polygon_array(min_size=1, geoseries=True),
     st_bounds(
         x_min=-150, x_max=150, y_min=-150, y_max=150, orient=True
     )
@@ -65,7 +65,7 @@ def test_polygon_cx_selection(gp_polygon, rect):
 
 
 @given(
-    st_multipolygons_array(min_size=1, geoseries=True),
+    st_multipolygon_array(min_size=1, geoseries=True),
     st_bounds(
         x_min=-150, x_max=150, y_min=-150, y_max=150, orient=True
     )

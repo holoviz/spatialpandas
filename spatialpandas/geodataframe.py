@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import pandas as pd
 from .geometry import GeometryDtype
 from .geoseries import GeoSeries
@@ -50,7 +51,7 @@ class GeoDataFrame(pd.DataFrame):
 
     @property
     def _constructor_sliced(self):
-        from spatialpandas.geoseries import _maybe_geo_series
+        from .geoseries import _maybe_geo_series
         return _maybe_geo_series
 
     def set_geometry(self, geometry, inplace=False):

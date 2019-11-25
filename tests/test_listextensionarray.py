@@ -152,7 +152,7 @@ class TestGeometryGroupby(eb.BaseGroupbyTests):
 
 
 class TestGeometryInterface(eb.BaseInterfaceTests):
-    # # NotImplementedError: 'Geometry' does not support __setitem__
+    # # NotImplementedError: 'GeometryList' does not support __setitem__
     @pytest.mark.skip(reason="__setitem__ not supported")
     def test_copy(self):
         pass

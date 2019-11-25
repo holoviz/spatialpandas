@@ -7,8 +7,10 @@ from spatialpandas.geometry._algorithms.intersection import (
     multipolygons_intersect_bounds
 )
 from spatialpandas.geometry._algorithms.orientation import orient_polygons
-from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested3)
+from spatialpandas.geometry.base import GeometryDtype
+from spatialpandas.geometry.baselist import (
+    GeometryListArray, GeometryList, _geometry_map_nested3
+)
 from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
 
 from spatialpandas.geometry._algorithms.measures import (
@@ -29,7 +31,7 @@ class MultiPolygonDtype(GeometryDtype):
         return MultiPolygonArray
 
 
-class MultiPolygon(Geometry):
+class MultiPolygon(GeometryList):
     _nesting_levels = 2
 
     @classmethod
@@ -61,11 +63,11 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
             shapely MultiPolygon shape
         """
         import shapely.geometry as sg
-        polygon_arrays = np.asarray(self.data)
+        polygon_arrays = np.asarray(self.data.as_py())
 
         polygons = []
         for polygon_array in polygon_arrays:
-            ring_arrays = [line_coords.reshape(len(line_coords) // 2, 2)
+            ring_arrays = [np.array(line_coords).reshape(len(line_coords) // 2, 2)
                            for line_coords in polygon_array]
 
             rings = [sg.LinearRing(ring_array) for ring_array in ring_arrays]
@@ -123,7 +125,7 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
         return result[0]
 
 
-class MultiPolygonArray(GeometryArray):
+class MultiPolygonArray(GeometryListArray):
     _element_type = MultiPolygon
     _nesting_levels = 3
 
@@ -185,29 +187,25 @@ class MultiPolygonArray(GeometryArray):
     @property
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
-        for c, result_offset in enumerate(self.offsets):
-            _geometry_map_nested3(
-                compute_line_length,
-                result,
-                result_offset,
-                self.buffer_values,
-                self.buffer_offsets,
-                self.isna(),
-            )
+        _geometry_map_nested3(
+            compute_line_length,
+            result,
+            self.buffer_values,
+            self.buffer_offsets,
+            self.isna(),
+        )
         return result
 
     @property
     def area(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
-        for c, result_offset in enumerate(self.offsets):
-            _geometry_map_nested3(
-                compute_area,
-                result,
-                result_offset,
-                self.buffer_values,
-                self.buffer_offsets,
-                self.isna(),
-            )
+        _geometry_map_nested3(
+            compute_area,
+            result,
+            self.buffer_values,
+            self.buffer_offsets,
+            self.isna(),
+        )
         return result
 
     def intersects_bounds(self, bounds, inds=None):
