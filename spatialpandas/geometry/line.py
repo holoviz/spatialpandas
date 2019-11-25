@@ -1,9 +1,12 @@
+from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import lines_intersect_bounds
 from spatialpandas.geometry._algorithms.measures import compute_line_length
-from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested1
+from spatialpandas.geometry.base import GeometryDtype
+
+from spatialpandas.geometry.baselist import (
+    GeometryListArray, GeometryList, _geometry_map_nested1
 )
 import numpy as np
 from dask.dataframe.extensions import make_array_nonempty
@@ -15,12 +18,10 @@ class LineDtype(GeometryDtype):
 
     @classmethod
     def construct_array_type(cls, *args):
-        if len(args) > 0:
-            raise NotImplementedError("construct_array_type does not support arguments")
         return LineArray
 
 
-class Line(Geometry):
+class Line(GeometryList):
     _nesting_levels = 0
 
     @classmethod
@@ -81,7 +82,7 @@ or LinearRing""".format(typ=type(shape).__name__))
         return result[0]
 
 
-class LineArray(GeometryArray):
+class LineArray(GeometryListArray):
     _element_type = Line
     _nesting_levels = 1
 
@@ -107,15 +108,13 @@ class LineArray(GeometryArray):
     @property
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
-        for c, result_offset in enumerate(self.offsets):
-            _geometry_map_nested1(
-                compute_line_length,
-                result,
-                result_offset,
-                self.buffer_values,
-                self.buffer_offsets,
-                self.isna(),
-            )
+        _geometry_map_nested1(
+            compute_line_length,
+            result,
+            self.buffer_values,
+            self.buffer_offsets,
+            self.isna(),
+        )
         return result
 
     @property

@@ -1,8 +1,10 @@
+from __future__ import absolute_import
 import numpy as np
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import multipoints_intersect_bounds
-from spatialpandas.geometry.base import GeometryArray, GeometryDtype, Geometry
+from spatialpandas.geometry.base import GeometryDtype
+from spatialpandas.geometry.baselist import GeometryListArray, GeometryList
 from dask.dataframe.extensions import make_array_nonempty
 
 
@@ -16,7 +18,7 @@ class MultiPointDtype(GeometryDtype):
         return MultiPointArray
 
 
-class MultiPoint(Geometry):
+class MultiPoint(GeometryList):
     _nesting_levels = 0
 
     @classmethod
@@ -77,7 +79,7 @@ or MultiPoint""".format(typ=type(shape).__name__))
         return result[0]
 
 
-class MultiPointArray(GeometryArray):
+class MultiPointArray(GeometryListArray):
     _element_type = MultiPoint
     _nesting_levels = 1
 

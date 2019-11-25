@@ -1,45 +1,20 @@
-from functools import total_ordering
+from __future__ import absolute_import
 from numbers import Integral
 from typing import Iterable
-import pyarrow as pa
+
 import numpy as np
 import pandas as pd
+import pyarrow as pa
+from pandas.core.arrays import ExtensionArray
+from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.inference import is_array_like
+
+from spatialpandas.spatialindex import HilbertRtree
+from spatialpandas.spatialindex.rtree import _distances_from_bounds
 import re
 
-from numba import jit, prange
-from pandas.api.extensions import ExtensionArray, ExtensionDtype
-from pandas.api.types import is_array_like
-
-from spatialpandas.spatialindex.rtree import _distances_from_bounds
-from ._algorithms.bounds import (
-    total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
-)
-from ..spatialindex import HilbertRtree
-from ..utils import ngjit
+from spatialpandas.utils import ngjit
 from .._optional_imports import sg, gp
-
-
-def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
-    if pyarrow_type == pa.null():
-        return pa.null()
-
-    pyarrow_element_type = pyarrow_type
-    for i in range(nesting_levels):
-        if not isinstance(pyarrow_element_type, pa.ListType):
-            raise ValueError(
-                "Expected input data to have {} nested layer(s)".format(
-                    nesting_levels)
-            )
-        pyarrow_element_type = pyarrow_element_type.value_type
-    pyarrow_element_type = pyarrow_element_type
-    numpy_element_dtype = pyarrow_element_type.to_pandas_dtype()
-    if (numpy_element_dtype() is None
-            or numpy_element_dtype().dtype.kind not in ('i', 'u', 'f')):
-        raise ValueError(
-            "Invalid nested element type {}, expected numeric type".format(
-                pyarrow_element_type
-            ))
-    return pyarrow_element_type
 
 
 def _unwrap_geometry(a, element_dtype):
@@ -47,147 +22,33 @@ def _unwrap_geometry(a, element_dtype):
         # replace top-level nana with None
         return None
     elif isinstance(a, Geometry):
-        return np.asarray(a.data)
+        return a.data.as_py()
     elif sg and isinstance(a, sg.base.BaseGeometry):
         return element_dtype._shapely_to_coordinates(a)
     else:
         return a
 
 
-class _ArrowBufferMixin(object):
-
-    @property
-    def buffer_values(self):
-        value_buffer = self.data.buffers()[-1]
-        if value_buffer is None:
-            return np.array([], dtype=self.numpy_dtype)
-        else:
-            return np.asarray(value_buffer).view(self.numpy_dtype)
-
-    @property
-    def buffer_offsets(self):
-        buffers = self.data.buffers()
-        if len(buffers) < 2:
-            return (np.array([0]),)
-        elif len(buffers) < 3:
-            # offset values that include everything
-            return (np.array([0, len(self.data)]),)
-
-        # Slice first offsets array to match any current extension array slice
-        # All other buffers remain unchanged
-        start = self.data.offset
-        stop = start + len(self.data) + 1
-        offsets1 = np.asarray(buffers[1]).view(np.uint32)[start:stop]
-
-        remaining_offsets = tuple(
-            np.asarray(buffers[i]).view(np.uint32)
-            for i in range(3, len(buffers) - 1, 2)
-        )
-
-        return (offsets1,) + remaining_offsets
-
-    @property
-    def flat_values(self):
-        """
-        Flat array of the valid values. This differs from buffer_values if the pyarrow
-        ListArray backing this object is a slice. buffer_values will contain all
-        values from the original (pre-sliced) object whereas flat_values will contain
-        only the sliced values.
-        """
-        # Compute valid start/stop index into buffer values array.
-        buffer_offsets = self.buffer_offsets
-        start = buffer_offsets[0][0]
-        stop = buffer_offsets[0][-1]
-        for offsets in buffer_offsets[1:]:
-            start = offsets[start]
-            stop = offsets[stop]
-
-        return self.buffer_values[start:stop]
-
-    @property
-    def buffer_outer_offsets(self):
-        """
-        Array of the offsets into buffer_values that separate the outermost nested
-        structure of geometry object(s), regardless of the number of nesting levels.
-        """
-        buffer_offsets = self.buffer_offsets
-        flat_offsets = buffer_offsets[0]
-        for offsets in buffer_offsets[1:]:
-            flat_offsets = offsets[flat_offsets]
-
-        return flat_offsets
-
-    @property
-    def buffer_inner_offsets(self):
-        """
-        Array of the offsets into buffer_values that separate the innermost nested
-        structure of geometry object(s), regardless of the number of nesting levels.
-        """
-        buffer_offsets = self.buffer_offsets
-        start = buffer_offsets[0][0]
-        stop = buffer_offsets[0][-1]
-        for offsets in buffer_offsets[1:-1]:
-            start = offsets[start]
-            stop = offsets[stop]
-        return buffer_offsets[-1][start:stop + 1]
-
-
 class GeometryDtype(ExtensionDtype):
     _geometry_name = 'geometry'
     base = np.dtype('O')
-    _metadata = ('_dtype',)
+    _metadata = ('subtype',)
     na_value = np.nan
 
     @classmethod
     def __from_arrow__(cls, data):
         return cls.construct_array_type()(data)
 
-    def __init__(self, subtype):
-        if isinstance(subtype, GeometryDtype):
-            self.subtype = subtype.subtype
-        else:
-            self.subtype = np.dtype(subtype)
+    @classmethod
+    def _arrow_element_type_from_numpy_subtype(cls, subtype):
+        raise NotImplementedError
 
-        # Validate the subtype is numeric
-        if self.subtype.kind not in ('i', 'u', 'f'):
-            raise ValueError("Received non-numeric type of kind '{}'".format(self.kind))
-
-        # build nested arrow type
-        nesting_levels = self.construct_array_type()._nesting_levels
-        arrow_dtype = pa.from_numpy_dtype(self.subtype)
-        for i in range(nesting_levels):
-            arrow_dtype = pa.list_(arrow_dtype)
-
-        self.arrow_dtype = arrow_dtype
-
-    def __hash__(self):
-        return hash((self.__class__, self.arrow_dtype))
-
-    def __str__(self):
-        return "{}[{}]".format(self._geometry_name, str(self.subtype.name))
-
-    def __repr__(self):
-        return "{}({})".format(self.__class__.__name__,  str(self.subtype.name))
+    @classmethod
+    def construct_array_type(cls, *args):
+        return GeometryArray
 
     @classmethod
     def _parse_subtype(cls, dtype_string):
-        """
-        Parse a datatype string to get the subtype
-
-        Parameters
-        ----------
-        dtype_string: str
-            A string like line[subtype]
-
-        Returns
-        -------
-        subtype: str
-
-        Raises
-        ------
-        ValueError
-            When the subtype cannot be extracted
-        """
         # Be case insensitive
         dtype_string = dtype_string.lower()
         subtype_re = re.compile('^' + cls._geometry_name + r"\[(?P<subtype>\w+)\]$")
@@ -202,10 +63,6 @@ class GeometryDtype(ExtensionDtype):
                 dtype_string=dtype_string))
 
         return subtype_string
-
-    @classmethod
-    def construct_array_type(cls, *args):
-        return GeometryArray
 
     @classmethod
     def construct_from_string(cls, string):
@@ -223,24 +80,27 @@ class GeometryDtype(ExtensionDtype):
         else:
             raise TypeError(msg.format(string))
 
-    def __eq__(self, other):
-        """Check whether 'other' is equal to self.
-        By default, 'other' is considered equal if
-        * it's a string matching 'self.name', or
-        * it's an instance of this type.
-        Parameters
-        ----------
-        other : Any
-        Returns
-        -------
-        bool
-        """
-        if isinstance(other, type(self)):
-            return self.subtype == other.subtype
-        elif isinstance(other, str):
-            return str(self) == other
+    def __init__(self, subtype):
+        if isinstance(subtype, GeometryDtype):
+            self.subtype = subtype.subtype
         else:
-            return False
+            self.subtype = np.dtype(subtype)
+
+        # Validate the subtype is numeric
+        if self.subtype.kind not in ('i', 'u', 'f'):
+            raise ValueError("Received non-numeric type of kind '{}'".format(self.kind))
+
+        array_type = self.construct_array_type()
+        self.arrow_dtype = array_type._arrow_type_from_numpy_element_dtype(subtype)
+
+    def __hash__(self):
+        return hash((self.__class__, self.arrow_dtype))
+
+    def __str__(self):
+        return "{}[{}]".format(self._geometry_name, str(self.subtype.name))
+
+    def __repr__(self):
+        return "{}({})".format(self.__class__.__name__,  str(self.subtype.name))
 
     @property
     def type(self):
@@ -260,41 +120,24 @@ class GeometryDtype(ExtensionDtype):
         return str(self)
 
 
-@total_ordering
-class Geometry(_ArrowBufferMixin):
-    _nesting_levels = 0
-
+class Geometry(object):
     def __init__(self, data):
-        if isinstance(data, pa.ListArray):
-            # Use arrow ListArray as is
+        if isinstance(data, pa.ArrayValue):
+            # Use arrow ArrayValue as is
             self.data = data
         else:
-            self.data = pa.array(data)
-        if len(self.data) > 0:
-            _validate_nested_arrow_type(self._nesting_levels, self.data.type)
+            self.data = pa.array([data])[0]
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self.data.to_pylist())
+        return "{}({})".format(self.__class__.__name__, self.data.as_py())
 
     def __hash__(self):
-        return hash((self.__class__, np.asarray(self.data).tobytes()))
+        return hash((self.__class__, np.array(self.data.as_py()).tobytes()))
 
     def __eq__(self, other):
         if type(other) is not type(self):
             return False
-        return np.array_equal(np.asarray(self.data), np.asarray(other.data))
-
-    def __lt__(self, other):
-        if type(other) is not type(self):
-            return NotImplemented
-        return _lexographic_lt(np.asarray(self.data), np.asarray(other.data))
-
-    def __len__(self):
-        return len(self.buffer_outer_offsets - 1)
-
-    @classmethod
-    def construct_array_type(cls):
-        return GeometryArray
+        return self.data == other.data
 
     @classmethod
     def _shapely_to_coordinates(cls, shape):
@@ -314,24 +157,13 @@ class Geometry(_ArrowBufferMixin):
         shape_parts = cls._shapely_to_coordinates(shape)
         return cls(shape_parts)
 
-    @property
-    def numpy_dtype(self):
-        if isinstance(self.data, pa.NullArray):
-            return None
-        else:
-            typ = self.data.type
-            for _ in range(self._nesting_levels):
-                typ = typ.value_type
-            return np.dtype(typ.to_pandas_dtype())
-
     def intersects_bounds(self, bounds):
         raise NotImplementedError()
 
 
-class GeometryArray(ExtensionArray, _ArrowBufferMixin):
-    _can_hold_na = True
+class GeometryArray(ExtensionArray):
     _element_type = Geometry
-    _nesting_levels = 1
+    _can_hold_na = True
 
     # Import / export methods
     @classmethod
@@ -362,9 +194,6 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
         from geopandas.array import from_shapely
         return from_shapely([el.to_shapely() for el in self])
 
-    def __arrow_array__(self, type=None):
-        return self.data
-
     # Constructor
     def __init__(self, array, dtype=None, copy=None):
         # Choose default dtype for empty arrays
@@ -375,61 +204,28 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
             # len failed
             pass
 
+        # See if we can determine array array type
         if isinstance(dtype, GeometryDtype):
             # Use arrow type as-is
             arrow_dtype = dtype.arrow_dtype
+        elif isinstance(dtype, pa.DataType):
+            arrow_dtype = dtype
         elif dtype is not None and dtype != np.dtype('object'):
             # Scalar element dtype
-            arrow_dtype = pa.from_numpy_dtype(dtype)
-
-            # Wrap dtype with appropriate number of nesting levels
-            for i in range(self._nesting_levels):
-                arrow_dtype = pa.list_(arrow_dtype)
+            arrow_dtype = self._arrow_type_from_numpy_element_dtype(dtype)
         else:
             # Let arrow infer type
             arrow_dtype = None
 
-        # Unwrap Geometry elements to numpy arrays
+        # Unwrap GeometryList elements to numpy arrays
         if is_array_like(array) or isinstance(array, list):
             array = [_unwrap_geometry(el, self._element_type) for el in array]
-            self.data = pa.array(array, type=arrow_dtype)
+            array = pa.array(array, type=arrow_dtype)
         elif isinstance(array, pa.Array):
-            self.data = array
+            # Nothing to do
+            pass
         elif isinstance(array, pa.ChunkedArray):
-            self.data = pa.concat_arrays(array.chunks)
-        elif isinstance(array, dict) and 'offsets' in array and 'values' in array:
-            # Dict of flat values / offsets
-            offsets = array['offsets']
-            values = array['values']
-            isna = array.get('isna', None)
-
-            # Build list of missing bitmasks
-            masks = [None] * len(offsets)
-            if isna is not None:
-                mask = np.packbits(~isna, bitorder='little')
-                masks[0] = pa.py_buffer(mask)
-
-            # Build scalar arrow dtype
-            arrow_dtype = pa.from_numpy_dtype(values.dtype)
-
-            # Build inner ListArray
-            array = pa.ListArray.from_buffers(
-                arrow_dtype, length=len(values), buffers=[None, pa.py_buffer(values)]
-            )
-
-            # Wrap nested lists
-            for i in reversed(range(len(offsets))):
-                offset = offsets[i]
-                mask = masks[i]
-                arrow_dtype = pa.list_(arrow_dtype)
-                array = pa.ListArray.from_buffers(
-                    arrow_dtype,
-                    length=len(offset) - 1,
-                    buffers=[mask, pa.py_buffer(offset)],
-                    children=[array]
-                )
-
-            self.data = array
+            array = pa.concat_arrays(array.chunks)
         else:
             raise ValueError(
                 "Unsupported type passed for {}: {}".format(
@@ -437,111 +233,41 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
                 )
             )
 
-        self.offsets = np.array([0])
+        # Save off pyarrow array
+        self.data = array
 
-        # Check that inferred type has the right number of nested levels
-        pyarrow_element_type = _validate_nested_arrow_type(
-            self._nesting_levels, self.data.type
-        )
-
-        self._pyarrow_element_type = pyarrow_element_type
-        self._numpy_element_type = pyarrow_element_type.to_pandas_dtype()
-        self._dtype = self._dtype_class(self._numpy_element_type)
-
-        # Validate input data is compatible
-        offsets = self.buffer_offsets
-
-        # Validate even number of inner elements per polygon
-        if any((offsets[-1] % 2) > 0):
-            raise ValueError("""
-Geometry objects are represented by interleaved x and y coordinates, so they must have
-an even number of elements. Received specification with an odd number of elements.""")
+        # Compute types
+        np_type = self._numpy_element_dtype_from_arrow_type(self.data.type)
+        self._numpy_element_type = np_type
+        self._dtype = self._dtype_class(np_type)
 
         # Initialize backing property for spatial index
         self._sindex = None
 
-    def __eq__(self, other):
-        if type(other) is type(self):
-            if len(other) != len(self):
-                raise ValueError("""
-Cannot check equality of {typ} instances of unequal length
-    len(ra1) == {len_a1}
-    len(ra2) == {len_a2}""".format(
-                    typ=type(self).__name__,
-                    len_a1=len(self),
-                    len_a2=len(other)))
-            result = np.zeros(len(self), dtype=np.bool_)
-            self_offsets = self.buffer_offsets
-            other_offsets = other.buffer_offsets
-            self_values = self.buffer_values
-            other_values = other.buffer_values
-            for i in range(len(self)):
-                self_start = other_start = i
-                self_stop = other_stop = i + 1
+    @classmethod
+    def _arrow_type_from_numpy_element_dtype(cls, dtype):
+        raise NotImplementedError
 
-                # Recurse through nested levels and look for a length mismatch
-                length_mismatch = False
-                for j in range(len(self_offsets)):
-                    self_start = self_offsets[j][self_start]
-                    self_stop = self_offsets[j][self_stop]
-                    other_start = other_offsets[j][other_start]
-                    other_stop = other_offsets[j][other_stop]
-
-                    if self_stop - self_start != other_stop - other_start:
-                        length_mismatch = True
-                        break
-
-                if length_mismatch:
-                    result[i] = False
-                    continue
-
-                # Lengths all match, check equality of values
-                result[i] = np.array_equal(
-                    self_values[self_start:self_stop],
-                    other_values[other_start:other_stop]
-                )
-            return result
-        else:
-            raise ValueError("""
-Cannot check equality of {typ} of length {a_len} with:
-    {other}""".format(typ=type(self).__name__, a_len=len(self), other=repr(other)))
-
-    @property
-    def sindex(self):
-        if self._sindex is None:
-            self._sindex = HilbertRtree(self.bounds)
-        return self._sindex
-
-    @property
-    def cx(self):
-        """
-        Geopandas-style spatial indexer to select a subset of the array by intersection
-        with a bounding box
-
-        Format of input should be ``.cx[xmin:xmax, ymin:ymax]``. Any of
-        ``xmin``, ``xmax``, ``ymin``, and ``ymax`` can be provided, but input
-        must include a comma separating x and y slices. That is, ``.cx[:, :]``
-        will return the full series/frame, but ``.cx[:]`` is not implemented.
-        """
-        return _CoordinateIndexer(self)
+    @classmethod
+    def _numpy_element_dtype_from_arrow_type(cls, pyarrow_type):
+        raise NotImplementedError
 
     @property
     def _dtype_class(self):
         return GeometryDtype
 
     @property
+    def numpy_dtype(self):
+        return self._numpy_element_type().dtype
+
+    # Arrow conversion
+    def __arrow_array__(self, type=None):
+        return self.data
+
+    # ExtensionArray methods
+    @property
     def dtype(self):
         return self._dtype
-
-    @property
-    def nbytes(self):
-        size = 0
-        for buf in self.data.buffers():
-            if buf is not None:
-                size += buf.size
-        return size
-
-    nbytes.__doc__ = ExtensionArray.nbytes.__doc__
 
     def astype(self, dtype, copy=True):
         if self.dtype == dtype:
@@ -561,6 +287,16 @@ Cannot check equality of {typ} of length {a_len} with:
 
     astype.__doc__ = ExtensionArray.astype.__doc__
 
+    @property
+    def nbytes(self):
+        size = 0
+        for buf in self.data.buffers():
+            if buf is not None:
+                size += buf.size
+        return size
+
+    nbytes.__doc__ = ExtensionArray.nbytes.__doc__
+
     def isna(self):
         return _extract_isnull_bytemap(self.data)
 
@@ -570,6 +306,25 @@ Cannot check equality of {typ} of length {a_len} with:
         return type(self)(self.data)
 
     copy.__doc__ = ExtensionArray.copy.__doc__
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            if len(other) != len(self):
+                raise ValueError("""
+Cannot check equality of {typ} instances of unequal length
+    len(ra1) == {len_a1}
+    len(ra2) == {len_a2}""".format(
+                    typ=type(self).__name__,
+                    len_a1=len(self),
+                    len_a2=len(other)))
+            result = np.zeros(len(self), dtype=np.bool_)
+            for i in range(len(self)):
+                result[i] = self[i] == other[i]
+            return result
+        else:
+            raise ValueError("""
+Cannot check equality of {typ} of length {a_len} with:
+    {other}""".format(typ=type(self).__name__, a_len=len(self), other=repr(other)))
 
     def __len__(self):
         return len(self.data)
@@ -602,7 +357,7 @@ Cannot check equality of {typ} of length {a_len} with:
             item = np.asarray(item)
             if item.dtype == 'bool':
                 # Convert to unsigned integer array of indices
-                indices = np.nonzero(item)[0].astype(self.buffer_offsets[0].dtype)
+                indices = np.nonzero(item)[0].astype(np.uint32)
                 if len(indices):
                     return self.take(indices, allow_fill=False)
                 else:
@@ -614,19 +369,7 @@ Cannot check equality of {typ} of length {a_len} with:
         else:
             raise IndexError(err_msg)
 
-    @property
-    def numpy_dtype(self):
-        return self._numpy_element_type().dtype
-
-    @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=None):
-        if isinstance(scalars, GeometryArray):
-            return scalars
-
-        return cls(scalars, dtype=dtype)
-
     def take(self, indices, allow_fill=False, fill_value=None):
-
         indices = np.asarray(indices)
 
         # Validate self non-empty (Pandas expects this error when array is empty)
@@ -684,6 +427,15 @@ Cannot check equality of {typ} of length {a_len} with:
 
     take.__doc__ = ExtensionArray.take.__doc__
 
+    @classmethod
+    def _from_sequence(cls, scalars, dtype=None, copy=None):
+        if isinstance(scalars, cls):
+            return scalars
+
+        return cls([
+            None if np.isscalar(v) and np.isnan(v) else v for v in scalars
+        ], dtype=dtype)
+
     def _values_for_factorize(self):
         return np.array(self, dtype='object'), None
 
@@ -738,25 +490,44 @@ Cannot check equality of {typ} of length {a_len} with:
 
     fillna.__doc__ = ExtensionArray.fillna.__doc__
 
-    # Base geometry methods
+    # Geometry properties/methods
+    @property
+    def sindex(self):
+        if self._sindex is None:
+            self._sindex = HilbertRtree(self.bounds)
+        return self._sindex
+
+    @property
+    def cx(self):
+        """
+        Geopandas-style spatial indexer to select a subset of the array by intersection
+        with a bounding box
+
+        Format of input should be ``.cx[xmin:xmax, ymin:ymax]``. Any of
+        ``xmin``, ``xmax``, ``ymin``, and ``ymax`` can be provided, but input
+        must include a comma separating x and y slices. That is, ``.cx[:, :]``
+        will return the full series/frame, but ``.cx[:]`` is not implemented.
+        """
+        return _CoordinateIndexer(self)
+
     @property
     def total_bounds(self):
-        return total_bounds_interleaved(self.flat_values)
+        raise NotImplementedError
 
     @property
     def total_bounds_x(self):
-        return total_bounds_interleaved_1d(self.flat_values, 0)
+        raise NotImplementedError
 
     @property
     def total_bounds_y(self):
-        return total_bounds_interleaved_1d(self.flat_values, 1)
+        raise NotImplementedError
 
     @property
     def bounds(self):
-        return bounds_interleaved(self.buffer_values, self.buffer_outer_offsets)
+        raise NotImplementedError
 
     def hilbert_distance(self, total_bounds=None, p=10):
-        # Handle defualt total_bounds
+        # Handle default total_bounds
         if total_bounds is None:
             total_bounds = list(self.total_bounds)
 
@@ -849,50 +620,6 @@ class _CoordinateIndexer(_BaseCoordinateIndexer):
             return self._obj[selected_inds]
 
 
-@jit(nopython=True, nogil=True)
-def _lexographic_lt0(a1, a2):
-    """
-    Compare two 1D numpy arrays lexographically
-    Parameters
-    ----------
-    a1: ndarray
-        1D numpy array
-    a2: ndarray
-        1D numpy array
-
-    Returns
-    -------
-    comparison:
-        True if a1 < a2, False otherwise
-    """
-    for e1, e2 in zip(a1, a2):
-        if e1 < e2:
-            return True
-        elif e1 > e2:
-            return False
-    return len(a1) < len(a2)
-
-
-def _lexographic_lt(a1, a2):
-    if a1.dtype != np.object and a1.dtype != np.object:
-        # a1 and a2 primitive
-        return _lexographic_lt0(a1, a2)
-    elif a1.dtype == np.object and a1.dtype == np.object:
-        # a1 and a2 object, process recursively
-        for e1, e2 in zip(a1, a2):
-            if _lexographic_lt(e1, e2):
-                return True
-            elif _lexographic_lt(e2, e1):
-                return False
-        return len(a1) < len(a2)
-    elif a1.dtype != np.object:
-        # a2 is object array, a1 primitive
-        return True
-    else:
-        # a1 is object array, a2 primitive
-        return False
-
-
 @ngjit
 def _perform_extract_isnull_bytemap(bitmap, bitmap_length, bitmap_offset, dst_offset, dst):
     """
@@ -949,53 +676,10 @@ def _extract_isnull_bytemap(list_array):
     return result
 
 
-@jit(nogil=True, nopython=True, parallel=True)
-def _geometry_map_nested1(
-        fn, result, result_offset, values, value_offsets, missing
-):
-    assert len(value_offsets) == 1
-    value_offsets0 = value_offsets[0]
-    n = len(value_offsets0) - 1
-    for i in prange(n):
-        if not missing[i]:
-            result[i + result_offset] = fn(values, value_offsets0[i:i + 2])
-
-
-@jit(nogil=True, nopython=True, parallel=True)
-def _geometry_map_nested2(
-        fn, result, result_offset, values, value_offsets, missing
-):
-    assert len(value_offsets) == 2
-    value_offsets0 = value_offsets[0]
-    value_offsets1 = value_offsets[1]
-    n = len(value_offsets0) - 1
-    for i in prange(n):
-        if not missing[i]:
-            start = value_offsets0[i]
-            stop = value_offsets0[i + 1]
-            result[i + result_offset] = fn(values, value_offsets1[start:stop + 1])
-
-
-@jit(nogil=True, nopython=True, parallel=True)
-def _geometry_map_nested3(
-        fn, result, result_offset, values, value_offsets, missing
-):
-    assert len(value_offsets) == 3
-    value_offsets0 = value_offsets[0]
-    value_offsets1 = value_offsets[1]
-    value_offsets2 = value_offsets[2]
-    n = len(value_offsets0) - 1
-    for i in prange(n):
-        if not missing[i]:
-            start = value_offsets1[value_offsets0[i]]
-            stop = value_offsets1[value_offsets0[i + 1]]
-            result[i + result_offset] = fn(values, value_offsets2[start:stop + 1])
-
-
 def is_geometry_array(data):
     """
     Check if the data is of geometry dtype.
-    Does not include object array of Geometry/shapely scalars
+    Does not include object array of GeometryList/shapely scalars
     """
     if isinstance(getattr(data, "dtype", None), GeometryDtype):
         return True
@@ -1010,8 +694,8 @@ def to_geometry_array(data, dtype=None):
     )
     if sg is not None:
         shapely_to_spatialpandas = {
-            sg.MultiPoint: MultiPointArray,
             sg.Point: MultiPointArray,
+            sg.MultiPoint: MultiPointArray,
             sg.LineString: LineArray,
             sg.LinearRing: RingArray,
             sg.MultiLineString: MultiLineArray,
@@ -1025,7 +709,7 @@ def to_geometry_array(data, dtype=None):
     if dtype is not None:
         dtype = pd.array([], dtype=dtype).dtype
 
-    err_msg = "Unable to convert data argument to a Geometry array"
+    err_msg = "Unable to convert data argument to a GeometryList array"
     if is_geometry_array(data):
         # Keep data as is
         pass

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from spatialpandas.geometry._algorithms.measures import compute_area
 from spatialpandas.utils import ngjit
 import numpy as np

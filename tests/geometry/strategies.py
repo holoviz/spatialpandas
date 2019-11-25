@@ -9,7 +9,7 @@ from shapely.affinity import scale, translate
 from shapely.ops import cascaded_union, polygonize
 
 
-hyp_settings = settings(deadline=None, max_examples=1000)
+hyp_settings = settings(deadline=None, max_examples=500)
 
 coord = st.floats(
     allow_infinity=False, allow_nan=False, max_value=1000, min_value=-1000

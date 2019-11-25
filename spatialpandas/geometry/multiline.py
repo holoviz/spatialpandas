@@ -1,10 +1,14 @@
+from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import (
     lines_intersect_bounds, multilines_intersect_bounds
 )
 from spatialpandas.geometry.base import (
-    GeometryArray, GeometryDtype, Geometry, _geometry_map_nested2
+    GeometryDtype
+)
+from spatialpandas.geometry.baselist import (
+    GeometryListArray, GeometryList, _geometry_map_nested2
 )
 import numpy as np
 from spatialpandas.geometry._algorithms.measures import compute_line_length
@@ -21,7 +25,7 @@ class MultiLineDtype(GeometryDtype):
         return MultiLineArray
 
 
-class MultiLine(Geometry):
+class MultiLine(GeometryList):
     _nesting_levels = 1
 
     @classmethod
@@ -95,7 +99,7 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
         return result.any()
 
 
-class MultiLineArray(GeometryArray):
+class MultiLineArray(GeometryListArray):
     _element_type = MultiLine
     _nesting_levels = 2
 
@@ -121,15 +125,13 @@ class MultiLineArray(GeometryArray):
     @property
     def length(self):
         result = np.full(len(self), np.nan, dtype=np.float64)
-        for c, result_offset in enumerate(self.offsets):
-            _geometry_map_nested2(
-                compute_line_length,
-                result,
-                result_offset,
-                self.buffer_values,
-                self.buffer_offsets,
-                self.isna(),
-            )
+        _geometry_map_nested2(
+            compute_line_length,
+            result,
+            self.buffer_values,
+            self.buffer_offsets,
+            self.isna(),
+        )
         return result
 
     @property
