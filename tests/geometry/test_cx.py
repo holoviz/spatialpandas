@@ -1,5 +1,7 @@
 from hypothesis import given
-
+from pandas.testing import assert_series_equal, assert_frame_equal
+import dask.dataframe as dd
+from spatialpandas import GeoSeries, GeoDataFrame
 from spatialpandas.geometry import (
     MultiPointArray, LineArray, MultiLineArray, PolygonArray, MultiPolygonArray
 )
@@ -80,3 +82,51 @@ def test_multipolygon_cx_selection(gp_multipolygon, rect):
                 gp_multipolygon
             ).cx[xslice, yslice]
             assert all(expected == result)
+
+
+@given(st_multipoint_array(min_size=1, geoseries=True), st_bounds(orient=True))
+@hyp_settings
+def test_multipoint_cx_series_selection(gp_multipoint, rect):
+    x0, y0, x1, y1 = rect
+    expected = GeoSeries(gp_multipoint.cx[x0:x1, y0:y1], dtype='multipoint')
+
+    sp_multipoint = GeoSeries(gp_multipoint)
+    result = sp_multipoint.cx[x0:x1, y0:y1]
+    assert_series_equal(expected, result, obj='GeoSeries')
+
+
+@given(st_multipoint_array(min_size=6, geoseries=True), st_bounds(orient=True))
+@hyp_settings
+def test_multipoint_cx_series_selection_dask(gp_multipoint, rect):
+    x0, y0, x1, y1 = rect
+    expected = GeoSeries(gp_multipoint.cx[x0:x1, y0:y1], dtype='multipoint')
+
+    sp_multipoint = dd.from_pandas(GeoSeries(gp_multipoint), npartitions=3)
+    result = sp_multipoint.cx[x0:x1, y0:y1].compute()
+    assert_series_equal(expected, result, obj='GeoSeries')
+
+
+@given(st_multipoint_array(min_size=1, geoseries=True), st_bounds(orient=True))
+@hyp_settings
+def test_multipoint_cx_frame_selection(gp_multipoint, rect):
+    x0, y0, x1, y1 = rect
+    expected = GeoDataFrame(
+        GeoSeries(gp_multipoint.cx[x0:x1, y0:y1], dtype='multipoint')
+    )
+
+    sp_multipoint = GeoSeries(gp_multipoint).to_frame()
+    result = sp_multipoint.cx[x0:x1, y0:y1]
+    assert_frame_equal(expected, result, obj='GeoDataFrame')
+
+
+@given(st_multipoint_array(min_size=6, geoseries=True), st_bounds(orient=True))
+@hyp_settings
+def test_multipoint_cx_frame_selection_dask(gp_multipoint, rect):
+    x0, y0, x1, y1 = rect
+    expected = GeoDataFrame(
+        GeoSeries(gp_multipoint.cx[x0:x1, y0:y1], dtype='multipoint')
+    )
+
+    sp_multipoint = dd.from_pandas(GeoSeries(gp_multipoint).to_frame(), npartitions=3)
+    result = sp_multipoint.cx[x0:x1, y0:y1].compute()
+    assert_frame_equal(expected, result, obj='GeoDataFrame')

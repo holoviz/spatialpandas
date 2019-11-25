@@ -34,6 +34,8 @@ def st_bounds_array(draw, n_min=1, n_max=3, min_size=1, max_size=1000):
     )
     dim_ends = dim_starts + dim_widths
     bounds_array = np.concatenate([dim_starts, dim_ends], axis=1)
+    if bounds_array.size == 0:
+        bounds_array = bounds_array.reshape(0, 2*n)
     return bounds_array
 
 
@@ -102,6 +104,20 @@ def test_rtree_intersects_input_bounds(bounds_array, page_size):
         assert intersected == intersects_bruteforce(b, bounds_array)
 
 
+@given(st_bounds_array(min_size=0, max_size=0), st_page_size)
+@hyp_settings
+def test_rtree_empty(bounds_array, page_size):
+    # Build rtree
+    rt = HilbertRtree(bounds_array, page_size=page_size)
+    n = bounds_array.shape[1] // 2
+    query_bounds = (-np.inf,) * n + (np.inf,) * n
+    assert set(rt.intersects(query_bounds)) == set()
+    covers, overlaps = rt.covers_overlaps(query_bounds)
+    assert set(covers) == set()
+    assert set(overlaps) == set()
+    assert rt.total_bounds == (np.nan,) * (2 * n)
+
+
 @given(
     st_bounds_array(n_min=2, n_max=2),
     st_bounds_array(n_min=2, n_max=2, min_size=10),
@@ -121,7 +137,7 @@ def test_rtree_intersects_different_bounds_2d(bounds_array, query_array, page_si
         assert intersected == intersects_bruteforce(b, bounds_array)
 
 
-@given(st_bounds_array(), st_page_size)
+@given(st_bounds_array(n_min=1), st_page_size)
 @hyp_settings
 def test_rtree_intersects_all(bounds_array, page_size):
     # Build rtree
@@ -189,6 +205,10 @@ def test_rtree_pickle(bounds_array, page_size):
 
     # Serialize uninitialized rtree
     rt2 = pickle.loads(pickle.dumps(rt))
+    if bounds_array.size == 0:
+        assert isinstance(rt2, HilbertRtree)
+        return
+
     rt2_result = set(rt2.intersects(bounds_array[0, :]))
 
     # Call intersection to construct numba rtree

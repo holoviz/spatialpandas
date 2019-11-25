@@ -138,7 +138,13 @@ class TestGeometryDtype(eb.BaseDtypeTests):
 
 
 class TestGeometryGetitem(eb.BaseGetitemTests):
-    pass
+    @pytest.mark.skip(reason="non-None fill value not supported")
+    def test_take_non_na_fill_value(self):
+        pass
+
+    @pytest.mark.skip(reason="non-None fill value not supported")
+    def test_reindex_non_na_fill_value(self, data_missing):
+        pass
 
 
 class TestGeometryGroupby(eb.BaseGroupbyTests):

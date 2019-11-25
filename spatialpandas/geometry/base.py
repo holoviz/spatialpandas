@@ -3,12 +3,14 @@ from numbers import Integral
 from typing import Iterable
 import pyarrow as pa
 import numpy as np
+import pandas as pd
 import re
 
 from numba import jit, prange
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.api.types import is_array_like
 
+from spatialpandas.spatialindex.rtree import _distances_from_bounds
 from ._algorithms.bounds import (
     total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
 )
@@ -86,6 +88,12 @@ class _ArrowBufferMixin(object):
 
     @property
     def flat_values(self):
+        """
+        Flat array of the valid values. This differs from buffer_values if the pyarrow
+        ListArray backing this object is a slice. buffer_values will contain all
+        values from the original (pre-sliced) object whereas flat_values will contain
+        only the sliced values.
+        """
         # Compute valid start/stop index into buffer values array.
         buffer_offsets = self.buffer_offsets
         start = buffer_offsets[0][0]
@@ -97,9 +105,9 @@ class _ArrowBufferMixin(object):
         return self.buffer_values[start:stop]
 
     @property
-    def flat_outer_offsets(self):
+    def buffer_outer_offsets(self):
         """
-        Array of the offsets into flat_values that separate the outermost nested
+        Array of the offsets into buffer_values that separate the outermost nested
         structure of geometry object(s), regardless of the number of nesting levels.
         """
         buffer_offsets = self.buffer_offsets
@@ -110,9 +118,9 @@ class _ArrowBufferMixin(object):
         return flat_offsets
 
     @property
-    def flat_inner_offsets(self):
+    def buffer_inner_offsets(self):
         """
-        Array of the offsets into flat_values that separate the innermost nested
+        Array of the offsets into buffer_values that separate the innermost nested
         structure of geometry object(s), regardless of the number of nesting levels.
         """
         buffer_offsets = self.buffer_offsets
@@ -129,6 +137,10 @@ class GeometryDtype(ExtensionDtype):
     base = np.dtype('O')
     _metadata = ('_dtype',)
     na_value = np.nan
+
+    @classmethod
+    def __from_arrow__(cls, data):
+        return cls.construct_array_type()(data)
 
     def __init__(self, subtype):
         if isinstance(subtype, GeometryDtype):
@@ -278,7 +290,7 @@ class Geometry(_ArrowBufferMixin):
         return _lexographic_lt(np.asarray(self.data), np.asarray(other.data))
 
     def __len__(self):
-        return len(self.flat_outer_offsets - 1)
+        return len(self.buffer_outer_offsets - 1)
 
     @classmethod
     def construct_array_type(cls):
@@ -353,10 +365,6 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
     def __arrow_array__(self, type=None):
         return self.data
 
-    @classmethod
-    def __from_arrow__(cls, data):
-        return cls(data)
-
     # Constructor
     def __init__(self, array, dtype=None, copy=None):
         # Choose default dtype for empty arrays
@@ -388,7 +396,7 @@ class GeometryArray(ExtensionArray, _ArrowBufferMixin):
         elif isinstance(array, pa.Array):
             self.data = array
         elif isinstance(array, pa.ChunkedArray):
-            self.data = pa.concat_arrays(array)
+            self.data = pa.concat_arrays(array.chunks)
         elif isinstance(array, dict) and 'offsets' in array and 'values' in array:
             # Dict of flat values / offsets
             offsets = array['offsets']
@@ -549,7 +557,7 @@ Cannot check equality of {typ} of length {a_len} with:
         else:
             dtype = np.dtype(dtype)
 
-        return GeometryArray(np.asarray(self).astype(dtype), dtype=dtype)
+        return self.__class__(np.asarray(self.data), dtype=dtype)
 
     astype.__doc__ = ExtensionArray.astype.__doc__
 
@@ -595,16 +603,10 @@ Cannot check equality of {typ} of length {a_len} with:
             if item.dtype == 'bool':
                 # Convert to unsigned integer array of indices
                 indices = np.nonzero(item)[0].astype(self.buffer_offsets[0].dtype)
-                new_offsets, new_values = _take_offsets(
-                    indices,
-                    self.buffer_offsets,
-                    self.buffer_values
-                )
-                new_isna = self.isna()[indices]
-                return self.__class__(
-                    dict(isna=new_isna, offsets=new_offsets, values=new_values)
-                )
-
+                if len(indices):
+                    return self.take(indices, allow_fill=False)
+                else:
+                    return self[:0]
             elif item.dtype.kind in ('i', 'u'):
                 return self.take(item, allow_fill=False)
             else:
@@ -624,45 +626,43 @@ Cannot check equality of {typ} of length {a_len} with:
         return cls(scalars, dtype=dtype)
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
+
+        indices = np.asarray(indices)
+
+        # Validate self non-empty (Pandas expects this error when array is empty)
+        if len(self) == 0 and (not allow_fill or any(indices >= 0)):
+            raise IndexError("cannot do a non-empty take on {typ}".format(
+                typ=self.__class__.__name__,
+            ))
+
+        # Validate fill values
+        if allow_fill and not (
+                fill_value is None or
+                np.isscalar(fill_value) and np.isnan(fill_value)):
+
+            raise ValueError('non-None fill value not supported')
+
+        # Validate indices
+        invalid_mask = indices >= len(self)
+        if not allow_fill:
+            invalid_mask |= indices < -len(self)
+
+        if any(invalid_mask):
+            raise IndexError(
+                "Index value out of bounds for {typ} of length {n}: "
+                "{idx}".format(
+                    typ=self.__class__.__name__,
+                    n=len(self),
+                    idx=indices[invalid_mask][0]
+                )
+            )
 
         if allow_fill:
-            # fill value should always be translated from the scalar
-            # type for the array, to the physical storage type for
-            # the data, before passing to take.
-            if fill_value is None:
-                fill_value = self.dtype.na_value
-
-            data = self.astype(object)
-            result = take(data, indices, fill_value=fill_value, allow_fill=allow_fill)
-            return self._from_sequence(result, dtype=self.dtype.subtype)
-        else:
-            if len(self) == 0:
-                raise IndexError("cannot do a non-empty take on {typ}".format(
-                    typ=self.__class__.__name__,
-                ))
-            # standardize indices
-            offset_dtype = self.buffer_offsets[0].dtype
-            if not isinstance(indices, np.ndarray) or indices.dtype.kind != 'u':
-                indices = np.array(indices)
-                invalid_mask = indices < 0
-                if any(indices[invalid_mask] < -len(self)):
-                    raise IndexError(
-                        "Index value out of bounds for {typ} of length {n}: "
-                        "{idx}".format(
-                            typ=self.__class__.__name__,
-                            n=len(self),
-                            idx=indices[invalid_mask][0]
-                        )
-                    )
-
-                indices[invalid_mask] = indices[invalid_mask] + len(self)
-
-            indices = np.asarray(indices, dtype=offset_dtype)
-            invalid_mask = indices >= len(self)
+            invalid_mask = indices < -1
             if any(invalid_mask):
-                raise IndexError(
-                    "Index value out of bounds for {typ} of length {n}: "
+                # ValueError expected by pandas ExtensionArray test suite
+                raise ValueError(
+                    "Invalid index value for {typ} with allow_fill=True: "
                     "{idx}".format(
                         typ=self.__class__.__name__,
                         n=len(self),
@@ -670,16 +670,17 @@ Cannot check equality of {typ} of length {a_len} with:
                     )
                 )
 
-            # Perform take on offsets
-            new_offsets, new_values = _take_offsets(
-                indices,
-                self.buffer_offsets,
-                self.buffer_values
-            )
-            new_isna = self.isna()[indices]
-            return self.__class__(
-                dict(isna=new_isna, offsets=new_offsets, values=new_values)
-            )
+            # Build pyarrow array of indices
+            indices = pa.array(indices, mask=indices < 0)
+        else:
+            # Convert negative indices to positive
+            negative_mask = indices < 0
+            indices[negative_mask] = indices[negative_mask] + len(self)
+
+            # Build pyarrow array of indices
+            indices = pa.array(indices)
+
+        return self.__class__(self.data.take(indices))
 
     take.__doc__ = ExtensionArray.take.__doc__
 
@@ -752,7 +753,21 @@ Cannot check equality of {typ} of length {a_len} with:
 
     @property
     def bounds(self):
-        return bounds_interleaved(self.flat_values, self.flat_outer_offsets)
+        return bounds_interleaved(self.buffer_values, self.buffer_outer_offsets)
+
+    def hilbert_distance(self, total_bounds=None, p=10):
+        # Handle defualt total_bounds
+        if total_bounds is None:
+            total_bounds = list(self.total_bounds)
+
+        # Expand zero width bounds
+        if total_bounds[0] == total_bounds[2]:
+            total_bounds[2] += 1.0
+        if total_bounds[1] == total_bounds[3]:
+            total_bounds[3] += 1.0
+        total_bounds = tuple(total_bounds)
+
+        return _distances_from_bounds(self.bounds, total_bounds, p)
 
     def intersects_bounds(self, bounds, inds=None):
         """
@@ -772,49 +787,66 @@ Cannot check equality of {typ} of length {a_len} with:
         raise NotImplementedError()
 
 
-class _CoordinateIndexer(object):
-    def __init__(self, obj, parent=None):
-        self._obj = obj
-        self._parent = parent
+class _BaseCoordinateIndexer(object):
+    def __init__(self, sindex):
+        self._sindex = sindex
 
-    def __getitem__(self, key):
-        obj = self._obj
+    def _get_bounds(self, key):
         xs, ys = key
         # Handle xs and ys as scalar numeric values
         if type(xs) is not slice:
             xs = slice(xs, xs)
         if type(ys) is not slice:
             ys = slice(ys, ys)
-
         if xs.step is not None or ys.step is not None:
             raise ValueError(
                 "Slice step not supported. The cx indexer uses slices to represent "
                 "intervals in continuous coordinate space, and a slice step has no "
                 "clear interpretation in this context."
             )
-        xmin, ymin, xmax, ymax = obj.sindex.total_bounds
+        xmin, ymin, xmax, ymax = self._sindex.total_bounds
         x0, y0, x1, y1 = (
             xs.start if xs.start is not None else xmin,
             ys.start if ys.start is not None else ymin,
             xs.stop if xs.stop is not None else xmax,
             ys.stop if ys.stop is not None else ymax,
         )
-
         # Handle inverted bounds
         if x1 < x0:
             x0, x1 = x1, x0
         if y1 < y0:
             y0, y1 = y1, y0
+        return x0, x1, y0, y1
 
-        covers_inds, overlaps_inds = obj.sindex.covers_overlaps((x0, y0, x1, y1))
-        overlaps_inds_mask = obj.intersects_bounds((x0, y0, x1, y1), overlaps_inds)
+    def __getitem__(self, key):
+        x0, x1, y0, y1 = self._get_bounds(key)
+        covers_inds, overlaps_inds = self._sindex.covers_overlaps((x0, y0, x1, y1))
+        return self._perform_get_item(covers_inds, overlaps_inds, x0, x1, y0, y1)
+
+    def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
+        raise NotImplementedError()
+
+
+class _CoordinateIndexer(_BaseCoordinateIndexer):
+    def __init__(self, obj, parent=None):
+        super(_CoordinateIndexer, self).__init__(obj.sindex)
+        self._obj = obj
+        self._parent = parent
+
+    def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
+        overlaps_inds_mask = self._obj.intersects_bounds(
+            (x0, y0, x1, y1), overlaps_inds
+        )
         selected_inds = np.sort(
             np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
         )
         if self._parent is not None:
-            return self._parent.iloc[selected_inds]
+            if len(self._parent) > 0:
+                return self._parent.iloc[selected_inds]
+            else:
+                return self._parent
         else:
-            return obj[selected_inds]
+            return self._obj[selected_inds]
 
 
 @jit(nopython=True, nogil=True)
@@ -859,60 +891,6 @@ def _lexographic_lt(a1, a2):
     else:
         # a1 is object array, a2 primitive
         return False
-
-
-@ngjit
-def _take_offsets(inds, all_offsets, values):
-    # Initialize new offsets
-    start_offsets = inds
-    stop_offsets = inds + inds.dtype.type(1)
-    all_new_offsets = []
-    for offsets in all_offsets:
-        new_buffer_len = (stop_offsets - start_offsets).sum() + inds.dtype.type(1)
-        all_new_offsets.append(np.zeros(new_buffer_len, dtype=offsets.dtype))
-        start_offsets = offsets[start_offsets]
-        stop_offsets = offsets[stop_offsets]
-
-    # populate new offsets
-    start_offsets = inds
-    stop_offsets = inds + inds.dtype.type(1)
-    for offsets, new_offsets in zip(all_offsets, all_new_offsets):
-        new_start = 0
-        cumsum = inds.dtype.type(0)
-        for i in range(len(inds)):
-            start = start_offsets[i]
-            stop = stop_offsets[i]
-            if start == stop:
-                # Empty or None element
-                continue
-            offsets_slice = offsets[start_offsets[i]:stop_offsets[i] + 1]
-            offsets_slice = offsets_slice + cumsum - offsets_slice[0]
-            new_stop = new_start + stop - start
-            new_offsets[new_start:new_stop + 1] = offsets_slice
-            cumsum = offsets_slice[-1]
-            new_start = new_stop
-
-        start_offsets = offsets[start_offsets]
-        stop_offsets = offsets[stop_offsets]
-
-    # Initialize new values
-    new_values_len = (stop_offsets - start_offsets).sum()
-    new_values = np.zeros(new_values_len, dtype=values.dtype)
-
-    # Populate new values
-    new_start = 0
-    for i in range(len(inds)):
-        start = start_offsets[i]
-        stop = stop_offsets[i]
-        if start == stop:
-            # Empty or None element
-            continue
-        values_slice = values[start:stop]
-        new_stop = new_start + stop - start
-        new_values[new_start:new_stop] = values_slice
-        new_start = new_stop
-
-    return all_new_offsets, new_values
 
 
 @ngjit
@@ -1025,14 +1003,15 @@ def is_geometry_array(data):
         return False
 
 
-def to_geometry_array(data):
+def to_geometry_array(data, dtype=None):
     from . import (
-        LineArray, RingArray, MultiLineArray, PolygonArray, MultiPolygonArray
+        MultiPointArray,  LineArray, RingArray,
+        MultiLineArray, PolygonArray, MultiPolygonArray
     )
     if sg is not None:
         shapely_to_spatialpandas = {
-            sg.MultiPoint: MultiPolygonArray,
-            sg.Point: MultiPolygonArray,
+            sg.MultiPoint: MultiPointArray,
+            sg.Point: MultiPointArray,
             sg.LineString: LineArray,
             sg.LinearRing: RingArray,
             sg.MultiLineString: MultiLineArray,
@@ -1042,40 +1021,53 @@ def to_geometry_array(data):
     else:
         shapely_to_spatialpandas = {}
 
+    # Normalize dtype from string
+    if dtype is not None:
+        dtype = pd.array([], dtype=dtype).dtype
+
     err_msg = "Unable to convert data argument to a Geometry array"
     if is_geometry_array(data):
         # Keep data as is
         pass
     elif (is_array_like(data) or
-          isinstance(data, (list, tuple))
-          or gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray))):
-        # Check for list/array of geometry scalars.
-        first_valid = None
-        for val in data:
-            if val is not None:
-                first_valid = val
-                break
-        if isinstance(first_valid, Geometry):
-            # Pass data to constructor of appropriate geometry array
-            data = first_valid.construct_array_type()(data)
-        elif type(first_valid) in shapely_to_spatialpandas:
-            if isinstance(first_valid, sg.LineString):
-                # Handle mix of sg.LineString and sg.MultiLineString
-                for val in data:
-                    if isinstance(val, sg.MultiLineString):
-                        first_valid = val
-                        break
-            elif isinstance(first_valid, sg.Polygon):
-                # Handle mix of sg.Polygon and sg.MultiPolygon
-                for val in data:
-                    if isinstance(val, sg.MultiPolygon):
-                        first_valid = val
-                        break
+            isinstance(data, (list, tuple))
+            or gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray))):
 
-            array_type = shapely_to_spatialpandas[type(first_valid)]
-            data = array_type(data)
+        if dtype is not None:
+            data = dtype.construct_array_type()(data, dtype=dtype)
+        elif len(data) == 0:
+            raise ValueError(
+                "Cannot infer spatialpandas geometry type from empty collection "
+                "without dtype.\n"
+            )
         else:
-            raise ValueError(err_msg)
+            # Check for list/array of geometry scalars.
+            first_valid = None
+            for val in data:
+                if val is not None:
+                    first_valid = val
+                    break
+            if isinstance(first_valid, Geometry):
+                # Pass data to constructor of appropriate geometry array
+                data = first_valid.construct_array_type()(data)
+            elif type(first_valid) in shapely_to_spatialpandas:
+                if isinstance(first_valid, sg.LineString):
+                    # Handle mix of sg.LineString and sg.MultiLineString
+                    for val in data:
+                        if isinstance(val, sg.MultiLineString):
+                            first_valid = val
+                            break
+                elif isinstance(first_valid, sg.Polygon):
+                    # Handle mix of sg.Polygon and sg.MultiPolygon
+                    for val in data:
+                        if isinstance(val, sg.MultiPolygon):
+                            first_valid = val
+                            break
+
+                array_type = shapely_to_spatialpandas[type(first_valid)]
+                data = array_type(data)
+            else:
+                raise ValueError(err_msg)
     else:
         raise ValueError(err_msg)
     return data

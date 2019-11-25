@@ -69,10 +69,10 @@ or MultiPoint""".format(typ=type(shape).__name__))
     def intersects_bounds(self, bounds):
         x0, y0, x1, y1 = bounds
         result = np.zeros(1, dtype=np.bool_)
-        offsets = self.flat_outer_offsets
+        offsets = self.buffer_outer_offsets
         multipoints_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, offsets[:-1], offsets[1:], result
+            self.buffer_values, offsets[:-1], offsets[1:], result
         )
         return result[0]
 
@@ -110,7 +110,7 @@ class MultiPointArray(GeometryArray):
 
     def intersects_bounds(self, bounds, inds=None):
         x0, y0, x1, y1 = bounds
-        offsets0 = self.flat_outer_offsets
+        offsets0 = self.buffer_outer_offsets
         start_offsets0 = offsets0[:-1]
         stop_offsets0 = offsets0[1:]
 
@@ -121,7 +121,7 @@ class MultiPointArray(GeometryArray):
         result = np.zeros(len(start_offsets0), dtype=np.bool_)
         multipoints_intersect_bounds(
             float(x0), float(y0), float(x1), float(y1),
-            self.flat_values, start_offsets0, stop_offsets0, result
+            self.buffer_values, start_offsets0, stop_offsets0, result
         )
         return result
 

@@ -44,6 +44,25 @@ def _parent(node):
     return (node - 1) // 2
 
 
+@ngjit
+def _distances_from_bounds(bounds, total_bounds, p):
+    n = bounds.shape[1] // 2
+    dim_ranges = [(total_bounds[d], total_bounds[d + n]) for d in range(n)]
+    # Avoid degenerate case where there is a single unique rectangle that is a
+    # single point. Increase the range by 1.0 to prevent divide by zero error
+    for d in range(n):
+        if dim_ranges[d][0] == dim_ranges[d][1]:
+            dim_ranges[d] = (dim_ranges[d][0], dim_ranges[d][1] + 1)
+    # Compute hilbert distance of the middle of each bounding box
+    dim_mids = [(bounds[:, d] + bounds[:, d + n]) / 2.0 for d in range(n)]
+    side_length = 2 ** p
+    coords = np.zeros((bounds.shape[0], n), dtype=np.int64)
+    for d in range(n):
+        coords[:, d] = _data2coord(dim_mids[d], dim_ranges[d], side_length)
+    hilbert_distances = distances_from_coordinates(p, coords)
+    return hilbert_distances
+
+
 class HilbertRtree(object):
     """
     This class provides a numba implementation of a read-only Hilbert R-tree
@@ -64,6 +83,10 @@ class HilbertRtree(object):
 
         See HilbertRtree.__init__ for parameter descriptions
         """
+        # Handle empty bounds array
+        if bounds.size == 0:
+            return bounds, np.zeros(0, dtype=np.int64), bounds
+
         # Init bounds_tree array for storing the binary tree representation
         input_size = bounds.shape[0]
         n = bounds.shape[1] // 2
@@ -76,27 +99,16 @@ class HilbertRtree(object):
         leaf_start = tree_length - next_pow2
 
         # Compute Hilbert distances for inputs
-        side_length = 2 ** p
-        dim_ranges = [(bounds[:, d].min(), bounds[:, d + n].max()) for d in range(n)]
-
-        # Avoid degenerate case where there is a single unique rectangle that is a
-        # single point. Increase the range by 1.0 to prevent divide by zero error
-        for d in range(n):
-            if dim_ranges[d][0] == dim_ranges[d][1]:
-                dim_ranges[d] = (dim_ranges[d][0], dim_ranges[d][1] + 1)
-
-        # Compute hilbert distance of the middle of each bounding box
-        dim_mids = [(bounds[:, d] + bounds[:, d + n]) / 2.0 for d in range(n)]
-        coords = np.zeros((bounds.shape[0], n), dtype=np.int64)
-        for d in range(n):
-            coords[:, d] = _data2coord(dim_mids[d], dim_ranges[d], side_length)
-        hilbert_distances = distances_from_coordinates(p, coords)
+        total_bounds = ([bounds[:, d].min() for d in range(n)] +
+                        [bounds[:, d + n].max() for d in range(n)])
+        hilbert_distances = _distances_from_bounds(bounds, total_bounds, p)
 
         # Calculate indices needed to sort bounds by hilbert distance
         keys = np.argsort(hilbert_distances)
 
         # Populate leaves of the tree, one leaf per page. This is layer = tree_depth
         sorted_bounds = bounds[keys, :]
+
         for page in range(num_pages):
             start = page * page_size
             stop = start + page_size
@@ -137,6 +149,7 @@ class HilbertRtree(object):
 
         return sorted_bounds, keys, bounds_tree
 
+
     def __init__(self, bounds, p=10, page_size=512):
         """
         Construct a new HilbertRtree
@@ -159,11 +172,10 @@ class HilbertRtree(object):
         if len(bounds.shape) != 2:
             raise ValueError("bounds must be a 2D array")
 
-        if bounds.shape[0] == 0:
-            raise ValueError("The first dimension of bounds must not be empty")
-
-        if bounds.shape[1] % 2 != 0:
-            raise ValueError("The second dimension of bounds must be a multiple of 2")
+        if bounds.shape[1] < 2 or bounds.shape[1] % 2 != 0:
+            raise ValueError(
+                "The second dimension of bounds must be a multiple of 2 and at least 2"
+            )
 
         self._page_size = max(1, page_size)  # 1 is smallest valid page size
         self._numba_rtree = None
@@ -226,11 +238,21 @@ class HilbertRtree(object):
         return self.numba_rtree.covers_overlaps(bounds)
 
     @property
+    def empty(self):
+        """
+        True if the RTree was created with zero bounding boxes
+        """
+        return self.numba_rtree._bounds_tree.shape[0] == 0
+
+    @property
     def total_bounds(self):
         """
         Tuple of the total bounds of all bounding boxes
         """
-        return tuple(self.numba_rtree._bounds_tree[0, :])
+        if not self.empty:
+            return tuple(self.numba_rtree._bounds_tree[0, :])
+        else:
+            return tuple((np.nan,) * self.numba_rtree._bounds_tree.shape[1])
 
 
 _numbartree_spec = [
@@ -339,6 +361,9 @@ class _NumbaRtree(object):
         """
         See HilbertRtree.intersection
         """
+        if self._bounds.size == 0:
+            return np.zeros(0, dtype=np.uint32)
+
         n = len(query_bounds) // 2
         covered_ranges, maybe_intersect_ranges = self._maybe_intersects_ranges(
             query_bounds)
@@ -383,6 +408,9 @@ class _NumbaRtree(object):
         """
         See HilbertRtree.covers_overlaps
         """
+        if self._bounds.size == 0:
+            return np.zeros(0, dtype=np.uint32), np.zeros(0, dtype=np.uint32)
+
         n = len(query_bounds) // 2
         covered_ranges, maybe_intersect_ranges = self._maybe_intersects_ranges(
             query_bounds)
