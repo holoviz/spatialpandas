@@ -126,7 +126,7 @@ class GeometryList(Geometry, _ListArrayBufferMixin):
     """
     _nesting_levels = 0
 
-    def __init__(self, data):
+    def __init__(self, data, dtype=None):
         super(GeometryList, self).__init__(data)
         if len(self.data) > 0:
             _validate_nested_arrow_type(self._nesting_levels, self.data.value_type)
@@ -175,13 +175,12 @@ class GeometryListArray(GeometryArray, _ListArrayBufferMixin):
 
         return arrow_dtype
 
-    @classmethod
-    def _numpy_element_dtype_from_arrow_type(cls, pyarrow_type):
+    def _numpy_element_dtype_from_arrow_type(self, pyarrow_type):
         if pyarrow_type == pa.null():
             return pa.null()
 
         pyarrow_element_type = pyarrow_type
-        for i in range(cls._nesting_levels):
+        for i in range(self._nesting_levels):
             pyarrow_element_type = pyarrow_element_type.value_type
 
         return pyarrow_element_type.to_pandas_dtype()

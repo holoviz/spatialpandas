@@ -1,6 +1,6 @@
 import numpy as np
 from spatialpandas.geometry import (
-    MultiPoint, MultiPointArray, Line, LineArray,
+    Point, PointArray, MultiPoint, MultiPointArray, Line, LineArray,
     MultiLine, MultiLineArray, Polygon, PolygonArray,
     MultiPolygon, MultiPolygonArray
 )
@@ -9,13 +9,26 @@ unit_square_cw = np.array([1, 1,  1, 2,  2, 2,  2, 1,  1, 1], dtype='float64')
 large_square_ccw = np.array([0, 0, 3, 0, 3, 3, 0, 3, 0, 0], dtype='float64')
 
 
-def test_points():
+def test_point():
+    point = Point([1, 2])
+    assert point.length == 0.0
+    assert point.area == 0.0
+
+
+def test_point_array():
+    points = PointArray(unit_square_cw)
+    np.testing.assert_equal(points.length, [0.0, 0.0, 0.0, 0.0, 0.0])
+    np.testing.assert_equal(points.area, [0.0, 0.0, 0.0, 0.0, 0.0])
+    assert points.total_bounds == (1, 1, 2, 2)
+
+
+def test_multipoint():
     points = MultiPoint(unit_square_cw)
     assert points.length == 0.0
     assert points.area == 0.0
 
 
-def test_points_array():
+def test_multipoint_array():
     points = MultiPointArray([
         unit_square_cw,
         large_square_ccw,
