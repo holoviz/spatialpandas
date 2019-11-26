@@ -115,10 +115,10 @@ def to_parquet_dask(ddf, path, compression="default", storage_options=None, **kw
     b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
     pqds = pq.ParquetDataset(path)
-    all_metadata = copy.copy(pqds.metadata.metadata)
+    all_metadata = copy.copy(pqds.common_metadata.metadata)
     all_metadata[b'spatialpandas'] = b_spatial_metadata
     new_schema = pqds.metadata.schema.to_arrow_schema().with_metadata(all_metadata)
-    pq.write_metadata(new_schema, pqds.metadata_path)
+    pq.write_metadata(new_schema, pqds.common_metadata_path)
 
 
 def read_parquet_dask(path, columns=None, categories=None, storage_options=None, **kwargs):
@@ -152,9 +152,9 @@ def read_parquet_dask(path, columns=None, categories=None, storage_options=None,
     )
     # Load bounding box info from _metadata
     pqds = pq.ParquetDataset(path)
-    if b'spatialpandas' in pqds.metadata.metadata:
+    if b'spatialpandas' in pqds.common_metadata.metadata:
         spatial_metadata = json.loads(
-            pqds.metadata.metadata[b'spatialpandas'].decode('utf')
+            pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')
         )
         if "partition_bounds" in spatial_metadata:
             partition_bounds = {}
