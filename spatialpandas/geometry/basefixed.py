@@ -44,7 +44,7 @@ class GeometryFixed(Geometry):
 
 class GeometryFixedArray(GeometryArray):
     """
-    Base class for geometry arrays that are backed by a pyarrow ListArray.
+    Base class for geometry arrays that are backed by a pyarrow fixed width binary type
     """
     _element_type = GeometryFixed
     _element_len = 2

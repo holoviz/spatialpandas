@@ -36,7 +36,7 @@ def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
 
 class _ListArrayBufferMixin(object):
     """
-    Mixing of buffer utilities for classes that store a pyarrow ListArray as their
+    Mixin of buffer utilities for classes that store a pyarrow ListArray as their
     listarray property. The numpy data type of the inner ListArray elements must be
     stored as the numpy_dtype property
     """

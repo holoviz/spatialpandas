@@ -208,7 +208,7 @@ class GeometryArray(ExtensionArray):
             # len failed
             pass
 
-        # See if we can determine array array type
+        # See if we can determine arrow array type
         if isinstance(dtype, GeometryDtype):
             # Use arrow type as-is
             arrow_dtype = dtype.arrow_dtype
