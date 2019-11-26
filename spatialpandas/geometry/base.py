@@ -18,10 +18,14 @@ from .._optional_imports import sg, gp
 
 
 def _unwrap_geometry(a, element_dtype):
-    if np.isscalar(a) and np.isnan(a):
-        # replace top-level nana with None
-        return None
-    elif isinstance(a, Geometry):
+    try:
+        if np.isscalar(a) and np.isnan(a):
+            # replace top-level nana with None
+            return None
+    except (TypeError, ValueError):
+        # Not nan, continue
+        pass
+    if isinstance(a, Geometry):
         return a.data.as_py()
     elif sg and isinstance(a, sg.base.BaseGeometry):
         return element_dtype._shapely_to_coordinates(a)
@@ -35,9 +39,8 @@ class GeometryDtype(ExtensionDtype):
     _metadata = ('subtype',)
     na_value = np.nan
 
-    @classmethod
-    def __from_arrow__(cls, data):
-        return cls.construct_array_type()(data)
+    def __from_arrow__(self, data):
+        return self.construct_array_type()(data, dtype=self)
 
     @classmethod
     def _arrow_element_type_from_numpy_subtype(cls, subtype):
@@ -121,11 +124,12 @@ class GeometryDtype(ExtensionDtype):
 
 
 class Geometry(object):
-    def __init__(self, data):
+    def __init__(self, data, dtype=None):
         if isinstance(data, pa.ArrayValue):
             # Use arrow ArrayValue as is
             self.data = data
         else:
+            # Convert to ArrayValue
             self.data = pa.array([data])[0]
 
     def __repr__(self):
@@ -238,7 +242,7 @@ class GeometryArray(ExtensionArray):
 
         # Compute types
         np_type = self._numpy_element_dtype_from_arrow_type(self.data.type)
-        self._numpy_element_type = np_type
+        self._numpy_element_type = np.dtype(np_type)
         self._dtype = self._dtype_class(np_type)
 
         # Initialize backing property for spatial index
@@ -248,8 +252,7 @@ class GeometryArray(ExtensionArray):
     def _arrow_type_from_numpy_element_dtype(cls, dtype):
         raise NotImplementedError
 
-    @classmethod
-    def _numpy_element_dtype_from_arrow_type(cls, pyarrow_type):
+    def _numpy_element_dtype_from_arrow_type(self, pyarrow_type):
         raise NotImplementedError
 
     @property
@@ -258,7 +261,7 @@ class GeometryArray(ExtensionArray):
 
     @property
     def numpy_dtype(self):
-        return self._numpy_element_type().dtype
+        return self._numpy_element_type
 
     # Arrow conversion
     def __arrow_array__(self, type=None):
@@ -303,7 +306,7 @@ class GeometryArray(ExtensionArray):
     isna.__doc__ = ExtensionArray.isna.__doc__
 
     def copy(self):
-        return type(self)(self.data)
+        return type(self)(self.data, self.dtype)
 
     copy.__doc__ = ExtensionArray.copy.__doc__
 
@@ -343,7 +346,7 @@ Cannot check equality of {typ} of length {a_len} with:
 
                 value = self.data[item].as_py()
                 if value is not None:
-                    return self._element_type(value)
+                    return self._element_type(value, self.numpy_dtype)
                 else:
                     return None
         elif isinstance(item, slice):
@@ -423,7 +426,7 @@ Cannot check equality of {typ} of length {a_len} with:
             # Build pyarrow array of indices
             indices = pa.array(indices)
 
-        return self.__class__(self.data.take(indices))
+        return self.__class__(self.data.take(indices), dtype=self.dtype)
 
     take.__doc__ = ExtensionArray.take.__doc__
 
@@ -483,7 +486,7 @@ Cannot check equality of {typ} of length {a_len} with:
                 if isinstance(value, Geometry):
                     value = [value]
                 new_values[mask] = value
-                new_values = self.__class__(new_values)
+                new_values = self.__class__(new_values, dtype=self.dtype)
         else:
             new_values = self.copy()
         return new_values
@@ -689,12 +692,12 @@ def is_geometry_array(data):
 
 def to_geometry_array(data, dtype=None):
     from . import (
-        MultiPointArray,  LineArray, RingArray,
+        PointArray, MultiPointArray,  LineArray, RingArray,
         MultiLineArray, PolygonArray, MultiPolygonArray
     )
     if sg is not None:
         shapely_to_spatialpandas = {
-            sg.Point: MultiPointArray,
+            sg.Point: PointArray,
             sg.MultiPoint: MultiPointArray,
             sg.LineString: LineArray,
             sg.LinearRing: RingArray,

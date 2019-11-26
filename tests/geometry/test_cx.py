@@ -3,16 +3,27 @@ from pandas.testing import assert_series_equal, assert_frame_equal
 import dask.dataframe as dd
 from spatialpandas import GeoSeries, GeoDataFrame
 from spatialpandas.geometry import (
-    MultiPointArray, LineArray, MultiLineArray, PolygonArray, MultiPolygonArray
-)
+    MultiPointArray, LineArray, MultiLineArray, PolygonArray, MultiPolygonArray,
+    PointArray)
 from tests.geometry.strategies import (
     st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
-    st_polygon_array, st_multipolygon_array, hyp_settings
-)
+    st_polygon_array, st_multipolygon_array, hyp_settings,
+    st_point_array)
 
 
 def get_slices(v0, v1):
     return [slice(v0, v1), slice(None, v1), slice(v0, None), slice(None, None)]
+
+
+@given(st_point_array(min_size=1, geoseries=True), st_bounds(orient=True))
+@hyp_settings
+def test_multipoint_cx_selection(gp_point, rect):
+    x0, y0, x1, y1 = rect
+    for xslice in get_slices(x0, x1):
+        for yslice in get_slices(y0, y1):
+            expected = PointArray.from_geopandas(gp_point.cx[xslice, yslice])
+            result = PointArray.from_geopandas(gp_point).cx[xslice, yslice]
+            assert all(expected == result)
 
 
 @given(st_multipoint_array(min_size=1, geoseries=True), st_bounds(orient=True))

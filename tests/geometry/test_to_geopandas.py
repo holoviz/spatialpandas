@@ -3,8 +3,15 @@ from pandas.testing import assert_series_equal
 from spatialpandas import GeoSeries
 from tests.geometry.strategies import (
     st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
-    st_polygon_array, st_multipolygon_array, hyp_settings
-)
+    st_polygon_array, st_multipolygon_array, hyp_settings,
+    st_point_array)
+
+
+@given(st_point_array(geoseries=True))
+@hyp_settings
+def test_point_array_to_geopandas(gp_point):
+    result = GeoSeries(gp_point, dtype='point').to_geopandas()
+    assert_series_equal(result, gp_point)
 
 
 @given(st_multipoint_array(geoseries=True))

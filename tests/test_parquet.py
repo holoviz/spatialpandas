@@ -5,7 +5,7 @@ from spatialpandas import GeoSeries, GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
 from tests.geometry.strategies import (
     st_multipoint_array, st_multiline_array,
-)
+    st_point_array)
 import numpy as np
 from spatialpandas.io import (
     to_parquet, read_parquet, read_parquet_dask, to_parquet_dask
@@ -15,16 +15,18 @@ hyp_settings = settings(deadline=None, max_examples=100)
 
 
 @given(
+    gp_point=st_point_array(min_size=1, geoseries=True),
     gp_multipoint=st_multipoint_array(min_size=1, geoseries=True),
     gp_multiline=st_multiline_array(min_size=1, geoseries=True),
 )
 @hyp_settings
-def test_parquet(gp_multipoint, gp_multiline, tmp_path):
+def test_parquet(gp_point, gp_multipoint, gp_multiline, tmp_path):
     # Build dataframe
     n = min(len(gp_multipoint), len(gp_multiline))
     df = GeoDataFrame({
-        'points': GeoSeries(gp_multipoint[:n]),
-        'lines': GeoSeries(gp_multiline[:n]),
+        'point': GeoSeries(gp_point[:n]),
+        'multipoint': GeoSeries(gp_multipoint[:n]),
+        'multiline': GeoSeries(gp_multiline[:n]),
         'a': list(range(n))
     })
 

@@ -4,15 +4,15 @@ from shapely import geometry as sg
 
 from spatialpandas.geometry import (
     Polygon, MultiPointArray, LineArray,
-    MultiLineArray, PolygonArray, MultiPolygonArray
-)
+    MultiLineArray, PolygonArray, MultiPolygonArray,
+    PointArray)
 from spatialpandas.geometry._algorithms.intersection import (
     segments_intersect, point_intersects_polygon
 )
 from tests.geometry.strategies import (
     st_polygon, st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
-    st_polygon_array, st_multipolygon_array, hyp_settings, coord, st_points
-)
+    st_polygon_array, st_multipolygon_array, hyp_settings, coord, st_points,
+    st_point_array)
 
 
 @given(coord, coord, coord, coord, coord, coord, coord, coord)
@@ -43,6 +43,29 @@ def test_point_intersects_polygon(sg_polygon, points):
 
         expected = sg_polygon.intersects(sg.Point([x, y]))
         assert expected == result
+
+
+@given(st_point_array(), st_bounds())
+@hyp_settings
+def test_point_intersects_rect(gp_point, rect):
+    sg_rect = sg.box(*rect)
+    expected = gp_point.intersects(sg_rect)
+    points = PointArray.from_geopandas(gp_point)
+
+    # Test MultiPointArray.intersects_rect
+    result = points.intersects_bounds(rect)
+    np.testing.assert_equal(result, expected)
+
+    # Test MultiPointArray.intersects_rect with inds
+    inds = np.flipud(np.arange(0, len(points)))
+    result = points.intersects_bounds(rect, inds)
+    np.testing.assert_equal(result, np.flipud(expected))
+
+    # Test MultiPoint.intersects_rect
+    result = np.array([
+        point.intersects_bounds(rect) for point in points
+    ])
+    np.testing.assert_equal(result, expected)
 
 
 @given(st_multipoint_array(), st_bounds())

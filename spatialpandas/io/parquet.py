@@ -16,12 +16,12 @@ from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
 from spatialpandas.geometry.base import to_geometry_array
 from spatialpandas.geometry import (
-    MultiPointDtype, RingDtype, LineDtype,
+    PointDtype, MultiPointDtype, RingDtype, LineDtype,
     MultiLineDtype, PolygonDtype, MultiPolygonDtype, GeometryDtype
 )
 
 _geometry_dtypes = [
-    MultiPointDtype, RingDtype, LineDtype,
+    PointDtype, MultiPointDtype, RingDtype, LineDtype,
     MultiLineDtype, PolygonDtype, MultiPolygonDtype
 ]
 

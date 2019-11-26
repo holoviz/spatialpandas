@@ -25,6 +25,24 @@ st_points = arrays(
 
 
 @st.composite
+def st_point_array(draw, min_size=0, max_size=30, geoseries=False):
+    n = draw(st.integers(min_size, max_size))
+    points = []
+    for i in range(n):
+        x_mid = draw(st.floats(-50, 50))
+        y_mid = draw(st.floats(-50, 50))
+        point = (np.random.rand(2) - 0.5) * 5
+        point[0] = point[0] + x_mid
+        point[1] = point[1] + y_mid
+        points.append(sg.Point(point))
+
+    result = from_shapely(points)
+    if geoseries:
+        result = GeoSeries(result)
+    return result
+
+
+@st.composite
 def st_multipoint_array(draw, min_size=0, max_size=30, geoseries=False):
     n = draw(st.integers(min_size, max_size))
     lines = []
