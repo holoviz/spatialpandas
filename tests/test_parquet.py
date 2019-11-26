@@ -53,7 +53,7 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
     ddf = dd.from_pandas(df, npartitions=3)
 
     path = tmp_path / 'ddf.parq'
-    to_parquet_dask(ddf, path)
+    ddf.to_parquet(path)
     ddf_read = read_parquet_dask(path)
 
     # Check type

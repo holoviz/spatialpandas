@@ -105,6 +105,10 @@ class DaskGeoDataFrame(dd.DataFrame):
         self._partition_sindex = {}
         self._partition_bounds = {}
 
+    def to_parquet(self, fname, compression="snappy", **kwargs):
+        from .io import to_parquet_dask
+        to_parquet_dask(self, fname, compression=compression, **kwargs)
+
     @property
     def geometry(self):
         # Use self._meta.geometry.name rather than self._meta._geometry so that an
