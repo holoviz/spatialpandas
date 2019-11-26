@@ -18,7 +18,8 @@ class GeoDataFrame(pd.DataFrame):
     _metadata = ['_geometry']
 
     def __init__(self, data=None, index=None, geometry=None, **kwargs):
-        # Call pandas constructor
+        # Call pandas constructor, always copy
+        kwargs.pop("copy", None)
         super().__init__(data, index=index, copy=True, **kwargs)
 
         # Replace pd.Series of GeometryArrays with GeoSeries.
