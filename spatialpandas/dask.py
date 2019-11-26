@@ -153,13 +153,13 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Compute distance of points along the Hilbert-curve
         total_bounds = geometry.total_bounds
-        ddf = self.assign(_distance=geometry.map_partitions(
+        ddf = self.assign(hilbert_distance=geometry.map_partitions(
             lambda s: s.hilbert_distance(total_bounds=total_bounds, p=p))
         )
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
-        ddf = ddf.set_index('_distance', npartitions=npartitions, shuffle=shuffle)
+        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle=shuffle)
 
         # Trigger calculation of partition bounds and spatial index
         ddf.partition_sindex
