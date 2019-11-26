@@ -161,6 +161,11 @@ class DaskGeoDataFrame(dd.DataFrame):
         # sort operation
         ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle=shuffle)
 
+        if ddf.npartitions != npartitions:
+            # set_index doesn't change the number of partitions if the partitions
+            # happen to be already sorted
+            ddf = ddf.repartition(npartitions=npartitions)
+
         # Trigger calculation of partition bounds and spatial index
         ddf.partition_sindex
 
