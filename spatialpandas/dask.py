@@ -62,6 +62,10 @@ class DaskGeoSeries(dd.Series):
     def cx(self):
         return _DaskCoordinateIndexer(self, self.partition_sindex)
 
+    @property
+    def cx_partitions(self):
+        return _DaskPartitionCoordinateIndexer(self, self.partition_sindex)
+
     def intersects_bounds(self, bounds):
         return self.map_partitions(lambda s: s.intersects_bounds(bounds))
 
@@ -132,6 +136,10 @@ class DaskGeoDataFrame(dd.DataFrame):
     def cx(self):
         return _DaskCoordinateIndexer(self, self.partition_sindex)
 
+    @property
+    def cx_partitions(self):
+        return _DaskPartitionCoordinateIndexer(self, self.partition_sindex)
+
     def pack_partitions(self, p=10, npartitions=None, shuffle='tasks'):
         # Get geometry column
         geometry = self.geometry
@@ -152,9 +160,6 @@ class DaskGeoDataFrame(dd.DataFrame):
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
         ddf = ddf.set_index('_distance', npartitions=npartitions, shuffle=shuffle)
-
-        # Drop distance index to save storage space
-        ddf = ddf.reset_index(drop=True)
 
         # Trigger calculation of partition bounds and spatial index
         ddf.partition_sindex
@@ -233,3 +238,19 @@ class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
             map_fn,
             pd.Series(all_partition_inds, index=result.divisions[:-1]),
         )
+
+
+class _DaskPartitionCoordinateIndexer(_BaseCoordinateIndexer):
+    def __init__(self, obj, sindex):
+        super(_DaskPartitionCoordinateIndexer, self).__init__(sindex)
+        self._obj = obj
+
+    def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
+        covers_inds = set(covers_inds)
+        overlaps_inds = set(overlaps_inds)
+        all_partition_inds = sorted(covers_inds.union(overlaps_inds))
+        if len(all_partition_inds) == 0:
+            # No partitions intersect with query region, return empty result
+            return dd.from_pandas(self._obj._meta, npartitions=1)
+
+        return self._obj.partitions[all_partition_inds]
