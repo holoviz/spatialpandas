@@ -19,7 +19,7 @@ class GeoDataFrame(pd.DataFrame):
 
     def __init__(self, data=None, index=None, geometry=None, **kwargs):
         # Call pandas constructor
-        super().__init__(data, index=index, **kwargs)
+        super().__init__(data, index=index, copy=True, **kwargs)
 
         # Replace pd.Series of GeometryArrays with GeoSeries.
         first_geometry_col = None
