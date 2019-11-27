@@ -752,7 +752,7 @@ def to_geometry_array(data, dtype=None):
                             break
 
                 array_type = shapely_to_spatialpandas[type(first_valid)]
-                data = array_type(data)
+                data = array_type.from_geopandas(data)
             else:
                 raise ValueError(err_msg)
     else:
