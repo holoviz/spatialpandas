@@ -21,7 +21,9 @@ install:
   - conda create -q -n test-environment -c conda-forge python=$TRAVIS_PYTHON_VERSION pandas dask numba numpy "pyarrow>=0.15" pytest hypothesis scipy shapely geopandas
   - conda activate test-environment
   # hilbertcurve not available with conda, install with pip
-  - pip install hilbertcurve
+  - if [[ "$TRAVIS_PYTHON_VERSION" != "2.7" ]]; then
+    pip install hilbertcurve
+    fi
   - python setup.py install
 
 
