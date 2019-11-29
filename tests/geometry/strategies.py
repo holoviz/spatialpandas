@@ -125,7 +125,7 @@ def st_polygon(draw, n=10, num_holes=None, xmid=0, ymid=0):
 
         poly = cascaded_union(list(polygonize(mls)))
         poly = poly.intersection(sg.box(-50, -50, 50, 50))
-        if isinstance(poly, sg.Polygon):
+        if isinstance(poly, sg.Polygon) and not poly.is_empty:
             break
 
     if not isinstance(poly, sg.Polygon):
