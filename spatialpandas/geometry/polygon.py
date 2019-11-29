@@ -39,8 +39,11 @@ class Polygon(GeometryList):
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
         if isinstance(shape, sg.Polygon):
-            exterior = np.asarray(shape.exterior.ctypes)
-            polygon_coords = [exterior]
+            if shape.exterior is not None:
+                exterior = np.asarray(shape.exterior.ctypes)
+                polygon_coords = [exterior]
+            else:
+                polygon_coords = [np.array([])]
             for ring in shape.interiors:
                 interior = np.asarray(ring.ctypes)
                 polygon_coords.append(interior)
