@@ -22,7 +22,7 @@ install:
   - conda activate test-environment
   # hilbertcurve not available with conda, install with pip
   - if [[ "$TRAVIS_PYTHON_VERSION" != "2.7" ]]; then
-    pip install hilbertcurve
+    pip install hilbertcurve;
     fi
   - python setup.py install
 
