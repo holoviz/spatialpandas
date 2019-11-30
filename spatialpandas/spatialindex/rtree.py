@@ -76,7 +76,7 @@ class HilbertRtree:
     """
 
     @staticmethod
-    # @ngjit
+    @ngjit
     def _build_hilbert_rtree(bounds, p, page_size):
         """
         numba function to construct a Hilbert Rtree
@@ -148,7 +148,6 @@ class HilbertRtree:
             layer -= 1
 
         return sorted_bounds, keys, bounds_tree
-
 
     def __init__(self, bounds, p=10, page_size=512):
         """
