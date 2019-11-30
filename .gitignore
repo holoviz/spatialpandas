@@ -105,3 +105,4 @@ venv.bak/
 
 *.parq
 .idea/
+spatialpandas/.version
