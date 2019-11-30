@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import pandas as pd
 
 from .geometry import GeometryDtype, Geometry
@@ -30,7 +29,7 @@ class GeoSeries(pd.Series):
             dtype = pd.array([], dtype=dtype).dtype
 
         data = to_geometry_array(data, dtype)
-        super(GeoSeries, self).__init__(data, index=index, name=name, **kwargs)
+        super().__init__(data, index=index, name=name, **kwargs)
 
     @property
     def _constructor(self):

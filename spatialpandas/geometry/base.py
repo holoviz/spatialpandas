@@ -1,6 +1,5 @@
-from __future__ import absolute_import
 from numbers import Integral
-from typing import Iterable
+from collections import Iterable
 
 import numpy as np
 import pandas as pd
@@ -123,7 +122,7 @@ class GeometryDtype(ExtensionDtype):
         return str(self)
 
 
-class Geometry(object):
+class Geometry:
     def __init__(self, data, dtype=None):
         if isinstance(data, pa.ArrayValue):
             # Use arrow ArrayValue as is
@@ -297,8 +296,6 @@ class GeometryArray(ExtensionArray):
             if buf is not None:
                 size += buf.size
         return size
-
-    nbytes.__doc__ = ExtensionArray.nbytes.__doc__
 
     def isna(self):
         return _extract_isnull_bytemap(self.data)
@@ -561,7 +558,7 @@ Cannot check equality of {typ} of length {a_len} with:
         raise NotImplementedError()
 
 
-class _BaseCoordinateIndexer(object):
+class _BaseCoordinateIndexer:
     def __init__(self, sindex):
         self._sindex = sindex
 
@@ -603,7 +600,7 @@ class _BaseCoordinateIndexer(object):
 
 class _CoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, parent=None):
-        super(_CoordinateIndexer, self).__init__(obj.sindex)
+        super().__init__(obj.sindex)
         self._obj = obj
         self._parent = parent
 

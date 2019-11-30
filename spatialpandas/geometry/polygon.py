@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import polygons_intersect_bounds
@@ -39,8 +38,11 @@ class Polygon(GeometryList):
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
         if isinstance(shape, sg.Polygon):
-            exterior = np.asarray(shape.exterior.ctypes)
-            polygon_coords = [exterior]
+            if shape.exterior is not None:
+                exterior = np.asarray(shape.exterior.ctypes)
+                polygon_coords = [exterior]
+            else:
+                polygon_coords = [np.array([])]
             for ring in shape.interiors:
                 interior = np.asarray(ring.ctypes)
                 polygon_coords.append(interior)

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from functools import total_ordering
 import pyarrow as pa
 import numpy as np
@@ -34,7 +33,7 @@ def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
     return pyarrow_element_type
 
 
-class _ListArrayBufferMixin(object):
+class _ListArrayBufferMixin:
     """
     Mixin of buffer utilities for classes that store a pyarrow ListArray as their
     listarray property. The numpy data type of the inner ListArray elements must be
@@ -127,7 +126,7 @@ class GeometryList(Geometry, _ListArrayBufferMixin):
     _nesting_levels = 0
 
     def __init__(self, data, dtype=None):
-        super(GeometryList, self).__init__(data)
+        super().__init__(data)
         if len(self.data) > 0:
             _validate_nested_arrow_type(self._nesting_levels, self.data.value_type)
 
@@ -187,7 +186,7 @@ class GeometryListArray(GeometryArray, _ListArrayBufferMixin):
 
     # Constructor
     def __init__(self, array, dtype=None):
-        super(GeometryListArray, self).__init__(array, dtype)
+        super().__init__(array, dtype)
 
         # Set listarray property for _ListArrayBufferMixin
         self.listarray = self.data

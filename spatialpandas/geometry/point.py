@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import numpy as np
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
@@ -53,7 +52,7 @@ or MultiPoint""".format(typ=type(shape).__name__))
         Returns:
             spatialpandas MultiPoint
         """
-        return super(Point, cls).from_shapely(shape)
+        return super().from_shapely(shape)
 
     @property
     def x(self):
@@ -104,7 +103,7 @@ class PointArray(GeometryFixedArray):
         Returns:
             MultiPointArray
         """
-        return super(PointArray, cls).from_geopandas(ga)
+        return super().from_geopandas(ga)
 
     @property
     def length(self):

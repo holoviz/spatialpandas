@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import numpy as np
 
 from spatialpandas.geometry._algorithms.bounds import total_bounds_interleaved

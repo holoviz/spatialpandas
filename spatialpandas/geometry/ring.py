@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry.line import (
@@ -44,7 +43,7 @@ class Ring(Line):
         Returns:
             spatialpandas Ring
         """
-        return super(Ring, cls).from_shapely(shape)
+        return super().from_shapely(shape)
 
 
 class RingArray(LineArray):
@@ -66,7 +65,7 @@ class RingArray(LineArray):
         Returns:
             RingArray
         """
-        return super(RingArray, cls).from_geopandas(ga)
+        return super().from_geopandas(ga)
 
 
 def _ring_array_non_empty(dtype):

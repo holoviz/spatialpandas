@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import dask.dataframe as dd
 
 from spatialpandas.geometry.base import _BaseCoordinateIndexer
@@ -13,7 +12,7 @@ import numpy as np
 
 class DaskGeoSeries(dd.Series):
     def __init__(self, dsk, name, meta, divisions, *args, **kwargs):
-        super(DaskGeoSeries, self).__init__(dsk, name, meta, divisions)
+        super().__init__(dsk, name, meta, divisions)
 
         # Init backing properties
         self._partition_bounds = None
@@ -77,7 +76,7 @@ class DaskGeoSeries(dd.Series):
 
     def persist(self, **kwargs):
         return self._propagate_props_to_series(
-            super(DaskGeoSeries, self).persist(**kwargs)
+            super().persist(**kwargs)
         )
 
 
@@ -190,11 +189,11 @@ class DaskGeoDataFrame(dd.DataFrame):
 
     def persist(self, **kwargs):
         return self._propagate_props_to_dataframe(
-            super(DaskGeoDataFrame, self).persist(**kwargs)
+            super().persist(**kwargs)
         )
 
     def __getitem__(self, key):
-        result = super(DaskGeoDataFrame, self).__getitem__(key)
+        result = super().__getitem__(key)
         if np.isscalar(key) or isinstance(key, (tuple, str)):
             # New series of single column, partition props apply if we have them
             self._propagate_props_to_series(result)
@@ -225,7 +224,7 @@ def get_parallel_type_series(s):
 
 class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, sindex):
-        super(_DaskCoordinateIndexer, self).__init__(sindex)
+        super().__init__(sindex)
         self._obj = obj
 
     def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
@@ -251,7 +250,7 @@ class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
 
 class _DaskPartitionCoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, sindex):
-        super(_DaskPartitionCoordinateIndexer, self).__init__(sindex)
+        super().__init__(sindex)
         self._obj = obj
 
     def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):

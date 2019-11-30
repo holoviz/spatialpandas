@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import lines_intersect_bounds
@@ -61,7 +60,7 @@ or LinearRing""".format(typ=type(shape).__name__))
         Returns:
             spatialpandas Line
         """
-        return super(Line, cls).from_shapely(shape)
+        return super().from_shapely(shape)
 
     @property
     def length(self):
@@ -103,7 +102,7 @@ class LineArray(GeometryListArray):
         Returns:
             LineArray
         """
-        return super(LineArray, cls).from_geopandas(ga)
+        return super().from_geopandas(ga)
 
     @property
     def length(self):

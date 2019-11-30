@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import numpy as np
 import pyarrow as pa
 from pandas.core.dtypes.dtypes import register_extension_dtype

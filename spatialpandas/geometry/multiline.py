@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import (
@@ -80,7 +79,7 @@ Received invalid value of type {typ}. Must be an instance of MultiLineString
         Returns:
             spatialpandas MultiLine
         """
-        return super(MultiLine, cls).from_shapely(shape)
+        return super().from_shapely(shape)
 
     @property
     def length(self):
@@ -124,7 +123,7 @@ class MultiLineArray(GeometryListArray):
         Returns:
             MultiLineArray
         """
-        return super(MultiLineArray, cls).from_geopandas(ga)
+        return super().from_geopandas(ga)
 
     @property
     def length(self):

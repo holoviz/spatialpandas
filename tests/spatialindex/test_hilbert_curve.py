@@ -1,9 +1,14 @@
-from hilbertcurve.hilbertcurve import HilbertCurve
 from hypothesis import given
 import hypothesis.strategies as st
 from hypothesis import settings
 from itertools import product
 import numpy as np
+import pytest
+
+try:
+    from hilbertcurve.hilbertcurve import HilbertCurve
+except ImportError:
+    HilbertCurve = None
 
 # ### hypothesis settings ###
 from spatialpandas.spatialindex.hilbert_curve import (
@@ -19,6 +24,7 @@ st_n = st.integers(min_value=1, max_value=3)
 # ### Hypothesis tests ###
 @given(st_p, st_n)
 @hyp_settings
+@pytest.mark.skipif(HilbertCurve is None, reason="hilbertcurve not installed")
 def test_coordinates_from_distance(p, n):
     # Build vector of possible distances
     distances = np.arange(2 ** (n * p), dtype=np.int64)
@@ -42,6 +48,7 @@ def test_coordinates_from_distance(p, n):
 
 @given(st_p, st_n)
 @hyp_settings
+@pytest.mark.skipif(HilbertCurve is None, reason="hilbertcurve not installed")
 def test_distance_from_coordinates(p, n):
     side_len = 2 ** p
 
