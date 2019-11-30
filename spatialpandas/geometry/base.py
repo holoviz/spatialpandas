@@ -600,7 +600,7 @@ class _BaseCoordinateIndexer(object):
 
 class _CoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, parent=None):
-        super(_CoordinateIndexer, self).__init__(obj.sindex)
+        super().__init__(obj.sindex)
         self._obj = obj
         self._parent = parent
 

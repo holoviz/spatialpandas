@@ -126,7 +126,7 @@ class GeometryList(Geometry, _ListArrayBufferMixin):
     _nesting_levels = 0
 
     def __init__(self, data, dtype=None):
-        super(GeometryList, self).__init__(data)
+        super().__init__(data)
         if len(self.data) > 0:
             _validate_nested_arrow_type(self._nesting_levels, self.data.value_type)
 
@@ -186,7 +186,7 @@ class GeometryListArray(GeometryArray, _ListArrayBufferMixin):
 
     # Constructor
     def __init__(self, array, dtype=None):
-        super(GeometryListArray, self).__init__(array, dtype)
+        super().__init__(array, dtype)
 
         # Set listarray property for _ListArrayBufferMixin
         self.listarray = self.data

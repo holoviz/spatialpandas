@@ -15,7 +15,7 @@ class GeometryFixed(Geometry):
     Base class for elements of GeometryFixedArray subclasses
     """
     def __init__(self, data, dtype=None):
-        super(GeometryFixed, self).__init__(data)
+        super().__init__(data)
         self.numpy_dtype = np.dtype(dtype)
         self.pyarrow_type = pa.from_numpy_dtype(dtype)
 
@@ -171,7 +171,7 @@ class GeometryFixedArray(GeometryArray):
                     invalid_array()
 
         self._numpy_dtype = numpy_dtype
-        super(GeometryFixedArray, self).__init__(array, pa_type)
+        super().__init__(array, pa_type)
 
     # Base geometry methods
     @property
