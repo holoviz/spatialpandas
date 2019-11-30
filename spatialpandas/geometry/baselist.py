@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from functools import total_ordering
 import pyarrow as pa
 import numpy as np

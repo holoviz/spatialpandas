@@ -1,4 +1,3 @@
-from __future__ import division
 import numpy as np
 from numba import jitclass
 from numba import int64, float64

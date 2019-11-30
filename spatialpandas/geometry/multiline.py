@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from spatialpandas.geometry._algorithms.intersection import (
