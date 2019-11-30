@@ -122,7 +122,7 @@ class GeometryDtype(ExtensionDtype):
         return str(self)
 
 
-class Geometry(object):
+class Geometry:
     def __init__(self, data, dtype=None):
         if isinstance(data, pa.ArrayValue):
             # Use arrow ArrayValue as is
@@ -558,7 +558,7 @@ Cannot check equality of {typ} of length {a_len} with:
         raise NotImplementedError()
 
 
-class _BaseCoordinateIndexer(object):
+class _BaseCoordinateIndexer:
     def __init__(self, sindex):
         self._sindex = sindex
 

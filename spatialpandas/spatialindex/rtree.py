@@ -63,7 +63,7 @@ def _distances_from_bounds(bounds, total_bounds, p):
     return hilbert_distances
 
 
-class HilbertRtree(object):
+class HilbertRtree:
     """
     This class provides a numba implementation of a read-only Hilbert R-tree
     spatial index
@@ -262,7 +262,7 @@ _numbartree_spec = [
     ('_bounds_tree', float64[:, :]),
 ]
 @jitclass(_numbartree_spec)
-class _NumbaRtree(object):
+class _NumbaRtree:
     def __init__(self, bounds, keys, page_size, bounds_tree):
         self._bounds = bounds
         self._keys = keys
