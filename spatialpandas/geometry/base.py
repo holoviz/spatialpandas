@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from numbers import Integral
-from typing import Iterable
+from collections import Iterable
 
 import numpy as np
 import pandas as pd
@@ -297,8 +297,6 @@ class GeometryArray(ExtensionArray):
             if buf is not None:
                 size += buf.size
         return size
-
-    nbytes.__doc__ = ExtensionArray.nbytes.__doc__
 
     def isna(self):
         return _extract_isnull_bytemap(self.data)

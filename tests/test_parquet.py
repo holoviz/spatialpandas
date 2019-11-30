@@ -30,7 +30,7 @@ def test_parquet(gp_point, gp_multipoint, gp_multiline, tmp_path):
         'a': list(range(n))
     })
 
-    path = tmp_path / 'df.parq'
+    path = str(tmp_path / 'df.parq')
     to_parquet(df, path)
     df_read = read_parquet(path)
     assert isinstance(df_read, GeoDataFrame)
@@ -52,7 +52,7 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
     })
     ddf = dd.from_pandas(df, npartitions=3)
 
-    path = tmp_path / 'ddf.parq'
+    path = str(tmp_path / 'ddf.parq')
     ddf.to_parquet(path)
     ddf_read = read_parquet_dask(path)
 

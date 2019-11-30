@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 from numba import jitclass
 from numba import int64, float64
@@ -76,7 +77,7 @@ class HilbertRtree(object):
     """
 
     @staticmethod
-    @ngjit
+    # @ngjit
     def _build_hilbert_rtree(bounds, p, page_size):
         """
         numba function to construct a Hilbert Rtree

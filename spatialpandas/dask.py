@@ -101,7 +101,7 @@ def get_parallel_type_dataframe(df):
 
 class DaskGeoDataFrame(dd.DataFrame):
     def __init__(self, dsk, name, meta, divisions):
-        super().__init__(dsk, name, meta, divisions)
+        super(DaskGeoDataFrame, self).__init__(dsk, name, meta, divisions)
         self._partition_sindex = {}
         self._partition_bounds = {}
 
