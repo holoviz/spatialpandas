@@ -1,6 +1,7 @@
 include LICENSE
 include NOTICE
 include README.md
+include CHANGELOG.md
 include spatialpandas/.version
 global-exclude *.py[co]
 global-exclude *~
