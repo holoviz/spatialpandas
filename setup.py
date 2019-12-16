@@ -10,6 +10,13 @@ extras_require = {
             'geopandas',
             'hilbertcurve'
       ],
+      'examples': [
+            'geopandas',
+            'matplotlib',
+            'descartes',
+            'datashader',
+            'holoviews',
+      ]
 }
 
 install_requires = [
