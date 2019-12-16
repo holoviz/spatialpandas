@@ -1,7 +1,7 @@
 import numpy as np
 from spatialpandas.geometry import (
     Point, PointArray, MultiPoint, MultiPointArray, Line, LineArray,
-    MultiLine, MultiLineArray, Polygon, PolygonArray,
+    MultiLine, MultiLineArray, Polygon, PolygonArray, Ring, RingArray,
     MultiPolygon, MultiPolygonArray
 )
 
@@ -55,6 +55,23 @@ def test_lines_array():
 
     np.testing.assert_equal(lines.length, [4.0, 12.0, 16.0])
     np.testing.assert_equal(lines.area, [0.0, 0.0, 0.0])
+    assert lines.total_bounds == (0.0, 0.0, 3.0, 3.0)
+
+
+def test_ring():
+    lines = Ring(unit_square_cw)
+    assert lines.length == 4.0
+    assert lines.area == 0.0
+
+
+def test_ring_array():
+    lines = LineArray([
+        unit_square_cw,
+        large_square_ccw,
+    ])
+
+    np.testing.assert_equal(lines.length, [4.0, 12.0])
+    np.testing.assert_equal(lines.area, [0.0, 0.0])
     assert lines.total_bounds == (0.0, 0.0, 3.0, 3.0)
 
 

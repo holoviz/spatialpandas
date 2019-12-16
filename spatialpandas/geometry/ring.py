@@ -1,5 +1,5 @@
 from pandas.core.dtypes.dtypes import register_extension_dtype
-
+import numpy as np
 from spatialpandas.geometry.line import (
     LineDtype, Line, LineArray
 )
@@ -29,7 +29,7 @@ class Ring(Line):
             shapely LinearRing shape
         """
         import shapely.geometry as sg
-        line_coords = self.data.to_numpy()
+        line_coords = np.array(self.data.as_py(), dtype=self.numpy_dtype)
         return sg.LinearRing(line_coords.reshape(len(line_coords) // 2, 2))
 
     @classmethod
