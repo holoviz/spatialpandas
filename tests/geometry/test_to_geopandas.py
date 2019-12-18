@@ -2,7 +2,7 @@ from hypothesis import given
 from pandas.testing import assert_series_equal
 from spatialpandas import GeoSeries
 from tests.geometry.strategies import (
-    st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
+    st_multipoint_array, st_bounds, st_line_array, st_multiline_array, st_ring_array,
     st_polygon_array, st_multipolygon_array, hyp_settings,
     st_point_array)
 
@@ -26,6 +26,13 @@ def test_multipoint_array_to_geopandas(gp_multipoint):
 def test_line_array_to_geopandas(gp_line):
     result = GeoSeries(gp_line, dtype='line').to_geopandas()
     assert_series_equal(result, gp_line)
+
+
+@given(st_ring_array(geoseries=True))
+@hyp_settings
+def test_ring_array_to_geopandas(gp_ring):
+    result = GeoSeries(gp_ring, dtype='ring').to_geopandas()
+    assert_series_equal(result, gp_ring)
 
 
 @given(st_multiline_array(geoseries=True))

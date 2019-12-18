@@ -80,6 +80,35 @@ def st_line_array(draw, min_size=0, max_size=30, geoseries=False):
     return result
 
 
+def get_unique_points(
+        n, x_range=(0, 10), x_grid_dim=101, y_range=(0, 10), y_grid_dim=101
+):
+    """
+    Get array of unique points, randomly drawn from a uniform grid
+    """
+    xs, ys = np.meshgrid(
+        np.linspace(x_range[0], x_range[1], x_grid_dim),
+        np.linspace(y_range[0], y_range[1], y_grid_dim),
+    )
+    points = np.stack([xs.flatten(), ys.flatten()], axis=1)
+    selected_inds = np.random.choice(np.arange(points.shape[0]), n, replace=False)
+    return points[selected_inds, :]
+
+
+@st.composite
+def st_ring_array(draw, min_size=3, max_size=30, geoseries=False):
+    assert min_size >= 3
+    n = draw(st.integers(min_size, max_size))
+    rings = []
+    for i in range(n):
+        rings.append(sg.LinearRing(get_unique_points(n)))
+
+    result = from_shapely(rings)
+    if geoseries:
+        result = GeoSeries(result)
+    return result
+
+
 @st.composite
 def st_multiline_array(draw, min_size=0, max_size=5, geoseries=False):
     n = draw(st.integers(min_size, max_size))
