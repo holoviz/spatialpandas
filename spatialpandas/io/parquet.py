@@ -108,6 +108,10 @@ def to_parquet_dask(ddf, path, compression="default", storage_options=None, **kw
     for series_name in ddf.columns:
         series = ddf[series_name]
         if isinstance(series.dtype, GeometryDtype):
+            if series._partition_bounds is None:
+                # Bounds are not already computed. Compute bounds from the parquet file
+                # that was just written.
+                series = read_parquet_dask(path, columns=[series_name])[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
     spatial_metadata = {'partition_bounds': partition_bounds}
