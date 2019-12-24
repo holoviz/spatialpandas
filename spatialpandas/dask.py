@@ -169,9 +169,6 @@ class DaskGeoDataFrame(dd.DataFrame):
             # happen to be already sorted
             ddf = ddf.repartition(npartitions=npartitions)
 
-        # Trigger calculation of partition bounds and spatial index
-        ddf.partition_sindex
-
         return ddf
 
     # Override some standard Dask Dataframe methods to propagate extra properties
