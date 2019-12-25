@@ -40,7 +40,13 @@ def _load_parquet_pandas_metadata(path):
 
     if os.path.isdir(path):
         pqds = pa.parquet.ParquetDataset(path)
-        metadata = pqds.common_metadata.metadata
+        common_metadata = pqds.common_metadata
+        if common_metadata is None:
+            # Get metadata for first piece
+            piece = pqds.pieces[0]
+            metadata = piece.get_metadata().metadata
+        else:
+            metadata = pqds.common_metadata.metadata
     else:
         pf = pa.parquet.ParquetFile(path)
         metadata = pf.metadata.metadata
