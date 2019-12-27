@@ -313,9 +313,9 @@ class DaskGeoDataFrame(dd.DataFrame):
             (pp, wi) for (pp, wi) in zip(part_paths, write_info) if wi is not None
         ])
         output_paths = part_paths[:len(input_paths)]
-        move_tasks = [dask.delayed(filesystem.move)(p1, p2)
-                      for p1, p2 in zip(input_paths, output_paths) if p1 != p2]
-        dask.compute(*move_tasks)
+        for p1, p2 in zip(input_paths, output_paths):
+            if p1 != p2:
+                filesystem.move(p1, p2)
 
         # Write _metadata
         meta = write_info[0]['meta']
