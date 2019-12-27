@@ -26,6 +26,7 @@ install_requires = [
       'numpy',
       'pyarrow>=0.15',
       'param',
+      'fsspec',
 ]
 
 setup(name='spatialpandas',

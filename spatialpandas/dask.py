@@ -1,13 +1,23 @@
 import dask.dataframe as dd
+from dask.dataframe.partitionquantiles import partition_quantiles
 
-from spatialpandas.geometry.base import _BaseCoordinateIndexer
+from spatialpandas.geometry.base import _BaseCoordinateIndexer, GeometryDtype
 from spatialpandas.spatialindex import HilbertRtree
 from .geoseries import GeoSeries
 from .geodataframe import GeoDataFrame
+import dask
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.utils import make_meta, meta_nonempty, make_array_nonempty
 import pandas as pd
 import numpy as np
+import pyarrow.parquet as pq
+import pyarrow as pa
+import os
+import uuid
+import json
+import copy
+
+from .io.utils import validate_coerce_filesystem
 
 
 class DaskGeoSeries(dd.Series):
@@ -104,9 +114,11 @@ class DaskGeoDataFrame(dd.DataFrame):
         self._partition_sindex = {}
         self._partition_bounds = {}
 
-    def to_parquet(self, fname, compression="snappy", **kwargs):
+    def to_parquet(self, fname, compression="snappy", filesystem=None, **kwargs):
         from .io import to_parquet_dask
-        to_parquet_dask(self, fname, compression=compression, **kwargs)
+        to_parquet_dask(
+            self, fname, compression=compression, filesystem=filesystem, **kwargs
+        )
 
     @property
     def geometry(self):
@@ -143,22 +155,24 @@ class DaskGeoDataFrame(dd.DataFrame):
     def cx_partitions(self):
         return _DaskPartitionCoordinateIndexer(self, self.partition_sindex)
 
-    def pack_partitions(self, p=10, npartitions=None, shuffle='tasks'):
-        # Get geometry column
-        geometry = self.geometry
+    def pack_partitions(self, npartitions=None, p=15, shuffle='tasks'):
+        """
+        Repartition and reorder dataframe spatially along a Hilbert space filling curve
 
-        # Compute npartitions if needed
-        if npartitions is None:
-            # Make partitions of ~8 million rows with a minimum of 8
-            # partitions
-            nrows = len(self)
-            npartitions = max(nrows // 2**23, 8)
+        Args:
+            npartitions: Number of output partitions. Defaults to the larger of 8 and
+                the length of the dataframe divided by 2**23.
+            p: Hilbert curve p parameter
+            shuffle: Dask shuffle method, either "disk" or "tasks"
 
-        # Compute distance of points along the Hilbert-curve
-        total_bounds = geometry.total_bounds
-        ddf = self.assign(hilbert_distance=geometry.map_partitions(
-            lambda s: s.hilbert_distance(total_bounds=total_bounds, p=p))
-        )
+        Returns:
+            Spatially partitioned DaskGeoDataFrame
+        """
+        # Compute number of output partitions
+        npartitions = self._compute_packing_npartitions(npartitions)
+
+        # Add hilbert_distance column
+        ddf = self._with_hilbert_distance_column(p)
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
@@ -169,6 +183,195 @@ class DaskGeoDataFrame(dd.DataFrame):
             # happen to be already sorted
             ddf = ddf.repartition(npartitions=npartitions)
 
+        return ddf
+
+    def pack_partitions_to_parquet(
+            self, path, filesystem=None, npartitions=None, p=15, compression="snappy"
+    ):
+        """
+        Repartition and reorder dataframe spatially along a Hilbert space filling curve
+        and write to parquet dataset at the provided path.
+
+        This is equivalent to ddf.pack_partitions(...).to_parquet(...) but with lower
+        memory and disk usage requirements.
+
+        Args:
+            path: Output parquet dataset path
+            filesystem: Optional fsspec filesystem. If not provided, filesystem type
+                is inferred from path
+            npartitions: Number of output partitions. Defaults to the larger of 8 and
+                the length of the dataframe divided by 2**23.
+            p: Hilbert curve p parameter
+            compression: Compression algorithm for parquet file
+
+        Returns:
+            DaskGeoDataFrame backed by newly written parquet dataset
+        """
+        from .io import read_parquet, read_parquet_dask
+
+        # Get fsspec filesystem object
+        filesystem = validate_coerce_filesystem(path, filesystem)
+
+        # Compute number of output partitions
+        npartitions = self._compute_packing_npartitions(npartitions)
+        out_partitions = list(range(npartitions))
+
+        # Add hilbert_distance column
+        ddf = self._with_hilbert_distance_column(p)
+
+        # Compute output hilbert_distance divisions
+        quantiles = partition_quantiles(
+            ddf.hilbert_distance, npartitions
+        ).compute().values
+
+        # Add _partition column containing output partition number of each row
+        ddf = ddf.map_partitions(
+            lambda df: df.assign(
+                _partition=np.digitize(df.hilbert_distance, quantiles[1:], right=True))
+        )
+
+        # Initialize output partition directory structure
+        filesystem.invalidate_cache()
+        if filesystem.exists(path):
+            filesystem.rm(path, recursive=True)
+
+        for out_partition in out_partitions:
+            part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
+            filesystem.makedirs(part_dir, exist_ok=True)
+
+        # Shuffle and write a parquet dataset for each output partition
+        def process_partition(df):
+            uid = str(uuid.uuid4())
+            for out_partition, df_part in df.groupby('_partition'):
+                part_path = os.path.join(
+                    path,
+                    "part.%d.parquet" % out_partition,
+                    'part.%s.parquet' % uid
+                )
+                df_part = df_part.drop('_partition', axis=1).set_index(
+                    'hilbert_distance', drop=True
+                )
+
+                with filesystem.open(part_path, "wb") as f:
+                    df_part.to_parquet(f, compression=compression, index=True)
+            return uid
+
+        ddf.map_partitions(
+            process_partition, meta=pd.Series([], dtype='object')
+        ).compute()
+
+        # Concat parquet dataset per partition into parquet file per partition
+        def concat_parts_inplace(parts_path):
+            filesystem.invalidate_cache()
+
+            # Load directory of parquet parts for this partition into a
+            # single GeoDataFrame
+            if not filesystem.ls(parts_path):
+                # Empty partition
+                filesystem.rm(parts_path, recursive=True)
+                return None
+            else:
+                part_df = read_parquet(parts_path, filesystem=filesystem)
+
+            # Compute total_bounds for all geometry columns in part_df
+            total_bounds = {}
+            for series_name in part_df.columns:
+                series = part_df[series_name]
+                if isinstance(series.dtype, GeometryDtype):
+                    total_bounds[series_name] = series.total_bounds
+
+            # Delete directory of parquet parts for partition
+            filesystem.rm(parts_path, recursive=True)
+
+            # Sort by part_df by hilbert_distance index
+            part_df.sort_index(inplace=True)
+
+            # Write part_df as a single parquet file, collecting metadata for later use
+            # constructing the full dataset _metadata file.
+            md_list = []
+            filesystem.invalidate_cache()
+            with filesystem.open(parts_path, 'wb') as f:
+                pq.write_table(
+                    pa.Table.from_pandas(part_df),
+                    f, compression=compression, metadata_collector=md_list
+                )
+
+            # Return metadata and total_bounds for part
+            return {"meta": md_list[0], "total_bounds": total_bounds}
+
+        part_paths = [
+            os.path.join(path, "part.%d.parquet" % out_partition)
+            for out_partition in out_partitions
+        ]
+
+        write_info = dask.compute(*[
+            dask.delayed(concat_parts_inplace)(part_path) for part_path in part_paths
+        ])
+
+        # Handle empty partitions.
+        input_paths, write_info = zip(*[
+            (pp, wi) for (pp, wi) in zip(part_paths, write_info) if wi is not None
+        ])
+        output_paths = part_paths[:len(input_paths)]
+        move_tasks = [dask.delayed(filesystem.move)(p1, p2)
+                      for p1, p2 in zip(input_paths, output_paths) if p1 != p2]
+        dask.compute(*move_tasks)
+
+        # Write _metadata
+        meta = write_info[0]['meta']
+        for i in range(1, len(write_info)):
+            meta.append_row_groups(write_info[i]["meta"])
+
+        with filesystem.open(os.path.join(path, "_metadata"), 'wb') as f:
+            meta.write_metadata_file(f)
+
+        # Collect total_bounds per partition for all geometry columns
+        all_bounds = {}
+        for info in write_info:
+            for col, bounds in info.get('total_bounds', {}).items():
+                bounds_list = all_bounds.get(col, [])
+                bounds_list.append(
+                    pd.Series(bounds, index=['x0', 'y0', 'x1', 'y1'])
+                )
+                all_bounds[col] = bounds_list
+
+        # Build spatial metadata for parquet dataset
+        partition_bounds = {}
+        for col, bounds in all_bounds.items():
+            partition_bounds[col] = pd.DataFrame(all_bounds[col]).to_dict()
+
+        spatial_metadata = {'partition_bounds': partition_bounds}
+        b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
+
+        # Write _common_metadata
+        with filesystem.open(os.path.join(path, "part.0.parquet")) as f:
+            pf = pq.ParquetFile(f)
+
+        all_metadata = copy.copy(pf.metadata.metadata)
+        all_metadata[b'spatialpandas'] = b_spatial_metadata
+
+        new_schema = pf.schema.to_arrow_schema().with_metadata(all_metadata)
+        with filesystem.open(os.path.join(path, "_common_metadata"), 'wb') as f:
+            pq.write_metadata(new_schema, f)
+
+        return read_parquet_dask(path, filesystem=filesystem)
+
+    def _compute_packing_npartitions(self, npartitions):
+        if npartitions is None:
+            # Make partitions of ~8 million rows with a minimum of 8
+            # partitions
+            nrows = len(self)
+            npartitions = max(nrows // 2 ** 23, 8)
+        return npartitions
+
+    def _with_hilbert_distance_column(self, p):
+        # Get geometry column
+        geometry = self.geometry
+        # Compute distance of points along the Hilbert-curve
+        total_bounds = geometry.total_bounds
+        ddf = self.assign(hilbert_distance=geometry.map_partitions(
+            lambda s: s.hilbert_distance(total_bounds=total_bounds, p=p))
+        )
         return ddf
 
     # Override some standard Dask Dataframe methods to propagate extra properties
