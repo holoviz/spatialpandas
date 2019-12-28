@@ -39,7 +39,7 @@ def _load_parquet_pandas_metadata(path, filesystem=None):
         raise ValueError("Path not found: " + path)
 
     if filesystem.isdir(path):
-        pqds = pa.parquet.ParquetDataset(
+        pqds = pq.ParquetDataset(
             path, filesystem=filesystem, validate_schema=False
         )
         common_metadata = pqds.common_metadata
@@ -51,7 +51,7 @@ def _load_parquet_pandas_metadata(path, filesystem=None):
             metadata = pqds.common_metadata.metadata
     else:
         with filesystem.open(path) as f:
-            pf = pa.parquet.ParquetFile(f)
+            pf = pq.ParquetFile(f)
         metadata = pf.metadata.metadata
 
     return json.loads(
@@ -94,7 +94,7 @@ def read_parquet(path, columns=None, filesystem=None):
     filesystem = validate_coerce_filesystem(path, filesystem)
 
     # Load using pyarrow to handle parquet files and directories across filesystems
-    df = pa.parquet.ParquetDataset(
+    df = pq.ParquetDataset(
         path, filesystem=filesystem, validate_schema=False
     ).read().to_pandas()
 
