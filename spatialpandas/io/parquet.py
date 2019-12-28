@@ -39,7 +39,9 @@ def _load_parquet_pandas_metadata(path, filesystem=None):
         raise ValueError("Path not found: " + path)
 
     if filesystem.isdir(path):
-        pqds = pa.parquet.ParquetDataset(path, filesystem=filesystem)
+        pqds = pa.parquet.ParquetDataset(
+            path, filesystem=filesystem, validate_schema=False
+        )
         common_metadata = pqds.common_metadata
         if common_metadata is None:
             # Get metadata for first piece
@@ -93,7 +95,7 @@ def read_parquet(path, columns=None, filesystem=None):
 
     # Load using pyarrow to handle parquet files and directories across filesystems
     df = pa.parquet.ParquetDataset(
-        path, filesystem=filesystem
+        path, filesystem=filesystem, validate_schema=False
     ).read().to_pandas()
 
     if columns:
@@ -142,7 +144,7 @@ def to_parquet_dask(
     spatial_metadata = {'partition_bounds': partition_bounds}
     b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
-    pqds = pq.ParquetDataset(path)
+    pqds = pq.ParquetDataset(path, validate_schema=False)
     all_metadata = copy.copy(pqds.common_metadata.metadata)
     all_metadata[b'spatialpandas'] = b_spatial_metadata
     schema = pqds.common_metadata.schema.to_arrow_schema()
@@ -183,7 +185,7 @@ def read_parquet_dask(
         result.divisions,
     )
     # Load bounding box info from _metadata
-    pqds = pq.ParquetDataset(path, filesystem=filesystem)
+    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
     if b'spatialpandas' in pqds.common_metadata.metadata:
         spatial_metadata = json.loads(
             pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')
