@@ -130,7 +130,13 @@ def to_parquet_dask(
             if series._partition_bounds is None:
                 # Bounds are not already computed. Compute bounds from the parquet file
                 # that was just written.
-                series = read_parquet_dask(path, columns=[series_name])[series_name]
+                filesystem.invalidate_cache(path)
+                series = read_parquet_dask(
+                    path,
+                    columns=[series_name],
+                    filesystem=filesystem,
+                    storage_options=storage_options,
+                )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
     spatial_metadata = {'partition_bounds': partition_bounds}
