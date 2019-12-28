@@ -149,7 +149,8 @@ def to_parquet_dask(
     all_metadata[b'spatialpandas'] = b_spatial_metadata
     schema = pqds.common_metadata.schema.to_arrow_schema()
     new_schema = schema.with_metadata(all_metadata)
-    pq.write_metadata(new_schema, pqds.common_metadata_path)
+    with filesystem.open(pqds.common_metadata_path, 'wb') as f:
+        pq.write_metadata(new_schema, f)
 
 
 def read_parquet_dask(
