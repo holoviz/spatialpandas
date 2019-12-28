@@ -8,7 +8,7 @@ def validate_coerce_filesystem(path, filesystem=None):
     Args:
         path: Path as a string
         filesystem: Optional fsspec filesystem object to use to open the file. If not
-            provided, filesystem type is infered from path
+            provided, filesystem type is inferred from path
 
     Returns:
         fsspec file system
