@@ -1,6 +1,5 @@
 import copy
 import json
-import os
 
 import pandas as pd
 from dask.dataframe import to_parquet as dd_to_parquet, read_parquet as dd_read_parquet
@@ -10,7 +9,7 @@ from pandas.io.parquet import (
 )
 import pyarrow as pa
 from pyarrow import parquet as pq
-
+from spatialpandas.io.utils import validate_coerce_filesystem
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
 from spatialpandas.geometry.base import to_geometry_array
@@ -34,15 +33,25 @@ def _import_geometry_columns(df, geom_cols):
     return df.assign(**new_cols)
 
 
-def _load_parquet_pandas_metadata(path):
-    if not os.path.exists(path):
+def _load_parquet_pandas_metadata(path, filesystem=None):
+    filesystem = validate_coerce_filesystem(path, filesystem)
+    if not filesystem.exists(path):
         raise ValueError("Path not found: " + path)
 
-    if os.path.isdir(path):
-        pqds = pa.parquet.ParquetDataset(path)
-        metadata = pqds.common_metadata.metadata
+    if filesystem.isdir(path):
+        pqds = pq.ParquetDataset(
+            path, filesystem=filesystem, validate_schema=False
+        )
+        common_metadata = pqds.common_metadata
+        if common_metadata is None:
+            # Get metadata for first piece
+            piece = pqds.pieces[0]
+            metadata = piece.get_metadata().metadata
+        else:
+            metadata = pqds.common_metadata.metadata
     else:
-        pf = pa.parquet.ParquetFile(path)
+        with filesystem.open(path) as f:
+            pf = pq.ParquetFile(f)
         metadata = pf.metadata.metadata
 
     return json.loads(
@@ -81,22 +90,34 @@ def to_parquet(
     )
 
 
-def read_parquet(path, columns=None):
-    # Load using standard pandas read_parquet
-    result = pd_read_parquet(path, engine="auto", columns=columns)
+def read_parquet(path, columns=None, filesystem=None):
+    filesystem = validate_coerce_filesystem(path, filesystem)
+
+    # Load using pyarrow to handle parquet files and directories across filesystems
+    df = pq.ParquetDataset(
+        path, filesystem=filesystem, validate_schema=False
+    ).read().to_pandas()
+
+    if columns:
+        df = df[columns]
 
     # Import geometry columns, not needed for pyarrow >= 0.16
-    metadata = _load_parquet_pandas_metadata(path)
+    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
     geom_cols = _get_geometry_columns(metadata)
     if geom_cols:
-        result = _import_geometry_columns(result, geom_cols)
+        df = _import_geometry_columns(df, geom_cols)
 
     # Return result
-    return GeoDataFrame(result)
+    return GeoDataFrame(df)
 
 
-def to_parquet_dask(ddf, path, compression="default", storage_options=None, **kwargs):
+def to_parquet_dask(
+        ddf, path, compression="snappy", filesystem=None, storage_options=None, **kwargs
+):
     assert isinstance(ddf, DaskGeoDataFrame)
+    filesystem = validate_coerce_filesystem(path, filesystem)
+    if path and filesystem.isdir(path):
+        filesystem.rm(path, recursive=True)
 
     dd_to_parquet(
         ddf, path, engine="pyarrow", compression=compression,
@@ -108,20 +129,34 @@ def to_parquet_dask(ddf, path, compression="default", storage_options=None, **kw
     for series_name in ddf.columns:
         series = ddf[series_name]
         if isinstance(series.dtype, GeometryDtype):
+            if series._partition_bounds is None:
+                # Bounds are not already computed. Compute bounds from the parquet file
+                # that was just written.
+                filesystem.invalidate_cache(path)
+                series = read_parquet_dask(
+                    path,
+                    columns=[series_name],
+                    filesystem=filesystem,
+                    storage_options=storage_options,
+                )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
     spatial_metadata = {'partition_bounds': partition_bounds}
     b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
-    pqds = pq.ParquetDataset(path)
+    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
     all_metadata = copy.copy(pqds.common_metadata.metadata)
     all_metadata[b'spatialpandas'] = b_spatial_metadata
     schema = pqds.common_metadata.schema.to_arrow_schema()
     new_schema = schema.with_metadata(all_metadata)
-    pq.write_metadata(new_schema, pqds.common_metadata_path)
+    with filesystem.open(pqds.common_metadata_path, 'wb') as f:
+        pq.write_metadata(new_schema, f)
 
 
-def read_parquet_dask(path, columns=None, categories=None, storage_options=None, **kwargs):
+def read_parquet_dask(
+        path, columns=None, categories=None, storage_options=None, filesystem=None, **kwargs
+):
+    filesystem = validate_coerce_filesystem(path, filesystem)
     result = dd_read_parquet(
         path,
         columns=columns,
@@ -132,7 +167,7 @@ def read_parquet_dask(path, columns=None, categories=None, storage_options=None,
     )
 
     # Import geometry columns, not needed for pyarrow >= 0.16
-    metadata = _load_parquet_pandas_metadata(path)
+    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
     geom_cols = _get_geometry_columns(metadata)
     if not geom_cols:
         # No geometry columns found, regular DaskDataFrame
@@ -151,7 +186,7 @@ def read_parquet_dask(path, columns=None, categories=None, storage_options=None,
         result.divisions,
     )
     # Load bounding box info from _metadata
-    pqds = pq.ParquetDataset(path)
+    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
     if b'spatialpandas' in pqds.common_metadata.metadata:
         spatial_metadata = json.loads(
             pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')

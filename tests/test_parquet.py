@@ -60,13 +60,24 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
     assert isinstance(ddf_read, DaskGeoDataFrame)
 
     # Check that partition bounds were loaded
+    nonempty = np.nonzero(ddf.map_partitions(len).compute() > 0)[0]
     assert set(ddf_read._partition_bounds) == {'points', 'lines'}
+    expected_partition_bounds = (
+        ddf['points'].partition_bounds.iloc[nonempty].reset_index(drop=True)
+    )
+    expected_partition_bounds.index.name = 'partition'
+
     pd.testing.assert_frame_equal(
-        ddf['points'].partition_bounds,
+        expected_partition_bounds,
         ddf_read._partition_bounds['points'],
     )
+
+    expected_partition_bounds = (
+        ddf['lines'].partition_bounds.iloc[nonempty].reset_index(drop=True)
+    )
+    expected_partition_bounds.index.name = 'partition'
     pd.testing.assert_frame_equal(
-        ddf['lines'].partition_bounds,
+        expected_partition_bounds,
         ddf_read._partition_bounds['lines'],
     )
 
@@ -75,7 +86,7 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
     gp_multipoint=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline=st_multiline_array(min_size=10, max_size=40, geoseries=True),
 )
-@hyp_settings
+@settings(deadline=None, max_examples=30)
 def test_pack_partitions(gp_multipoint, gp_multiline):
     # Build dataframe
     n = min(len(gp_multipoint), len(gp_multiline))
@@ -91,6 +102,41 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
 
     # Check the number of partitions
     assert ddf_packed.npartitions == 4
+
+    # Check that rows are now sorted in order of hilbert distance
+    total_bounds = df.lines.total_bounds
+    hilbert_distances = ddf_packed.lines.map_partitions(
+        lambda s: s.hilbert_distance(total_bounds=total_bounds)
+    ).compute().values
+
+    # Compute expected total_bounds
+    expected_distances = np.sort(
+        df.lines.hilbert_distance(total_bounds=total_bounds).values
+    )
+
+    np.testing.assert_equal(expected_distances, hilbert_distances)
+
+
+@given(
+    gp_multipoint=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
+    gp_multiline=st_multiline_array(min_size=10, max_size=40, geoseries=True),
+)
+@settings(deadline=None, max_examples=30)
+def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
+    # Build dataframe
+    n = min(len(gp_multipoint), len(gp_multiline))
+    df = GeoDataFrame({
+        'points': GeoSeries(gp_multipoint[:n]),
+        'lines': GeoSeries(gp_multiline[:n]),
+        'a': list(range(n))
+    }).set_geometry('lines')
+    ddf = dd.from_pandas(df, npartitions=3)
+
+    path = tmp_path / 'ddf.parq'
+    ddf_packed = ddf.pack_partitions_to_parquet(path, npartitions=4)
+
+    # Check the number of partitions (< 4 can happen in the case of empty partitions)
+    assert ddf_packed.npartitions <= 4
 
     # Check that rows are now sorted in order of hilbert distance
     total_bounds = df.lines.total_bounds

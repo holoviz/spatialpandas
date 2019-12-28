@@ -58,7 +58,7 @@ class GeoSeries(pd.Series):
     def length(self):
         return pd.Series(self.array.length, index=self.index)
 
-    def hilbert_distance(self, total_bounds=None, p=10):
+    def hilbert_distance(self, total_bounds=None, p=15):
         return pd.Series(
             self.array.hilbert_distance(total_bounds=total_bounds, p=p),
             index=self.index
