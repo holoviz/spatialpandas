@@ -144,7 +144,7 @@ def to_parquet_dask(
     spatial_metadata = {'partition_bounds': partition_bounds}
     b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
-    pqds = pq.ParquetDataset(path, validate_schema=False)
+    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
     all_metadata = copy.copy(pqds.common_metadata.metadata)
     all_metadata[b'spatialpandas'] = b_spatial_metadata
     schema = pqds.common_metadata.schema.to_arrow_schema()
