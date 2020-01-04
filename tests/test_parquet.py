@@ -150,3 +150,70 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
     )
 
     np.testing.assert_equal(expected_distances, hilbert_distances)
+
+
+@given(
+    gp_multipoint1=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
+    gp_multiline1=st_multiline_array(min_size=10, max_size=40, geoseries=True),
+    gp_multipoint2=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
+    gp_multiline2=st_multiline_array(min_size=10, max_size=40, geoseries=True),
+)
+@settings(deadline=None, max_examples=30)
+def test_pack_partitions_to_parquet_glob(
+        gp_multipoint1, gp_multiline1,
+        gp_multipoint2, gp_multiline2,
+        tmp_path
+):
+    # Build dataframe1
+    n = min(len(gp_multipoint1), len(gp_multiline1))
+    df1 = GeoDataFrame({
+        'points': GeoSeries(gp_multipoint1[:n]),
+        'lines': GeoSeries(gp_multiline1[:n]),
+        'a': list(range(n))
+    }).set_geometry('lines')
+    ddf1 = dd.from_pandas(df1, npartitions=3)
+    path1 = tmp_path / 'ddf1.parq'
+    ddf_packed1 = ddf1.pack_partitions_to_parquet(path1, npartitions=3)
+
+    # Build dataframe2
+    n = min(len(gp_multipoint2), len(gp_multiline2))
+    df2 = GeoDataFrame({
+        'points': GeoSeries(gp_multipoint2[:n]),
+        'lines': GeoSeries(gp_multiline2[:n]),
+        'a': list(range(n))
+    }).set_geometry('lines')
+    ddf2 = dd.from_pandas(df2, npartitions=3)
+    path2 = tmp_path / 'ddf2.parq'
+    ddf_packed2 = ddf2.pack_partitions_to_parquet(path2, npartitions=4)
+
+    # Load both packed datasets with glob
+    ddf_globbed = read_parquet_dask(tmp_path / "ddf*.parq")
+
+    # Check the number of partitions (< 7 can happen in the case of empty partitions)
+    assert ddf_globbed.npartitions <= 7
+
+    # Check contents
+    expected_df = pd.concat([ddf_packed1.compute(), ddf_packed2.compute()])
+    df_globbed = ddf_globbed.compute()
+    pd.testing.assert_frame_equal(df_globbed, expected_df)
+
+    # Check partition bounds
+    expected_bounds = {
+        'points': pd.concat([
+            ddf_packed1._partition_bounds['points'],
+            ddf_packed2._partition_bounds['points'],
+        ]).reset_index(drop=True),
+        'lines': pd.concat([
+            ddf_packed1._partition_bounds['lines'],
+            ddf_packed2._partition_bounds['lines'],
+        ]).reset_index(drop=True),
+    }
+    expected_bounds['points'].index.name = 'partition'
+    expected_bounds['lines'].index.name = 'partition'
+    pd.testing.assert_frame_equal(
+        expected_bounds['points'], ddf_globbed._partition_bounds['points']
+    )
+
+    pd.testing.assert_frame_equal(
+        expected_bounds['lines'], ddf_globbed._partition_bounds['lines']
+    )

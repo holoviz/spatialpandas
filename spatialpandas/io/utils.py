@@ -1,3 +1,5 @@
+import pathlib
+
 import fsspec
 
 
@@ -16,8 +18,8 @@ def validate_coerce_filesystem(path, filesystem=None):
     if filesystem is None:
         return fsspec.open(path).fs
     else:
-        if isinstance(filesystem, str):
-            return fsspec.filesystem(filesystem)
+        if isinstance(filesystem, (str, pathlib.Path)):
+            return fsspec.filesystem(str(filesystem))
         elif isinstance(filesystem, fsspec.AbstractFileSystem):
             return filesystem
         else:

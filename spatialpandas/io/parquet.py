@@ -1,12 +1,19 @@
 import copy
 import json
+import pathlib
+from functools import reduce
 
 import pandas as pd
-from dask.dataframe import to_parquet as dd_to_parquet, read_parquet as dd_read_parquet
+from dask import delayed
+from dask.dataframe import (
+    to_parquet as dd_to_parquet, from_delayed
+)
+from dask.dataframe.utils import make_meta, clear_known_categories
 
 from pandas.io.parquet import (
-    to_parquet as pd_to_parquet, read_parquet as pd_read_parquet
+    to_parquet as pd_to_parquet,
 )
+
 import pyarrow as pa
 from pyarrow import parquet as pq
 from spatialpandas.io.utils import validate_coerce_filesystem
@@ -90,7 +97,7 @@ def to_parquet(
     )
 
 
-def read_parquet(path, columns=None, filesystem=None):
+def read_parquet(path, columns=None, filesystem=None, load_index=True):
     filesystem = validate_coerce_filesystem(path, filesystem)
 
     # Load using pyarrow to handle parquet files and directories across filesystems
@@ -106,6 +113,10 @@ def read_parquet(path, columns=None, filesystem=None):
     geom_cols = _get_geometry_columns(metadata)
     if geom_cols:
         df = _import_geometry_columns(df, geom_cols)
+
+    # Handle dropping index
+    if not load_index:
+        df.reset_index(drop=True, inplace=True)
 
     # Return result
     return GeoDataFrame(df)
@@ -138,6 +149,7 @@ def to_parquet_dask(
                     columns=[series_name],
                     filesystem=filesystem,
                     storage_options=storage_options,
+                    load_divisions=False
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
@@ -154,40 +166,98 @@ def to_parquet_dask(
 
 
 def read_parquet_dask(
-        path, columns=None, categories=None, storage_options=None, filesystem=None, **kwargs
+        path, columns=None, filesystem=None, load_divisions=False, **kwargs
 ):
-    filesystem = validate_coerce_filesystem(path, filesystem)
-    result = dd_read_parquet(
-        path,
-        columns=columns,
-        categories=categories,
-        storage_options=storage_options,
-        engine="pyarrow",
-        **kwargs
-    )
+    # Infer load_divisions and normalize path to a list
+    if isinstance(path, (str, pathlib.Path)):
+        path = [str(path)]
+    else:
+        path = list(path)
+        if not path:
+            raise ValueError('Empty path specification')
 
-    # Import geometry columns, not needed for pyarrow >= 0.16
-    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
-    geom_cols = _get_geometry_columns(metadata)
-    if not geom_cols:
-        # No geometry columns found, regular DaskDataFrame
-        return result
+    # Infer filesystem
+    filesystem = validate_coerce_filesystem(path[0], filesystem)
 
-    # Convert Dask DataFrame to DaskGeoDataFrame and the partitions and metadata
-    # to GeoDataFrames
-    result = result.map_partitions(
-        lambda df: GeoDataFrame(_import_geometry_columns(df, geom_cols)),
-    )
+    # Expand glob
+    if len(path) == 1 and ('*' in path[0] or '?' in path[0] or '[' in path[0]):
+        path = filesystem.glob(path[0])
 
-    result = DaskGeoDataFrame(
-        result.dask,
-        result._name,
-        GeoDataFrame(_import_geometry_columns(result._meta, geom_cols)),
-        result.divisions,
+    # Perform read parquet
+    result = _perform_read_parquet_dask(
+        path, columns, filesystem, load_divisions=load_divisions
     )
-    # Load bounding box info from _metadata
-    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
-    if b'spatialpandas' in pqds.common_metadata.metadata:
+    return result
+
+
+def _perform_read_parquet_dask(
+        paths, columns, filesystem, load_divisions
+):
+    filesystem = validate_coerce_filesystem(paths[0], filesystem)
+    datasets = [pa.parquet.ParquetDataset(
+        path, filesystem=filesystem, validate_schema=False
+    ) for path in paths]
+
+    # Create delayed partition for each piece
+    pieces = [piece for dataset in datasets for piece in dataset.pieces]
+    delayed_partitions = [
+        delayed(read_parquet)(
+            piece.path, columns=columns,
+            filesystem=filesystem, load_index=True
+        )
+        for piece in pieces
+    ]
+
+    # Load divisions
+    if load_divisions:
+        divisions_list = [
+            _load_divisions(dataset)[:-1]
+            if i < (len(datasets) - 1) else _load_divisions(dataset)
+            for i, dataset in enumerate(datasets)
+        ]
+        divisions = reduce(lambda a, b: a + b, divisions_list, [])
+        if divisions != sorted(divisions):
+            raise ValueError(
+                "Cannot load divisions because the discovered divisions are unsorted.\n"
+                "Set load_divisions=False to skip loading divisions."
+            )
+    else:
+        divisions = None
+
+    # Create DaskGeoDataFrame
+    # Make categories unknown because we can't be sure all categories are present in
+    # the first partition.
+    meta = delayed(make_meta)(delayed_partitions[0]).compute()
+    meta = clear_known_categories(meta)
+    result = from_delayed(delayed_partitions, divisions=divisions, meta=meta)
+
+    # Set partition bounds
+    partition_bounds_list = [_load_partition_bounds(dataset) for dataset in datasets]
+    if not any([b is None for b in partition_bounds_list]):
+        # We have partition bounds for all datasets
+        partition_bounds = {}
+        for partition_bounds_el in partition_bounds_list:
+            for col, bounds in partition_bounds_el.items():
+                col_bounds_list = partition_bounds.get(col, [])
+                col_bounds_list.append(bounds)
+                partition_bounds[col] = col_bounds_list
+
+        # Concat bounds for each geometry column
+        for col in list(partition_bounds):
+            partition_bounds[col] = pd.concat(
+                partition_bounds[col], axis=0
+            ).reset_index(drop=True)
+            partition_bounds[col].index.name = 'partition'
+
+        result._partition_bounds = partition_bounds
+
+    return result
+
+
+def _load_partition_bounds(pqds):
+    partition_bounds = None
+    if (pqds.common_metadata is not None and
+            b'spatialpandas' in pqds.common_metadata.metadata):
         spatial_metadata = json.loads(
             pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')
         )
@@ -208,5 +278,29 @@ def read_parquet_dask(
                 bounds_df.index.name = 'partition'
 
                 partition_bounds[name] = bounds_df
-            result._partition_bounds = partition_bounds
-    return result
+
+    return partition_bounds
+
+
+def _load_divisions(pqds):
+    fmd = pqds.metadata
+    row_groups = [fmd.row_group(i) for i in range(fmd.num_row_groups)]
+    rg0 = row_groups[0]
+    div_col = None
+    for c in range(rg0.num_columns):
+        if rg0.column(c).path_in_schema == "hilbert_distance":
+            div_col = c
+            break
+
+    if div_col is None:
+        # No hilbert_distance column found
+        raise ValueError(
+            "Cannot load divisions because hilbert_distance index not found"
+        )
+
+    mins, maxes = zip(*[
+        (rg.column(div_col).statistics.min, rg.column(12).statistics.max)
+        for rg in row_groups
+    ])
+    divisions = list(mins) + [maxes[-1]]
+    return divisions
