@@ -166,7 +166,8 @@ def to_parquet_dask(
 
 
 def read_parquet_dask(
-        path, columns=None, filesystem=None, load_divisions=False, **kwargs
+        path, columns=None, filesystem=None, load_divisions=False,
+        geometry=None, **kwargs
 ):
     """
     Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
@@ -181,7 +182,9 @@ def read_parquet_dask(
         load_divisions: If True, attempt to load the hilbert_distance divisions for
             each partition.  Only available for datasets written using the
             pack_partitions_to_parquet method.
-
+        geometry: The name of the column to use as the geometry column of the
+            resulting DaskGeoDataFrame. Defaults to the first geometry column in the
+            dataset.
     Returns:
     DaskGeoDataFrame
     """
@@ -202,13 +205,14 @@ def read_parquet_dask(
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
-        path, columns, filesystem, load_divisions=load_divisions
+        path, columns, filesystem, load_divisions=load_divisions, geometry=geometry
     )
+
     return result
 
 
 def _perform_read_parquet_dask(
-        paths, columns, filesystem, load_divisions
+        paths, columns, filesystem, load_divisions, geometry=None
 ):
     filesystem = validate_coerce_filesystem(paths[0], filesystem)
     datasets = [pa.parquet.ParquetDataset(
@@ -247,6 +251,10 @@ def _perform_read_parquet_dask(
     meta = delayed(make_meta)(delayed_partitions[0]).compute()
     meta = clear_known_categories(meta)
     result = from_delayed(delayed_partitions, divisions=divisions, meta=meta)
+
+    # Handle geometry
+    if geometry:
+        result = result.set_geometry(geometry)
 
     # Set partition bounds
     partition_bounds_list = [_load_partition_bounds(dataset) for dataset in datasets]

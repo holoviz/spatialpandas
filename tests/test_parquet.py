@@ -81,6 +81,7 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
         ddf_read._partition_bounds['lines'],
     )
 
+    assert ddf_read.geometry.name == 'points'
 
 @given(
     gp_multipoint=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
@@ -151,6 +152,8 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
 
     np.testing.assert_equal(expected_distances, hilbert_distances)
 
+    assert ddf_packed.geometry.name == 'points'
+
 
 @given(
     gp_multipoint1=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
@@ -187,7 +190,7 @@ def test_pack_partitions_to_parquet_glob(
     ddf_packed2 = ddf2.pack_partitions_to_parquet(path2, npartitions=4)
 
     # Load both packed datasets with glob
-    ddf_globbed = read_parquet_dask(tmp_path / "ddf*.parq")
+    ddf_globbed = read_parquet_dask(tmp_path / "ddf*.parq", geometry="lines")
 
     # Check the number of partitions (< 7 can happen in the case of empty partitions)
     assert ddf_globbed.npartitions <= 7
@@ -217,3 +220,5 @@ def test_pack_partitions_to_parquet_glob(
     pd.testing.assert_frame_equal(
         expected_bounds['lines'], ddf_globbed._partition_bounds['lines']
     )
+
+    assert ddf_globbed.geometry.name == 'lines'
