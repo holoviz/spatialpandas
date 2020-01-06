@@ -168,7 +168,24 @@ def to_parquet_dask(
 def read_parquet_dask(
         path, columns=None, filesystem=None, load_divisions=False, **kwargs
 ):
-    # Infer load_divisions and normalize path to a list
+    """
+    Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
+    have been written with the DaskGeoDataFrame.to_parquet or
+    DaskGeoDataFrame.pack_partitions_to_parquet methods.
+
+    Args:
+        path: Path to spatialpandas parquet dataset, or list of paths to datasets, or
+            glob string referencing one or more parquet datasets.
+        columns: List of columns to load
+        filesystem: fsspec filesystem to use to read datasets
+        load_divisions: If True, attempt to load the hilbert_distance divisions for
+            each partition.  Only available for datasets written using the
+            pack_partitions_to_parquet method.
+
+    Returns:
+    DaskGeoDataFrame
+    """
+    # Normalize path to a list
     if isinstance(path, (str, pathlib.Path)):
         path = [str(path)]
     else:
