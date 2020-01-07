@@ -17,8 +17,6 @@ import uuid
 import json
 import copy
 
-from .io.utils import validate_coerce_filesystem
-
 
 class DaskGeoSeries(dd.Series):
     def __init__(self, dsk, name, meta, divisions, *args, **kwargs):
@@ -208,6 +206,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             DaskGeoDataFrame backed by newly written parquet dataset
         """
         from .io import read_parquet, read_parquet_dask
+        from .io.utils import validate_coerce_filesystem
 
         # Get fsspec filesystem object
         filesystem = validate_coerce_filesystem(path, filesystem)
