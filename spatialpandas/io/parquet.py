@@ -6,7 +6,7 @@ from functools import reduce
 import pandas as pd
 from dask import delayed
 from dask.dataframe import (
-    to_parquet as dd_to_parquet, from_delayed
+    to_parquet as dd_to_parquet, from_delayed, from_pandas
 )
 from dask.dataframe.utils import make_meta, clear_known_categories
 
@@ -167,7 +167,7 @@ def to_parquet_dask(
 
 def read_parquet_dask(
         path, columns=None, filesystem=None, load_divisions=False,
-        geometry=None, **kwargs
+        geometry=None, bounds=None, **kwargs
 ):
     """
     Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
@@ -185,6 +185,9 @@ def read_parquet_dask(
         geometry: The name of the column to use as the geometry column of the
             resulting DaskGeoDataFrame. Defaults to the first geometry column in the
             dataset.
+        bounds: If specified, only load partitions that have the potential to intersect
+            with the provided bounding box coordinates. bounds is a length-4 tuple of
+            the form (xmin, ymin, xmax, ymax).
     Returns:
     DaskGeoDataFrame
     """
@@ -205,14 +208,15 @@ def read_parquet_dask(
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
-        path, columns, filesystem, load_divisions=load_divisions, geometry=geometry
+        path, columns, filesystem,
+        load_divisions=load_divisions, geometry=geometry, bounds=bounds
     )
 
     return result
 
 
 def _perform_read_parquet_dask(
-        paths, columns, filesystem, load_divisions, geometry=None
+        paths, columns, filesystem, load_divisions, geometry=None, bounds=None
 ):
     filesystem = validate_coerce_filesystem(paths[0], filesystem)
     datasets = [pa.parquet.ParquetDataset(
@@ -231,12 +235,89 @@ def _perform_read_parquet_dask(
 
     # Load divisions
     if load_divisions:
-        divisions_list = [
-            _load_divisions(dataset)[:-1]
-            if i < (len(datasets) - 1) else _load_divisions(dataset)
-            for i, dataset in enumerate(datasets)
-        ]
-        divisions = reduce(lambda a, b: a + b, divisions_list, [])
+        div_mins_list, div_maxes_list = zip(*[
+            _load_divisions(dataset) for dataset in datasets
+        ])
+
+        div_mins = reduce(lambda a, b: a + b, div_mins_list, [])
+        div_maxes = reduce(lambda a, b: a + b, div_maxes_list, [])
+    else:
+        div_mins = None
+        div_maxes = None
+
+    # load partition bounds
+    partition_bounds_list = [_load_partition_bounds(dataset) for dataset in datasets]
+    if not any([b is None for b in partition_bounds_list]):
+        partition_bounds = {}
+        # We have partition bounds for all datasets
+        for partition_bounds_el in partition_bounds_list:
+            for col, col_bounds in partition_bounds_el.items():
+                col_bounds_list = partition_bounds.get(col, [])
+                col_bounds_list.append(col_bounds)
+                partition_bounds[col] = col_bounds_list
+
+        # Concat bounds for each geometry column
+        for col in list(partition_bounds):
+            partition_bounds[col] = pd.concat(
+                partition_bounds[col], axis=0
+            ).reset_index(drop=True)
+            partition_bounds[col].index.name = 'partition'
+    else:
+        partition_bounds = {}
+
+    # Create meta DataFrame
+    # Make categories unknown because we can't be sure all categories are present in
+    # the first partition.
+    meta = delayed(make_meta)(delayed_partitions[0]).compute()
+    meta = clear_known_categories(meta)
+
+    # Handle geometry
+    if geometry:
+        meta = meta.set_geometry(geometry)
+
+    geometry = meta.geometry.name
+
+    # Filter partitions by bounding box
+    if bounds and geometry in partition_bounds:
+        # Unpack bounds coordinates and make sure
+        x0, y0, x1, y1 = bounds
+
+        # Make sure x0 < c1
+        if x0 > x1:
+            x0, x1 = x1, x0
+
+        # Make sure y0 < y1
+        if y0 > y1:
+            y0, y1 = y1, y0
+
+        # Make DataFrame with bounds and parquet piece
+        partitions_df = partition_bounds[geometry].assign(
+            delayed_partition=delayed_partitions
+        )
+
+        if load_divisions:
+            partitions_df = partitions_df.assign(div_mins=div_mins, div_maxes=div_maxes)
+
+        inds = ~(
+            (partitions_df.x1 < x0) |
+            (partitions_df.y1 < y0) |
+            (partitions_df.x0 > x1) |
+            (partitions_df.y0 > y1)
+        )
+
+        partitions_df = partitions_df[inds]
+        for col in list(partition_bounds):
+            partition_bounds[col] = partition_bounds[col][inds]
+            partition_bounds[col].reset_index(drop=True, inplace=True)
+            partition_bounds[col].index.name = "partition"
+
+        delayed_partitions = partitions_df.delayed_partition.tolist()
+        if load_divisions:
+            div_mins = partitions_df.div_mins
+            div_maxes = partitions_df.div_maxes
+
+    if load_divisions:
+        divisions = div_mins + [div_maxes[-1]]
         if divisions != sorted(divisions):
             raise ValueError(
                 "Cannot load divisions because the discovered divisions are unsorted.\n"
@@ -246,34 +327,14 @@ def _perform_read_parquet_dask(
         divisions = None
 
     # Create DaskGeoDataFrame
-    # Make categories unknown because we can't be sure all categories are present in
-    # the first partition.
-    meta = delayed(make_meta)(delayed_partitions[0]).compute()
-    meta = clear_known_categories(meta)
-    result = from_delayed(delayed_partitions, divisions=divisions, meta=meta)
-
-    # Handle geometry
-    if geometry:
-        result = result.set_geometry(geometry)
+    if delayed_partitions:
+        result = from_delayed(delayed_partitions, divisions=divisions, meta=meta)
+    else:
+        # Single partition empty result
+        result = from_pandas(meta, npartitions=1)
 
     # Set partition bounds
-    partition_bounds_list = [_load_partition_bounds(dataset) for dataset in datasets]
-    if not any([b is None for b in partition_bounds_list]):
-        # We have partition bounds for all datasets
-        partition_bounds = {}
-        for partition_bounds_el in partition_bounds_list:
-            for col, bounds in partition_bounds_el.items():
-                col_bounds_list = partition_bounds.get(col, [])
-                col_bounds_list.append(bounds)
-                partition_bounds[col] = col_bounds_list
-
-        # Concat bounds for each geometry column
-        for col in list(partition_bounds):
-            partition_bounds[col] = pd.concat(
-                partition_bounds[col], axis=0
-            ).reset_index(drop=True)
-            partition_bounds[col].index.name = 'partition'
-
+    if partition_bounds:
         result._partition_bounds = partition_bounds
 
     return result
@@ -327,5 +388,5 @@ def _load_divisions(pqds):
         (rg.column(div_col).statistics.min, rg.column(12).statistics.max)
         for rg in row_groups
     ])
-    divisions = list(mins) + [maxes[-1]]
-    return divisions
+
+    return mins, maxes
