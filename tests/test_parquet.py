@@ -38,6 +38,30 @@ def test_parquet(gp_point, gp_multipoint, gp_multiline, tmp_path):
 
 
 @given(
+    gp_point=st_point_array(min_size=1, geoseries=True),
+    gp_multipoint=st_multipoint_array(min_size=1, geoseries=True),
+    gp_multiline=st_multiline_array(min_size=1, geoseries=True),
+)
+@hyp_settings
+def test_parquet_columns(gp_point, gp_multipoint, gp_multiline, tmp_path):
+    # Build dataframe
+    n = min(len(gp_multipoint), len(gp_multiline))
+    df = GeoDataFrame({
+        'point': GeoSeries(gp_point[:n]),
+        'multipoint': GeoSeries(gp_multipoint[:n]),
+        'multiline': GeoSeries(gp_multiline[:n]),
+        'a': list(range(n))
+    })
+
+    path = tmp_path / 'df.parq'
+    to_parquet(df, path)
+    columns = ['a', 'multiline']
+    df_read = read_parquet(path, columns=columns)
+    assert isinstance(df_read, GeoDataFrame)
+    assert all(df[columns] == df_read)
+
+
+@given(
     gp_multipoint=st_multipoint_array(min_size=1, geoseries=True),
     gp_multiline=st_multiline_array(min_size=1, geoseries=True),
 )
@@ -151,8 +175,14 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
     )
 
     np.testing.assert_equal(expected_distances, hilbert_distances)
-
     assert ddf_packed.geometry.name == 'points'
+
+    # Read columns
+    columns = ['a', 'lines']
+    ddf_read_cols = read_parquet_dask(path, columns=columns)
+    pd.testing.assert_frame_equal(
+        ddf_read_cols.compute(), df[columns]
+    )
 
 
 @given(

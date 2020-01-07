@@ -97,26 +97,19 @@ def to_parquet(
     )
 
 
-def read_parquet(path, columns=None, filesystem=None, load_index=True):
+def read_parquet(path, columns=None, filesystem=None):
     filesystem = validate_coerce_filesystem(path, filesystem)
 
     # Load using pyarrow to handle parquet files and directories across filesystems
     df = pq.ParquetDataset(
         path, filesystem=filesystem, validate_schema=False
-    ).read().to_pandas()
-
-    if columns:
-        df = df[columns]
+    ).read(columns=columns).to_pandas()
 
     # Import geometry columns, not needed for pyarrow >= 0.16
     metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
     geom_cols = _get_geometry_columns(metadata)
     if geom_cols:
         df = _import_geometry_columns(df, geom_cols)
-
-    # Handle dropping index
-    if not load_index:
-        df.reset_index(drop=True, inplace=True)
 
     # Return result
     return GeoDataFrame(df)
@@ -227,8 +220,7 @@ def _perform_read_parquet_dask(
     pieces = [piece for dataset in datasets for piece in dataset.pieces]
     delayed_partitions = [
         delayed(read_parquet)(
-            piece.path, columns=columns,
-            filesystem=filesystem, load_index=True
+            piece.path, columns=columns, filesystem=filesystem
         )
         for piece in pieces
     ]
