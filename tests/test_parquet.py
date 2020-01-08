@@ -179,9 +179,9 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
 
     # Read columns
     columns = ['a', 'lines']
-    ddf_read_cols = read_parquet_dask(path, columns=columns)
+    ddf_read_cols = read_parquet_dask(path, columns=columns + ['hilbert_distance'])
     pd.testing.assert_frame_equal(
-        ddf_read_cols.compute(), df[columns]
+        ddf_read_cols.compute(), ddf_packed[columns].compute()
     )
 
 
