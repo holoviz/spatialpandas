@@ -1,3 +1,10 @@
+Version 0.2.0
+=============
+
+### Added
+ - Added `pack_partitions_to_parquet` method to `DaskGeoDataFrame` ([#19](https://github.com/holoviz/spatialpandas/pull/19))
+ - Added support for remote filesystems using the `fsspec` library ([#19](https://github.com/holoviz/spatialpandas/pull/19))
+
 Version 0.1.1
 =============
 

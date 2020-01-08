@@ -1,12 +1,19 @@
 import copy
 import json
+import pathlib
+from functools import reduce
 
 import pandas as pd
-from dask.dataframe import to_parquet as dd_to_parquet, read_parquet as dd_read_parquet
+from dask import delayed
+from dask.dataframe import (
+    to_parquet as dd_to_parquet, from_delayed, from_pandas
+)
+from dask.dataframe.utils import make_meta, clear_known_categories
 
 from pandas.io.parquet import (
-    to_parquet as pd_to_parquet, read_parquet as pd_read_parquet
+    to_parquet as pd_to_parquet,
 )
+
 import pyarrow as pa
 from pyarrow import parquet as pq
 from spatialpandas.io.utils import validate_coerce_filesystem
@@ -96,10 +103,7 @@ def read_parquet(path, columns=None, filesystem=None):
     # Load using pyarrow to handle parquet files and directories across filesystems
     df = pq.ParquetDataset(
         path, filesystem=filesystem, validate_schema=False
-    ).read().to_pandas()
-
-    if columns:
-        df = df[columns]
+    ).read(columns=columns).to_pandas()
 
     # Import geometry columns, not needed for pyarrow >= 0.16
     metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
@@ -138,6 +142,7 @@ def to_parquet_dask(
                     columns=[series_name],
                     filesystem=filesystem,
                     storage_options=storage_options,
+                    load_divisions=False
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
@@ -154,40 +159,183 @@ def to_parquet_dask(
 
 
 def read_parquet_dask(
-        path, columns=None, categories=None, storage_options=None, filesystem=None, **kwargs
+        path, columns=None, filesystem=None, load_divisions=False,
+        geometry=None, bounds=None, **kwargs
 ):
-    filesystem = validate_coerce_filesystem(path, filesystem)
-    result = dd_read_parquet(
-        path,
-        columns=columns,
-        categories=categories,
-        storage_options=storage_options,
-        engine="pyarrow",
-        **kwargs
+    """
+    Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
+    have been written with the DaskGeoDataFrame.to_parquet or
+    DaskGeoDataFrame.pack_partitions_to_parquet methods.
+
+    Args:
+        path: Path to spatialpandas parquet dataset, or list of paths to datasets, or
+            glob string referencing one or more parquet datasets.
+        columns: List of columns to load
+        filesystem: fsspec filesystem to use to read datasets
+        load_divisions: If True, attempt to load the hilbert_distance divisions for
+            each partition.  Only available for datasets written using the
+            pack_partitions_to_parquet method.
+        geometry: The name of the column to use as the geometry column of the
+            resulting DaskGeoDataFrame. Defaults to the first geometry column in the
+            dataset.
+        bounds: If specified, only load partitions that have the potential to intersect
+            with the provided bounding box coordinates. bounds is a length-4 tuple of
+            the form (xmin, ymin, xmax, ymax).
+    Returns:
+    DaskGeoDataFrame
+    """
+    # Normalize path to a list
+    if isinstance(path, (str, pathlib.Path)):
+        path = [str(path)]
+    else:
+        path = list(path)
+        if not path:
+            raise ValueError('Empty path specification')
+
+    # Infer filesystem
+    filesystem = validate_coerce_filesystem(path[0], filesystem)
+
+    # Expand glob
+    if len(path) == 1 and ('*' in path[0] or '?' in path[0] or '[' in path[0]):
+        path = filesystem.glob(path[0])
+
+    # Perform read parquet
+    result = _perform_read_parquet_dask(
+        path, columns, filesystem,
+        load_divisions=load_divisions, geometry=geometry, bounds=bounds
     )
 
-    # Import geometry columns, not needed for pyarrow >= 0.16
-    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
-    geom_cols = _get_geometry_columns(metadata)
-    if not geom_cols:
-        # No geometry columns found, regular DaskDataFrame
-        return result
+    return result
 
-    # Convert Dask DataFrame to DaskGeoDataFrame and the partitions and metadata
-    # to GeoDataFrames
-    result = result.map_partitions(
-        lambda df: GeoDataFrame(_import_geometry_columns(df, geom_cols)),
-    )
 
-    result = DaskGeoDataFrame(
-        result.dask,
-        result._name,
-        GeoDataFrame(_import_geometry_columns(result._meta, geom_cols)),
-        result.divisions,
-    )
-    # Load bounding box info from _metadata
-    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
-    if b'spatialpandas' in pqds.common_metadata.metadata:
+def _perform_read_parquet_dask(
+        paths, columns, filesystem, load_divisions, geometry=None, bounds=None
+):
+    filesystem = validate_coerce_filesystem(paths[0], filesystem)
+    datasets = [pa.parquet.ParquetDataset(
+        path, filesystem=filesystem, validate_schema=False
+    ) for path in paths]
+
+    # Create delayed partition for each piece
+    pieces = [piece for dataset in datasets for piece in dataset.pieces]
+    delayed_partitions = [
+        delayed(read_parquet)(
+            piece.path, columns=columns, filesystem=filesystem
+        )
+        for piece in pieces
+    ]
+
+    # Load divisions
+    if load_divisions:
+        div_mins_list, div_maxes_list = zip(*[
+            _load_divisions(dataset) for dataset in datasets
+        ])
+
+        div_mins = reduce(lambda a, b: a + b, div_mins_list, [])
+        div_maxes = reduce(lambda a, b: a + b, div_maxes_list, [])
+    else:
+        div_mins = None
+        div_maxes = None
+
+    # load partition bounds
+    partition_bounds_list = [_load_partition_bounds(dataset) for dataset in datasets]
+    if not any([b is None for b in partition_bounds_list]):
+        partition_bounds = {}
+        # We have partition bounds for all datasets
+        for partition_bounds_el in partition_bounds_list:
+            for col, col_bounds in partition_bounds_el.items():
+                col_bounds_list = partition_bounds.get(col, [])
+                col_bounds_list.append(col_bounds)
+                partition_bounds[col] = col_bounds_list
+
+        # Concat bounds for each geometry column
+        for col in list(partition_bounds):
+            partition_bounds[col] = pd.concat(
+                partition_bounds[col], axis=0
+            ).reset_index(drop=True)
+            partition_bounds[col].index.name = 'partition'
+    else:
+        partition_bounds = {}
+
+    # Create meta DataFrame
+    # Make categories unknown because we can't be sure all categories are present in
+    # the first partition.
+    meta = delayed(make_meta)(delayed_partitions[0]).compute()
+    meta = clear_known_categories(meta)
+
+    # Handle geometry
+    if geometry:
+        meta = meta.set_geometry(geometry)
+
+    geometry = meta.geometry.name
+
+    # Filter partitions by bounding box
+    if bounds and geometry in partition_bounds:
+        # Unpack bounds coordinates and make sure
+        x0, y0, x1, y1 = bounds
+
+        # Make sure x0 < c1
+        if x0 > x1:
+            x0, x1 = x1, x0
+
+        # Make sure y0 < y1
+        if y0 > y1:
+            y0, y1 = y1, y0
+
+        # Make DataFrame with bounds and parquet piece
+        partitions_df = partition_bounds[geometry].assign(
+            delayed_partition=delayed_partitions
+        )
+
+        if load_divisions:
+            partitions_df = partitions_df.assign(div_mins=div_mins, div_maxes=div_maxes)
+
+        inds = ~(
+            (partitions_df.x1 < x0) |
+            (partitions_df.y1 < y0) |
+            (partitions_df.x0 > x1) |
+            (partitions_df.y0 > y1)
+        )
+
+        partitions_df = partitions_df[inds]
+        for col in list(partition_bounds):
+            partition_bounds[col] = partition_bounds[col][inds]
+            partition_bounds[col].reset_index(drop=True, inplace=True)
+            partition_bounds[col].index.name = "partition"
+
+        delayed_partitions = partitions_df.delayed_partition.tolist()
+        if load_divisions:
+            div_mins = partitions_df.div_mins
+            div_maxes = partitions_df.div_maxes
+
+    if load_divisions:
+        divisions = div_mins + [div_maxes[-1]]
+        if divisions != sorted(divisions):
+            raise ValueError(
+                "Cannot load divisions because the discovered divisions are unsorted.\n"
+                "Set load_divisions=False to skip loading divisions."
+            )
+    else:
+        divisions = None
+
+    # Create DaskGeoDataFrame
+    if delayed_partitions:
+        result = from_delayed(delayed_partitions, divisions=divisions, meta=meta)
+    else:
+        # Single partition empty result
+        result = from_pandas(meta, npartitions=1)
+
+    # Set partition bounds
+    if partition_bounds:
+        result._partition_bounds = partition_bounds
+
+    return result
+
+
+def _load_partition_bounds(pqds):
+    partition_bounds = None
+    if (pqds.common_metadata is not None and
+            b'spatialpandas' in pqds.common_metadata.metadata):
         spatial_metadata = json.loads(
             pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')
         )
@@ -208,5 +356,29 @@ def read_parquet_dask(
                 bounds_df.index.name = 'partition'
 
                 partition_bounds[name] = bounds_df
-            result._partition_bounds = partition_bounds
-    return result
+
+    return partition_bounds
+
+
+def _load_divisions(pqds):
+    fmd = pqds.metadata
+    row_groups = [fmd.row_group(i) for i in range(fmd.num_row_groups)]
+    rg0 = row_groups[0]
+    div_col = None
+    for c in range(rg0.num_columns):
+        if rg0.column(c).path_in_schema == "hilbert_distance":
+            div_col = c
+            break
+
+    if div_col is None:
+        # No hilbert_distance column found
+        raise ValueError(
+            "Cannot load divisions because hilbert_distance index not found"
+        )
+
+    mins, maxes = zip(*[
+        (rg.column(div_col).statistics.min, rg.column(12).statistics.max)
+        for rg in row_groups
+    ])
+
+    return mins, maxes
