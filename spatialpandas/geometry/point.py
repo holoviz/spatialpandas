@@ -1,5 +1,6 @@
 import numpy as np
 from pandas.core.dtypes.dtypes import register_extension_dtype
+from spatialpandas.geometry._algorithms.intersection import segment_intersects_point
 
 from spatialpandas.geometry.base import GeometryDtype
 from spatialpandas.geometry.basefixed import GeometryFixed, GeometryFixedArray
@@ -90,12 +91,43 @@ or MultiPoint""".format(typ=type(shape).__name__))
         flat = multipoint.flat_values
         return np.any((self.x == flat[0::2]) & (self.y == flat[1::2]))
 
+    def _intersects_line(self, line):
+        flat = line.flat_values
+        xs = flat[0::2]
+        ys = flat[1::2]
+        bounds = (min(xs), min(ys), max(xs), max(ys))
+
+        # Check bounding box
+        intersects_bounds = self.intersects_bounds(bounds)
+        if not intersects_bounds:
+            return False
+
+        # Check if point exactly intersects vertex of line
+        intersects_vert = np.any((self.x == flat[0::2]) & (self.y == flat[1::2]))
+        if intersects_vert:
+            return True
+
+        # Check if point is exactly on one of the segments of the line
+        bx = self.x
+        by = self.y
+        for i in range(len(xs) - 1):
+            ax0 = xs[i]
+            ay0 = ys[i]
+            ax1 = xs[i + 1]
+            ay1 = ys[i + 1]
+            if segment_intersects_point(ax0, ay0, ax1, ay1, bx, by):
+                return True
+
+        return False
+
     def intersects(self, shape):
-        from . import MultiPoint
+        from . import MultiPoint, Line
         if isinstance(shape, Point):
             return self._intersects_point(shape)
         elif isinstance(shape, MultiPoint):
             return self._intersects_multipoint(shape)
+        elif isinstance(shape, Line):
+            return self._intersects_line(shape)
         else:
             raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
 
@@ -174,12 +206,21 @@ class PointArray(GeometryFixedArray):
             inds = np.arange(len(self))
         return _perform_intersects_multipoint(flat_points, flat_multipoint, inds)
 
+    def _intersects_line(self, line, inds):
+        flat_points = self.flat_values
+        flat_line = line.flat_values
+        if inds is None:
+            inds = np.arange(len(self))
+        return _perform_intersects_line(flat_points, flat_line, inds)
+
     def intersects(self, shape, inds=None):
-        from . import MultiPoint
+        from . import MultiPoint, Line
         if isinstance(shape, Point):
             return self._intersects_point(shape, inds)
         elif isinstance(shape, MultiPoint):
             return self._intersects_multipoint(shape, inds)
+        elif isinstance(shape, Line):
+            return self._intersects_line(shape, inds)
         else:
             raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
 
@@ -194,6 +235,41 @@ def _perform_intersects_multipoint(flat_points, flat_multipoint, inds):
         x = flat_points[2 * j]
         y = flat_points[2 * j + 1]
         result[i] = np.any((multi_xs == x) & (multi_ys == y))
+
+    return result
+
+
+@ngpjit
+def _perform_intersects_line(flat_points, flat_line, inds):
+    n = len(inds)
+    line_xs = flat_line[0::2]
+    line_ys = flat_line[1::2]
+    bounds = (min(line_xs), min(line_ys), max(line_xs), max(line_ys))
+    result = np.zeros(n, dtype=np.bool_)
+    for i, j in enumerate(inds):
+        x = flat_points[2 * j]
+        y = flat_points[2 * j + 1]
+
+        # Check bounding box
+        if x < bounds[0] or y < bounds[1] or x > bounds[2] or y > bounds[3]:
+            continue
+
+        # Check line vertices
+        intersects_vert = np.any((line_xs == x) & (line_ys == y))
+        if intersects_vert:
+            result[i] = True
+            continue
+
+        # Check whether point is on a line segment
+        for k in range(len(line_xs) - 1):
+            ax0 = line_xs[k]
+            ay0 = line_ys[k]
+            ax1 = line_xs[k + 1]
+            ay1 = line_ys[k + 1]
+            intersects_segment = segment_intersects_point(ax0, ay0, ax1, ay1, x, y)
+            if intersects_segment:
+                result[i] = True
+                break
 
     return result
 
