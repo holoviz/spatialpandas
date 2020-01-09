@@ -163,6 +163,11 @@ class Geometry:
     def intersects_bounds(self, bounds):
         raise NotImplementedError()
 
+    def intersects(self, shape):
+        raise NotImplementedError(
+            "intersects not yet implemented for %s objects" % type(self).__name__
+        )
+
 
 class GeometryArray(ExtensionArray):
     _element_type = Geometry
@@ -556,6 +561,11 @@ Cannot check equality of {typ} of length {a_len} with:
             with the supplied bounds
         """
         raise NotImplementedError()
+
+    def intersects(self, shape):
+        raise NotImplementedError(
+            "intersects not yet implemented for %s objects" % type(self).__name__
+        )
 
 
 class _BaseCoordinateIndexer:

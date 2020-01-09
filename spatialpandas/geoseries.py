@@ -78,6 +78,11 @@ class GeoSeries(pd.Series):
             self.array.intersects_bounds(bounds), index=self.index
         )
 
+    def intersects(self, shape):
+        return pd.Series(
+            self.array.intersects(shape), index=self.index
+        )
+
     def to_geopandas(self):
         from geopandas import GeoSeries
         return GeoSeries(self.array.to_geopandas(), index=self.index)
