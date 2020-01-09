@@ -3,9 +3,10 @@ import numpy as np
 import pandas as pd
 from geopandas.array import from_shapely
 from hypothesis import given, example
-from spatialpandas.geometry import PointArray, Point, MultiPoint, Line, MultiLine
+from spatialpandas.geometry import PointArray, Point, MultiPoint, Line, MultiLine, \
+    Polygon, MultiPolygon
 from tests.geometry.strategies import st_point_array, st_multipoint_array, hyp_settings, \
-    st_line_array
+    st_line_array, st_polygon_array, st_multipolygon_array
 
 
 @given(st_point_array(), st_point_array(min_size=1, max_size=1))
@@ -146,4 +147,62 @@ def test_points_intersects_multiline(gp_points, gp_multiline):
     # Test PointArray.intersects with inds
     inds = np.flipud(np.arange(0, len(points)))
     result = points.intersects(multiline, inds)
+    np.testing.assert_equal(result, np.flipud(expected))
+
+
+@given(st_point_array(), st_polygon_array(min_size=1, max_size=1))
+@hyp_settings
+def test_points_intersects_polygon(gp_points, gp_polygon):
+    # Get scalar Polygon
+    sg_polygon = gp_polygon[0]
+
+    # Compute expected intersection
+    expected = gp_points.intersects(sg_polygon)
+
+    # Create spatialpandas objects
+    polygon = Polygon.from_shapely(sg_polygon)
+    points = PointArray.from_geopandas(gp_points)
+
+    # Test Point.intersects
+    result = np.array([
+        point_el.intersects(polygon) for point_el in points
+    ])
+    np.testing.assert_equal(result, expected)
+
+    # Test PointArray.intersect
+    result = points.intersects(polygon)
+    np.testing.assert_equal(result, expected)
+
+    # Test PointArray.intersects with inds
+    inds = np.flipud(np.arange(0, len(points)))
+    result = points.intersects(polygon, inds)
+    np.testing.assert_equal(result, np.flipud(expected))
+
+
+@given(st_point_array(), st_multipolygon_array(min_size=1, max_size=1))
+@hyp_settings
+def test_points_intersects_multipolygon(gp_points, gp_multipolygon):
+    # Get scalar MultiPolygon
+    sg_multipolygon = gp_multipolygon[0]
+
+    # Compute expected intersection
+    expected = gp_points.intersects(sg_multipolygon)
+
+    # Create spatialpandas objects
+    multipolygon = MultiPolygon.from_shapely(sg_multipolygon)
+    points = PointArray.from_geopandas(gp_points)
+
+    # Test Point.intersects
+    result = np.array([
+        point_el.intersects(multipolygon) for point_el in points
+    ])
+    np.testing.assert_equal(result, expected)
+
+    # Test PointArray.intersect
+    result = points.intersects(multipolygon)
+    np.testing.assert_equal(result, expected)
+
+    # Test PointArray.intersects with inds
+    inds = np.flipud(np.arange(0, len(points)))
+    result = points.intersects(multipolygon, inds)
     np.testing.assert_equal(result, np.flipud(expected))

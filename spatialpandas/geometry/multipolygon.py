@@ -93,7 +93,10 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
         """
         import shapely.geometry as sg
         if orient:
-            shape = sg.polygon.orient(shape)
+            if isinstance(shape, sg.Polygon):
+                shape = sg.polygon.orient(shape)
+            elif isinstance(shape, sg.MultiPolygon):
+                shape = sg.MultiPolygon([sg.polygon.orient(poly) for poly in shape])
 
         shape_parts = cls._shapely_to_coordinates(shape)
         return cls(shape_parts)

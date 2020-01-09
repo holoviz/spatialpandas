@@ -1,6 +1,7 @@
 import numpy as np
 from pandas.core.dtypes.dtypes import register_extension_dtype
-from spatialpandas.geometry._algorithms.intersection import segment_intersects_point
+from spatialpandas.geometry._algorithms.intersection import segment_intersects_point, \
+    point_intersects_polygon
 
 from spatialpandas.geometry.base import GeometryDtype
 from spatialpandas.geometry.basefixed import GeometryFixed, GeometryFixedArray
@@ -126,8 +127,13 @@ or MultiPoint""".format(typ=type(shape).__name__))
 
         return False
 
+    def _intersects_polygon(self, polygon):
+        return point_intersects_polygon(
+            self.x, self.y, polygon.buffer_values, polygon.buffer_inner_offsets
+        )
+
     def intersects(self, shape):
-        from . import MultiPoint, Line, MultiLine
+        from . import MultiPoint, Line, MultiLine, Polygon, MultiPolygon
         if isinstance(shape, Point):
             return self._intersects_point(shape)
         elif isinstance(shape, MultiPoint):
@@ -136,6 +142,10 @@ or MultiPoint""".format(typ=type(shape).__name__))
             return self._intersects_line(shape)
         elif isinstance(shape, MultiLine):
             return self._intersects_line(shape)
+        elif isinstance(shape, Polygon):
+            return self._intersects_polygon(shape)
+        elif isinstance(shape, MultiPolygon):
+            return self._intersects_polygon(shape)
         else:
             raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
 
@@ -221,8 +231,15 @@ class PointArray(GeometryFixedArray):
             self.flat_values, line.buffer_values,  line.buffer_inner_offsets, inds
         )
 
+    def _intersects_polygon(self, polygon, inds):
+        if inds is None:
+            inds = np.arange(len(self))
+        return _perform_intersects_polygon(
+            self.flat_values, polygon.buffer_values,  polygon.buffer_inner_offsets, inds
+        )
+
     def intersects(self, shape, inds=None):
-        from . import MultiPoint, Line, MultiLine
+        from . import MultiPoint, Line, MultiLine, Polygon, MultiPolygon
         if isinstance(shape, Point):
             return self._intersects_point(shape, inds)
         elif isinstance(shape, MultiPoint):
@@ -231,6 +248,10 @@ class PointArray(GeometryFixedArray):
             return self._intersects_line(shape, inds)
         elif isinstance(shape, MultiLine):
             return self._intersects_line(shape, inds)
+        elif isinstance(shape, Polygon):
+            return self._intersects_polygon(shape, inds)
+        elif isinstance(shape, MultiPolygon):
+            return self._intersects_polygon(shape, inds)
         else:
             raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
 
@@ -250,7 +271,7 @@ def _perform_intersects_multipoint(flat_points, flat_multipoint, inds):
 
 
 @ngpjit
-def _perform_intersects_line(flat_points, buffer_values, offsets, inds):
+def _perform_intersects_line(flat_points, flat_lines, offsets, inds):
     n = len(inds)
     result = np.zeros(n, dtype=np.bool_)
     for i, j in enumerate(inds):
@@ -258,7 +279,7 @@ def _perform_intersects_line(flat_points, buffer_values, offsets, inds):
         y = flat_points[2 * j + 1]
 
         for k in range(len(offsets) - 1):
-            flat_line = buffer_values[offsets[k]:offsets[k + 1]]
+            flat_line = flat_lines[offsets[k]:offsets[k + 1]]
             line_xs = flat_line[0::2]
             line_ys = flat_line[1::2]
             bounds = (min(line_xs), min(line_ys), max(line_xs), max(line_ys))
@@ -284,6 +305,20 @@ def _perform_intersects_line(flat_points, buffer_values, offsets, inds):
                     result[i] = True
                     break
 
+    return result
+
+
+@ngpjit
+def _perform_intersects_polygon(flat_points, flat_polygons, offsets, inds):
+    n = len(inds)
+    result = np.zeros(n, dtype=np.bool_)
+    for i, j in enumerate(inds):
+        x = flat_points[2 * j]
+        y = flat_points[2 * j + 1]
+
+        result[i] = point_intersects_polygon(
+            x, y, flat_polygons, offsets
+        )
     return result
 
 
