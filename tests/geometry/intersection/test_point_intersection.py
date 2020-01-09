@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from geopandas.array import from_shapely
 from hypothesis import given, example
+from spatialpandas import GeoSeries
 from spatialpandas.geometry import PointArray, Point, MultiPoint, Line, MultiLine, \
     Polygon, MultiPolygon
 from tests.geometry.strategies import st_point_array, st_multipoint_array, hyp_settings, \
@@ -24,6 +25,7 @@ def test_points_intersects_point(gp_points, gp_point):
     # Create spatialpandas PointArray
     point = Point.from_shapely(sg_point)
     points = PointArray.from_geopandas(gp_points)
+    points_series = GeoSeries(points, index=np.arange(10, 10 + len(points)))
 
     # Test Point.intersects
     result = np.array([
@@ -39,6 +41,12 @@ def test_points_intersects_point(gp_points, gp_point):
     inds = np.flipud(np.arange(0, len(points)))
     result = points.intersects(point, inds)
     np.testing.assert_equal(result, np.flipud(expected))
+
+    # Test GeoSeries.intersects
+    pd.testing.assert_series_equal(
+        points_series.intersects(point),
+        pd.Series(expected, index=points_series.index)
+    )
 
 
 @given(st_point_array(), st_multipoint_array(min_size=1, max_size=1))
@@ -56,6 +64,7 @@ def test_points_intersects_multipoint(gp_points, gp_multipoint):
     # Create spatialpandas PointArray
     multipoint = MultiPoint.from_shapely(sg_multipoint)
     points = PointArray.from_geopandas(gp_points)
+    points_series = GeoSeries(points, index=np.arange(10, 10 + len(points)))
 
     # Test Point.intersects
     result = np.array([
@@ -71,6 +80,12 @@ def test_points_intersects_multipoint(gp_points, gp_multipoint):
     inds = np.flipud(np.arange(0, len(points)))
     result = points.intersects(multipoint, inds)
     np.testing.assert_equal(result, np.flipud(expected))
+
+    # Test GeoSeries.intersects
+    pd.testing.assert_series_equal(
+        points_series.intersects(multipoint),
+        pd.Series(expected, index=points_series.index)
+    )
 
 
 @given(st_point_array(), st_line_array(min_size=1, max_size=1))
@@ -93,6 +108,7 @@ def test_points_intersects_line(gp_points, gp_line):
     # Create spatialpandas objects
     line = Line.from_shapely(sg_line)
     points = PointArray.from_geopandas(gp_points)
+    points_series = GeoSeries(points, index=np.arange(10, 10 + len(points)))
 
     # Test Point.intersects
     result = np.array([
@@ -108,6 +124,12 @@ def test_points_intersects_line(gp_points, gp_line):
     inds = np.flipud(np.arange(0, len(points)))
     result = points.intersects(line, inds)
     np.testing.assert_equal(result, np.flipud(expected))
+
+    # Test GeoSeries.intersects
+    pd.testing.assert_series_equal(
+        points_series.intersects(line),
+        pd.Series(expected, index=points_series.index)
+    )
 
 
 @given(st_point_array(), st_line_array(min_size=1, max_size=1))
@@ -133,6 +155,7 @@ def test_points_intersects_multiline(gp_points, gp_multiline):
     # Create spatialpandas objects
     multiline = MultiLine.from_shapely(sg_multiline)
     points = PointArray.from_geopandas(gp_points)
+    points_series = GeoSeries(points, index=np.arange(10, 10 + len(points)))
 
     # Test Point.intersects
     result = np.array([
@@ -149,6 +172,12 @@ def test_points_intersects_multiline(gp_points, gp_multiline):
     result = points.intersects(multiline, inds)
     np.testing.assert_equal(result, np.flipud(expected))
 
+    # Test GeoSeries.intersects
+    pd.testing.assert_series_equal(
+        points_series.intersects(multiline),
+        pd.Series(expected, index=points_series.index)
+    )
+
 
 @given(st_point_array(), st_polygon_array(min_size=1, max_size=1))
 @hyp_settings
@@ -162,6 +191,7 @@ def test_points_intersects_polygon(gp_points, gp_polygon):
     # Create spatialpandas objects
     polygon = Polygon.from_shapely(sg_polygon)
     points = PointArray.from_geopandas(gp_points)
+    points_series = GeoSeries(points, index=np.arange(10, 10 + len(points)))
 
     # Test Point.intersects
     result = np.array([
@@ -178,6 +208,12 @@ def test_points_intersects_polygon(gp_points, gp_polygon):
     result = points.intersects(polygon, inds)
     np.testing.assert_equal(result, np.flipud(expected))
 
+    # Test GeoSeries.intersects
+    pd.testing.assert_series_equal(
+        points_series.intersects(polygon),
+        pd.Series(expected, index=points_series.index)
+    )
+
 
 @given(st_point_array(), st_multipolygon_array(min_size=1, max_size=1))
 @hyp_settings
@@ -191,6 +227,7 @@ def test_points_intersects_multipolygon(gp_points, gp_multipolygon):
     # Create spatialpandas objects
     multipolygon = MultiPolygon.from_shapely(sg_multipolygon)
     points = PointArray.from_geopandas(gp_points)
+    points_series = GeoSeries(points, index=np.arange(10, 10 + len(points)))
 
     # Test Point.intersects
     result = np.array([
@@ -206,3 +243,9 @@ def test_points_intersects_multipolygon(gp_points, gp_multipolygon):
     inds = np.flipud(np.arange(0, len(points)))
     result = points.intersects(multipolygon, inds)
     np.testing.assert_equal(result, np.flipud(expected))
+
+    # Test GeoSeries.intersects
+    pd.testing.assert_series_equal(
+        points_series.intersects(multipolygon),
+        pd.Series(expected, index=points_series.index)
+    )
