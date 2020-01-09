@@ -82,6 +82,15 @@ or MultiPoint""".format(typ=type(shape).__name__))
 
         return not outside
 
+    def _intersects_point(self, point):
+        return self.x == point.x and self.y == point.y
+
+    def intersects(self, shape):
+        if isinstance(shape, Point):
+            return self._intersects_point(shape)
+        else:
+            raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
+
 
 class PointArray(GeometryFixedArray):
     _element_type = Point
@@ -142,6 +151,19 @@ class PointArray(GeometryFixedArray):
 
         outside = np.isnan(xs) | (xs < x0) | (xs > x1) | (ys < y0) | (ys > y1)
         return ~outside
+
+    def _intersects_point(self, point, inds):
+        flat = self.flat_values
+        if inds is None:
+            return (flat[0::2] == point.x) & (flat[1::2] == point.y)
+        else:
+            return (flat[inds * 2] == point.x) & (flat[inds * 2 + 1] == point.y)
+
+    def intersects(self, shape, inds=None):
+        if isinstance(shape, Point):
+            return self._intersects_point(shape, inds)
+        else:
+            raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
 
 
 def _points_array_non_empty(dtype):

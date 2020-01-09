@@ -562,7 +562,21 @@ Cannot check equality of {typ} of length {a_len} with:
         """
         raise NotImplementedError()
 
-    def intersects(self, shape):
+    def intersects(self, shape, inds=None):
+        """
+        Test whether each element in the array intersects with the supplied shape
+
+        Args:
+            shape: The spatialpandas shape to compute intersections with
+            inds: Optional array of indices into the array. If supplied, intersection
+                calculations will be performed only on the elements selected by this
+                array.  If not supplied, intersection calculations are performed
+                on all elements.
+
+        Returns:
+            Array of boolean values indicating which elements of the array intersect
+            with the supplied shape
+        """
         raise NotImplementedError(
             "intersects not yet implemented for %s objects" % type(self).__name__
         )

@@ -15,6 +15,11 @@ class GeometryFixed(Geometry):
     Base class for elements of GeometryFixedArray subclasses
     """
     def __init__(self, data, dtype=None):
+        if isinstance(data, np.ndarray):
+            # Convert numpy array to bytes
+            dtype = data.dtype
+            data = data.tobytes()
+
         super().__init__(data)
         self.numpy_dtype = np.dtype(dtype)
         self.pyarrow_type = pa.from_numpy_dtype(dtype)
