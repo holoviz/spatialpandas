@@ -7,6 +7,40 @@ from numba import prange
 
 
 @ngjit
+def segment_intersects_point(ax0, ay0, ax1, ay1, bx, by):
+    """
+    Test whether a 2-dimensional line segments intersects with a point
+
+    Args:
+        ax0, ay0: coordinates of start of segment
+        ax1, ay1: coordinates of end of segment
+        bx, by: coordinates of point
+
+    Returns:
+        True if segment intersects point, False otherwise
+    """
+    # Check bounds
+    if bx < min(ax0, ax1) or bx > max(ax0, ax1):
+        return False
+    if by < min(ay0, ay1) or by > max(ay0, ay1):
+        return False
+
+    # Use cross product to test whether point is exactly on line
+    # S is vector from segment start to segment end
+    sx = ax1 - ax0
+    sy = ay1 - ay0
+
+    # P is vector from segment start to point
+    px = bx - ax0
+    py = by - ay0
+
+    # Compute cross produce of S and P
+    sxp = sx * py - sy * px
+
+    return sxp == 0
+
+
+@ngjit
 def segments_intersect_1d(ax0, ax1, bx0, bx1):
     """
     Test whether two 1-dimensional line segments overlap

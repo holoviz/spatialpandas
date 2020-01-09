@@ -1,5 +1,5 @@
 import numpy as np
-from hypothesis import given
+from hypothesis import given, example
 from shapely import geometry as sg
 
 from spatialpandas.geometry import (
@@ -7,12 +7,33 @@ from spatialpandas.geometry import (
     MultiLineArray, PolygonArray, MultiPolygonArray,
     PointArray)
 from spatialpandas.geometry._algorithms.intersection import (
-    segments_intersect, point_intersects_polygon
-)
+    segments_intersect, point_intersects_polygon,
+    segment_intersects_point)
 from tests.geometry.strategies import (
     st_polygon, st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
     st_polygon_array, st_multipolygon_array, hyp_settings, coord, st_points,
     st_point_array)
+
+
+@given(coord, coord, coord, coord, coord, coord)
+@example(0, 0, 1, 1, 0.25, 0.25)  # Point on line
+@example(0, 0, 1, 1, 0.2501, 0.25)  # Point just off of line
+@example(0, 0, 1, 1, 1, 1)  # Point on end of segment
+@example(0, 0, 1, 1, 0, 0)  # Point on start of segment
+@example(0, 0, 1, 1, 1.001, 1.001)  # Point on ray, just past end of segment
+@example(0, 0, 1, 1, -0.001, -0.001)  # Point on ray, just before start of segment
+@hyp_settings
+def test_segment_intersects_point(ax0, ay0, ax1, ay1, bx, by):
+    result1 = segment_intersects_point(ax0, ay0, ax1, ay1, bx, by)
+    result2 = segment_intersects_point(ax1, ay1, ax0, ay0, bx, by)
+    # Ensure we get the same answer with line order flipped
+    assert result1 == result2
+
+    # Use shapely polygon to compute expected intersection
+    line = sg.LineString([(ax0, ay0), (ax1, ay1)])
+    point = sg.Point([bx, by])
+    expected = line.intersects(point)
+    assert result1 == expected
 
 
 @given(coord, coord, coord, coord, coord, coord, coord, coord)
@@ -23,7 +44,7 @@ def test_segment_intersection(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
     # Ensure we get the same answer with line order flipped
     assert result1 == result2
 
-    # Use shapely polygon to compute expected orientation
+    # Use shapely polygon to compute expected intersection
     line1 = sg.LineString([(ax0, ay0), (ax1, ay1)])
     line2 = sg.LineString([(bx0, by0), (bx1, by1)])
     expected = line1.intersects(line2)
