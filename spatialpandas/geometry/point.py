@@ -4,6 +4,7 @@ from pandas.core.dtypes.dtypes import register_extension_dtype
 from spatialpandas.geometry.base import GeometryDtype
 from spatialpandas.geometry.basefixed import GeometryFixed, GeometryFixedArray
 from dask.dataframe.extensions import make_array_nonempty
+from spatialpandas.utils import ngpjit
 
 
 @register_extension_dtype
@@ -85,9 +86,16 @@ or MultiPoint""".format(typ=type(shape).__name__))
     def _intersects_point(self, point):
         return self.x == point.x and self.y == point.y
 
+    def _intersects_multipoint(self, multipoint):
+        flat = multipoint.flat_values
+        return np.any((self.x == flat[0::2]) & (self.y == flat[1::2]))
+
     def intersects(self, shape):
+        from . import MultiPoint
         if isinstance(shape, Point):
             return self._intersects_point(shape)
+        elif isinstance(shape, MultiPoint):
+            return self._intersects_multipoint(shape)
         else:
             raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
 
@@ -159,11 +167,35 @@ class PointArray(GeometryFixedArray):
         else:
             return (flat[inds * 2] == point.x) & (flat[inds * 2 + 1] == point.y)
 
+    def _intersects_multipoint(self, multipoint, inds):
+        flat_points = self.flat_values
+        flat_multipoint = multipoint.flat_values
+        if inds is None:
+            inds = np.arange(len(self))
+        return _perform_intersects_multipoint(flat_points, flat_multipoint, inds)
+
     def intersects(self, shape, inds=None):
+        from . import MultiPoint
         if isinstance(shape, Point):
             return self._intersects_point(shape, inds)
+        elif isinstance(shape, MultiPoint):
+            return self._intersects_multipoint(shape, inds)
         else:
             raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
+
+
+@ngpjit
+def _perform_intersects_multipoint(flat_points, flat_multipoint, inds):
+    n = len(inds)
+    multi_xs = flat_multipoint[0::2]
+    multi_ys = flat_multipoint[1::2]
+    result = np.zeros(n, dtype=np.bool_)
+    for i, j in enumerate(inds):
+        x = flat_points[2 * j]
+        y = flat_points[2 * j + 1]
+        result[i] = np.any((multi_xs == x) & (multi_ys == y))
+
+    return result
 
 
 def _points_array_non_empty(dtype):
