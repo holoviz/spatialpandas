@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from geopandas.array import from_shapely
 from hypothesis import given, example
-from spatialpandas.geometry import PointArray, Point, MultiPoint, Line
+from spatialpandas.geometry import PointArray, Point, MultiPoint, Line, MultiLine
 from tests.geometry.strategies import st_point_array, st_multipoint_array, hyp_settings, \
     st_line_array
 
@@ -106,4 +106,44 @@ def test_points_intersects_line(gp_points, gp_line):
     # Test PointArray.intersects with inds
     inds = np.flipud(np.arange(0, len(points)))
     result = points.intersects(line, inds)
+    np.testing.assert_equal(result, np.flipud(expected))
+
+
+@given(st_point_array(), st_line_array(min_size=1, max_size=1))
+@example(
+    from_shapely([
+        sg.Point([0.25, 0.25]),  # on line
+        sg.Point([1, 1]),  # on vertex
+        sg.Point([1.01, 1.01])  # on ray, just past vertex
+    ]),
+    from_shapely([sg.MultiLineString([
+        [(1, 0.5), (2, 0)],
+        [(0, 0), (1, 1)],
+    ])])
+)
+@hyp_settings
+def test_points_intersects_multiline(gp_points, gp_multiline):
+    # Get scalar MultiLine
+    sg_multiline = gp_multiline[0]
+
+    # Compute expected intersection
+    expected = gp_points.intersects(sg_multiline)
+
+    # Create spatialpandas objects
+    multiline = MultiLine.from_shapely(sg_multiline)
+    points = PointArray.from_geopandas(gp_points)
+
+    # Test Point.intersects
+    result = np.array([
+        point_el.intersects(multiline) for point_el in points
+    ])
+    np.testing.assert_equal(result, expected)
+
+    # Test PointArray.intersect
+    result = points.intersects(multiline)
+    np.testing.assert_equal(result, expected)
+
+    # Test PointArray.intersects with inds
+    inds = np.flipud(np.arange(0, len(points)))
+    result = points.intersects(multiline, inds)
     np.testing.assert_equal(result, np.flipud(expected))
