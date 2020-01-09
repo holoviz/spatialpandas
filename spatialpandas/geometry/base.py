@@ -419,14 +419,14 @@ Cannot check equality of {typ} of length {a_len} with:
                 )
 
             # Build pyarrow array of indices
-            indices = pa.array(indices, mask=indices < 0)
+            indices = pa.array(indices.astype('int'), mask=indices < 0)
         else:
             # Convert negative indices to positive
             negative_mask = indices < 0
             indices[negative_mask] = indices[negative_mask] + len(self)
 
             # Build pyarrow array of indices
-            indices = pa.array(indices)
+            indices = pa.array(indices.astype('int'))
 
         return self.__class__(self.data.take(indices), dtype=self.dtype)
 
