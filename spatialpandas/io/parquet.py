@@ -377,8 +377,8 @@ def _load_divisions(pqds):
         )
 
     mins, maxes = zip(*[
-        (rg.column(div_col).statistics.min, rg.column(12).statistics.max)
+        (rg.column(div_col).statistics.min, rg.column(div_col).statistics.max)
         for rg in row_groups
     ])
 
-    return mins, maxes
+    return list(mins), list(maxes)
