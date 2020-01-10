@@ -317,8 +317,9 @@ class DaskGeoDataFrame(dd.DataFrame):
                     total_bounds[series_name] = series.total_bounds
 
             # Delete directory of parquet parts for partition
-            filesystem.rm(parts_tmp_path, recursive=True)
-            if part_output_path != parts_tmp_path:
+            if filesystem.exists(parts_tmp_path):
+                filesystem.rm(parts_tmp_path, recursive=True)
+            if filesystem.exists(part_output_path):
                 filesystem.rm(part_output_path, recursive=True)
 
             # Sort by part_df by hilbert_distance index
