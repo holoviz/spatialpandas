@@ -341,7 +341,7 @@ def lines_intersect_bounds(
     return result
 
 
-@ngpjit
+@ngjit
 def multilines_intersect_bounds(
         x0, y0, x1, y1, flat_values, start_offsets0, stop_offsets0, offsets1, result
 ):
@@ -380,7 +380,10 @@ def multilines_intersect_bounds(
         return
 
     # Populate results
-    for i in prange(n):
+    for i in range(n):
+        # Numba has issues with following line when jit(parallel=True) is used:
+        # Invalid use of Function(<intrinsic wrap_index>) with argument(s) of type(s):
+        #   (uint32, int64)
         element_offsets = offsets1[start_offsets0[i]:stop_offsets0[i] + 1]
         num_lines = len(element_offsets) - 1
         element_result = np.zeros(num_lines, dtype=np.bool_)
