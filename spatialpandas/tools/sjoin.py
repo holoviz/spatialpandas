@@ -39,7 +39,7 @@ def sjoin(
         rsuffix: Suffix to apply to overlapping column names from the right GeoDataFrame
 
     Returns:
-        GeoDataFrame or DaskGeoDataFrame
+        GeoDataFrame or DaskGeoDataFrame (same type as left_df argument)
     """
     from spatialpandas import GeoDataFrame
     try:
