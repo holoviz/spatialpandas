@@ -1,4 +1,5 @@
 import dask.dataframe as dd
+from dask import delayed
 from dask.dataframe.partitionquantiles import partition_quantiles
 
 from spatialpandas.geometry.base import _BaseCoordinateIndexer, GeometryDtype
@@ -470,17 +471,21 @@ class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
             # No partitions intersect with query region, return empty result
             return dd.from_pandas(self._obj._meta, npartitions=1)
 
-        result = self._obj.partitions[all_partition_inds]
+        @delayed
+        def cx_fn(df):
+            return df.cx[x0:x1, y0:y1]
 
-        def map_fn(df, ind):
-            if ind.iloc[0] in overlaps_inds:
-                return df.cx[x0:x1, y0:y1]
+        ddf = self._obj.partitions[all_partition_inds]
+        delayed_dfs = []
+        for partition_ind, delayed_df in zip(all_partition_inds, ddf.to_delayed()):
+            if partition_ind in overlaps_inds:
+                delayed_dfs.append(
+                    cx_fn(delayed_df)
+                )
             else:
-                return df
-        return result.map_partitions(
-            map_fn,
-            pd.Series(all_partition_inds, index=result.divisions[:-1]),
-        )
+                delayed_dfs.append(delayed_df)
+
+        return dd.from_delayed(delayed_dfs, meta=ddf._meta, divisions=ddf.divisions)
 
 
 class _DaskPartitionCoordinateIndexer(_BaseCoordinateIndexer):
