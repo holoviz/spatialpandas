@@ -184,7 +184,8 @@ class DaskGeoDataFrame(dd.DataFrame):
         return ddf
 
     def pack_partitions_to_parquet(
-            self, path, filesystem=None, npartitions=None, p=15, compression="snappy"
+            self, path, filesystem=None, npartitions=None, p=15, compression="snappy",
+            tempdir_format=None
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -201,7 +202,11 @@ class DaskGeoDataFrame(dd.DataFrame):
                 the length of the dataframe divided by 2**23.
             p: Hilbert curve p parameter
             compression: Compression algorithm for parquet file
-
+            tempdir_format: format string used to generate the filesystem path where
+                temporary files should be stored for each output partition.  String
+                must contain a '{partition}' replacement field which will be formatted
+                using the output partition number as an integer.  If None (the default),
+                temporary files are stored inside the output path.
         Returns:
             DaskGeoDataFrame backed by newly written parquet dataset
         """
@@ -210,6 +215,18 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Get fsspec filesystem object
         filesystem = validate_coerce_filesystem(path, filesystem)
+
+        # Compute tempdir_format string
+        if tempdir_format is None:
+            tempdir_format = os.path.join(path, "part.{partition}.parquet")
+        elif not isinstance(tempdir_format, str) or "{partition" not in tempdir_format:
+            raise ValueError(
+                "tempdir_format must be a string containing a {{partition}} "
+                "replacement field\n"
+                "    Received: {tempdir_format}".format(
+                    tempdir_format=repr(tempdir_format)
+                )
+            )
 
         # Compute number of output partitions
         npartitions = self._compute_packing_npartitions(npartitions)
@@ -229,10 +246,25 @@ class DaskGeoDataFrame(dd.DataFrame):
                 _partition=np.digitize(df.hilbert_distance, quantiles[1:], right=True))
         )
 
+        # Compute part paths
+        parts_tmp_paths = [
+            tempdir_format.format(partition=out_partition)
+            for out_partition in out_partitions
+        ]
+        part_output_paths = [
+            os.path.join(path, "part.%d.parquet" % out_partition)
+            for out_partition in out_partitions
+        ]
+
         # Initialize output partition directory structure
         filesystem.invalidate_cache()
         if filesystem.exists(path):
             filesystem.rm(path, recursive=True)
+
+        for tmp_path in parts_tmp_paths:
+            if filesystem.exists(tmp_path):
+                filesystem.rm(tmp_path, recursive=True)
+
 
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
@@ -243,8 +275,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             uid = str(uuid.uuid4())
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
-                    path,
-                    "part.%d.parquet" % out_partition,
+                    tempdir_format.format(partition=out_partition),
                     'part.%s.parquet' % uid
                 )
                 df_part = df_part.drop('_partition', axis=1).set_index(
@@ -260,17 +291,17 @@ class DaskGeoDataFrame(dd.DataFrame):
         ).compute()
 
         # Concat parquet dataset per partition into parquet file per partition
-        def concat_parts_inplace(parts_path):
+        def concat_parts(parts_tmp_path, part_output_path):
             filesystem.invalidate_cache()
 
             # Load directory of parquet parts for this partition into a
             # single GeoDataFrame
-            if not filesystem.ls(parts_path):
+            if not filesystem.ls(parts_tmp_path):
                 # Empty partition
-                filesystem.rm(parts_path, recursive=True)
+                filesystem.rm(parts_tmp_path, recursive=True)
                 return None
             else:
-                part_df = read_parquet(parts_path, filesystem=filesystem)
+                part_df = read_parquet(parts_tmp_path, filesystem=filesystem)
 
             # Compute total_bounds for all geometry columns in part_df
             total_bounds = {}
@@ -280,7 +311,9 @@ class DaskGeoDataFrame(dd.DataFrame):
                     total_bounds[series_name] = series.total_bounds
 
             # Delete directory of parquet parts for partition
-            filesystem.rm(parts_path, recursive=True)
+            filesystem.rm(parts_tmp_path, recursive=True)
+            if part_output_path != parts_tmp_path:
+                filesystem.rm(part_output_path, recursive=True)
 
             # Sort by part_df by hilbert_distance index
             part_df.sort_index(inplace=True)
@@ -289,7 +322,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             # constructing the full dataset _metadata file.
             md_list = []
             filesystem.invalidate_cache()
-            with filesystem.open(parts_path, 'wb') as f:
+            with filesystem.open(part_output_path, 'wb') as f:
                 pq.write_table(
                     pa.Table.from_pandas(part_df),
                     f, compression=compression, metadata_collector=md_list
@@ -298,20 +331,16 @@ class DaskGeoDataFrame(dd.DataFrame):
             # Return metadata and total_bounds for part
             return {"meta": md_list[0], "total_bounds": total_bounds}
 
-        part_paths = [
-            os.path.join(path, "part.%d.parquet" % out_partition)
-            for out_partition in out_partitions
-        ]
-
         write_info = dask.compute(*[
-            dask.delayed(concat_parts_inplace)(part_path) for part_path in part_paths
+            dask.delayed(concat_parts)(tmp_path, output_path)
+            for tmp_path, output_path in zip(parts_tmp_paths, part_output_paths)
         ])
 
         # Handle empty partitions.
         input_paths, write_info = zip(*[
-            (pp, wi) for (pp, wi) in zip(part_paths, write_info) if wi is not None
+            (pp, wi) for (pp, wi) in zip(part_output_paths, write_info) if wi is not None
         ])
-        output_paths = part_paths[:len(input_paths)]
+        output_paths = part_output_paths[:len(input_paths)]
         for p1, p2 in zip(input_paths, output_paths):
             if p1 != p2:
                 filesystem.move(p1, p2)

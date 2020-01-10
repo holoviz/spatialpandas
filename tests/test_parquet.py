@@ -1,4 +1,5 @@
 from hypothesis import given, settings
+import hypothesis.strategies as hs
 import dask.dataframe as dd
 import pandas as pd
 from spatialpandas import GeoSeries, GeoDataFrame
@@ -145,9 +146,12 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
 @given(
     gp_multipoint=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline=st_multiline_array(min_size=10, max_size=40, geoseries=True),
+    use_temp_format=hs.booleans()
 )
 @settings(deadline=None, max_examples=30)
-def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
+def test_pack_partitions_to_parquet(
+        gp_multipoint, gp_multiline, use_temp_format, tmp_path
+):
     # Build dataframe
     n = min(len(gp_multipoint), len(gp_multiline))
     df = GeoDataFrame({
@@ -158,7 +162,15 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline, tmp_path):
     ddf = dd.from_pandas(df, npartitions=3)
 
     path = tmp_path / 'ddf.parq'
-    ddf_packed = ddf.pack_partitions_to_parquet(path, npartitions=4)
+    if use_temp_format:
+        tempdir_format = str(tmp_path / 'scratch' / 'part-{partition:03d}')
+    else:
+        tempdir_format = None
+
+    ddf_packed = ddf.pack_partitions_to_parquet(
+        path, npartitions=4,
+        tempdir_format=tempdir_format
+    )
 
     # Check the number of partitions (< 4 can happen in the case of empty partitions)
     assert ddf_packed.npartitions <= 4
