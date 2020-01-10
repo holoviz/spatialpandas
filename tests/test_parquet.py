@@ -163,7 +163,7 @@ def test_pack_partitions_to_parquet(
 
     path = tmp_path / 'ddf.parq'
     if use_temp_format:
-        tempdir_format = str(tmp_path / 'scratch' / 'part-{partition:03d}')
+        tempdir_format = str(tmp_path / 'scratch' / 'part-{uuid}-{partition:03d}')
     else:
         tempdir_format = None
 

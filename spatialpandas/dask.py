@@ -205,8 +205,13 @@ class DaskGeoDataFrame(dd.DataFrame):
             tempdir_format: format string used to generate the filesystem path where
                 temporary files should be stored for each output partition.  String
                 must contain a '{partition}' replacement field which will be formatted
-                using the output partition number as an integer.  If None (the default),
+                using the output partition number as an integer. The string may
+                optionally contain a '{uuid}' replacement field which will be formatted
+                using a randomly generated UUID string. If None (the default),
                 temporary files are stored inside the output path.
+
+                These directories are deleted as soon as possible during the execution
+                of the function.
         Returns:
             DaskGeoDataFrame backed by newly written parquet dataset
         """
@@ -217,6 +222,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem = validate_coerce_filesystem(path, filesystem)
 
         # Compute tempdir_format string
+        dataset_uuid = str(uuid.uuid4())
         if tempdir_format is None:
             tempdir_format = os.path.join(path, "part.{partition}.parquet")
         elif not isinstance(tempdir_format, str) or "{partition" not in tempdir_format:
@@ -248,7 +254,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Compute part paths
         parts_tmp_paths = [
-            tempdir_format.format(partition=out_partition)
+            tempdir_format.format(partition=out_partition, uuid=dataset_uuid)
             for out_partition in out_partitions
         ]
         part_output_paths = [
@@ -272,11 +278,11 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Shuffle and write a parquet dataset for each output partition
         def process_partition(df):
-            uid = str(uuid.uuid4())
+            part_uuid = str(uuid.uuid4())
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
-                    tempdir_format.format(partition=out_partition),
-                    'part.%s.parquet' % uid
+                    tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
+                    'part.%s.parquet' % part_uuid
                 )
                 df_part = df_part.drop('_partition', axis=1).set_index(
                     'hilbert_distance', drop=True
@@ -284,7 +290,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
                 with filesystem.open(part_path, "wb") as f:
                     df_part.to_parquet(f, compression=compression, index=True)
-            return uid
+            return part_uuid
 
         ddf.map_partitions(
             process_partition, meta=pd.Series([], dtype='object')
