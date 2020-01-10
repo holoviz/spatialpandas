@@ -9,7 +9,7 @@ from numba import prange
 @ngjit
 def segment_intersects_point(ax0, ay0, ax1, ay1, bx, by):
     """
-    Test whether a 2-dimensional line segments intersects with a point
+    Test whether a 2-dimensional line segment intersects with a point
 
     Args:
         ax0, ay0: coordinates of start of segment
