@@ -184,7 +184,7 @@ class GeometryFixedArray(GeometryArray):
         if len(self.data) == 0:
             return np.array([], dtype=self.numpy_dtype)
         else:
-            start = self.data.offset
+            start = self.data.offset * self._element_len
             stop = start + len(self.data) * self._element_len
             return np.asarray(self.data.buffers()[1]).view(self.numpy_dtype)[start:stop]
 
