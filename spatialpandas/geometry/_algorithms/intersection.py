@@ -301,7 +301,7 @@ def _perform_line_intersect_bounds(
         result[i] = True
 
 
-@ngpjit
+@ngjit
 def lines_intersect_bounds(
         x0, y0, x1, y1, flat_values, start_offsets, stop_offsets, result
 ):
@@ -333,7 +333,7 @@ def lines_intersect_bounds(
         # Zero width/height rect does not intersect with anything
         return
 
-    for i in prange(n):
+    for i in range(n):
         _perform_line_intersect_bounds(
             i, x0, y0, x1, y1, flat_values, start_offsets, stop_offsets, result
         )
@@ -481,7 +481,7 @@ def _perform_polygon_intersect_bounds(i, x0, y0, x1, y1, flat_values, start_offs
         return
 
 
-@ngpjit
+@ngjit
 def polygons_intersect_bounds(
         x0, y0, x1, y1, flat_values, start_offsets0, stop_offsets0, offsets1, result
 ):
@@ -515,7 +515,7 @@ def polygons_intersect_bounds(
         # Zero width/height rect does not intersect with anything
         return
 
-    for i in prange(n):
+    for i in range(n):
         _perform_polygon_intersect_bounds(
             i, x0, y0, x1, y1, flat_values,
             start_offsets0, stop_offsets0, offsets1, result
@@ -524,7 +524,7 @@ def polygons_intersect_bounds(
     return result
 
 
-@ngpjit
+@ngjit
 def multipolygons_intersect_bounds(
         x0, y0, x1, y1, flat_values,
         start_offsets0, stop_offsets0, offsets1, offsets2, result
@@ -566,7 +566,7 @@ def multipolygons_intersect_bounds(
         return
 
     # Populate results
-    for i in prange(n):
+    for i in range(n):
         polygon_offsets = offsets1[start_offsets0[i]:stop_offsets0[i] + 1]
         num_polys = len(polygon_offsets) - 1
         element_result = np.zeros(num_polys, dtype=np.bool_)
