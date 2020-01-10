@@ -126,8 +126,8 @@ def _sjoin_pandas_pandas(
         original_left_df, lsuffix
     )
 
-    if any(original_left_df.columns.isin([index_left, index_right])) or any(
-            original_right_df.columns.isin([index_left, index_right])
+    if any(original_left_df.columns.isin(index_left + index_right)) or any(
+            original_right_df.columns.isin(index_left + index_right)
     ):
         raise ValueError(
             "'{0}' and '{1}' cannot be column names in the GeoDataFrames being"
