@@ -7,6 +7,40 @@ from numba import prange
 
 
 @ngjit
+def segment_intersects_point(ax0, ay0, ax1, ay1, bx, by):
+    """
+    Test whether a 2-dimensional line segment intersects with a point
+
+    Args:
+        ax0, ay0: coordinates of start of segment
+        ax1, ay1: coordinates of end of segment
+        bx, by: coordinates of point
+
+    Returns:
+        True if segment intersects point, False otherwise
+    """
+    # Check bounds
+    if bx < min(ax0, ax1) or bx > max(ax0, ax1):
+        return False
+    if by < min(ay0, ay1) or by > max(ay0, ay1):
+        return False
+
+    # Use cross product to test whether point is exactly on line
+    # S is vector from segment start to segment end
+    sx = ax1 - ax0
+    sy = ay1 - ay0
+
+    # P is vector from segment start to point
+    px = bx - ax0
+    py = by - ay0
+
+    # Compute cross produce of S and P
+    sxp = sx * py - sy * px
+
+    return sxp == 0
+
+
+@ngjit
 def segments_intersect_1d(ax0, ax1, bx0, bx1):
     """
     Test whether two 1-dimensional line segments overlap
@@ -267,7 +301,7 @@ def _perform_line_intersect_bounds(
         result[i] = True
 
 
-@ngpjit
+@ngjit
 def lines_intersect_bounds(
         x0, y0, x1, y1, flat_values, start_offsets, stop_offsets, result
 ):
@@ -299,7 +333,7 @@ def lines_intersect_bounds(
         # Zero width/height rect does not intersect with anything
         return
 
-    for i in prange(n):
+    for i in range(n):
         _perform_line_intersect_bounds(
             i, x0, y0, x1, y1, flat_values, start_offsets, stop_offsets, result
         )
@@ -307,7 +341,7 @@ def lines_intersect_bounds(
     return result
 
 
-@ngpjit
+@ngjit
 def multilines_intersect_bounds(
         x0, y0, x1, y1, flat_values, start_offsets0, stop_offsets0, offsets1, result
 ):
@@ -346,7 +380,10 @@ def multilines_intersect_bounds(
         return
 
     # Populate results
-    for i in prange(n):
+    for i in range(n):
+        # Numba has issues with following line when jit(parallel=True) is used:
+        # Invalid use of Function(<intrinsic wrap_index>) with argument(s) of type(s):
+        #   (uint32, int64)
         element_offsets = offsets1[start_offsets0[i]:stop_offsets0[i] + 1]
         num_lines = len(element_offsets) - 1
         element_result = np.zeros(num_lines, dtype=np.bool_)
@@ -444,7 +481,7 @@ def _perform_polygon_intersect_bounds(i, x0, y0, x1, y1, flat_values, start_offs
         return
 
 
-@ngpjit
+@ngjit
 def polygons_intersect_bounds(
         x0, y0, x1, y1, flat_values, start_offsets0, stop_offsets0, offsets1, result
 ):
@@ -478,7 +515,7 @@ def polygons_intersect_bounds(
         # Zero width/height rect does not intersect with anything
         return
 
-    for i in prange(n):
+    for i in range(n):
         _perform_polygon_intersect_bounds(
             i, x0, y0, x1, y1, flat_values,
             start_offsets0, stop_offsets0, offsets1, result
@@ -487,7 +524,7 @@ def polygons_intersect_bounds(
     return result
 
 
-@ngpjit
+@ngjit
 def multipolygons_intersect_bounds(
         x0, y0, x1, y1, flat_values,
         start_offsets0, stop_offsets0, offsets1, offsets2, result
@@ -529,7 +566,7 @@ def multipolygons_intersect_bounds(
         return
 
     # Populate results
-    for i in prange(n):
+    for i in range(n):
         polygon_offsets = offsets1[start_offsets0[i]:stop_offsets0[i] + 1]
         num_polys = len(polygon_offsets) - 1
         element_result = np.zeros(num_polys, dtype=np.bool_)

@@ -163,6 +163,11 @@ class Geometry:
     def intersects_bounds(self, bounds):
         raise NotImplementedError()
 
+    def intersects(self, shape):
+        raise NotImplementedError(
+            "intersects not yet implemented for %s objects" % type(self).__name__
+        )
+
 
 class GeometryArray(ExtensionArray):
     _element_type = Geometry
@@ -414,14 +419,14 @@ Cannot check equality of {typ} of length {a_len} with:
                 )
 
             # Build pyarrow array of indices
-            indices = pa.array(indices, mask=indices < 0)
+            indices = pa.array(indices.astype('int'), mask=indices < 0)
         else:
             # Convert negative indices to positive
             negative_mask = indices < 0
             indices[negative_mask] = indices[negative_mask] + len(self)
 
             # Build pyarrow array of indices
-            indices = pa.array(indices)
+            indices = pa.array(indices.astype('int'))
 
         return self.__class__(self.data.take(indices), dtype=self.dtype)
 
@@ -556,6 +561,25 @@ Cannot check equality of {typ} of length {a_len} with:
             with the supplied bounds
         """
         raise NotImplementedError()
+
+    def intersects(self, shape, inds=None):
+        """
+        Test whether each element in the array intersects with the supplied shape
+
+        Args:
+            shape: The spatialpandas shape to compute intersections with
+            inds: Optional array of indices into the array. If supplied, intersection
+                calculations will be performed only on the elements selected by this
+                array.  If not supplied, intersection calculations are performed
+                on all elements.
+
+        Returns:
+            Array of boolean values indicating which elements of the array intersect
+            with the supplied shape
+        """
+        raise NotImplementedError(
+            "intersects not yet implemented for %s objects" % type(self).__name__
+        )
 
 
 class _BaseCoordinateIndexer:
