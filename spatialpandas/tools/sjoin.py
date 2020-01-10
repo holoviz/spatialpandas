@@ -25,6 +25,22 @@ def sjoin(
         left_df, right_df, how="inner", op="intersects",
         lsuffix="left", rsuffix="right"
 ):
+    """
+    Spatial join between two GeoDataFrames or between a DaskGeoDataFrame and
+    a GeoDataFrame
+
+    Args:
+        left_df: A GeoDataFrame or DaskGeoDataFrame
+        right_df: A GeoDataFrame
+        how: The type of join. One of 'inner', 'left', or 'right'. Note that 'right'
+            is not supported when left_df is a DaskGeoDataFrame
+        op: Binary predicate, currently only "intersects" is supported
+        lsuffix: Suffix to apply to overlapping column names from the left GeoDataFrame
+        rsuffix: Suffix to apply to overlapping column names from the right GeoDataFrame
+
+    Returns:
+        GeoDataFrame or DaskGeoDataFrame
+    """
     from spatialpandas import GeoDataFrame
     try:
         from spatialpandas.dask import DaskGeoDataFrame
