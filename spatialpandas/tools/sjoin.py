@@ -22,20 +22,34 @@ def _record_reset_index(df, suffix):
 
 
 def sjoin(
-        left_df, right_df, how="inner", op="intersects", lsuffix="left", rsuffix="right"
+        left_df, right_df, how="inner", op="intersects",
+        lsuffix="left", rsuffix="right"
 ):
     from spatialpandas import GeoDataFrame
+    try:
+        from spatialpandas.dask import DaskGeoDataFrame
+    except ImportError:
+        DaskGeoDataFrame = type(None)
 
     # Validate data frame types
-    if not isinstance(left_df, GeoDataFrame):
+    if not isinstance(left_df, (GeoDataFrame, DaskGeoDataFrame)):
         raise ValueError(
-            "`left_df` must be a spatialpandas.GeoDataFrame\n"
+            "`left_df` must be a spatialpandas.GeoDataFrame or "
+            "spatialpandas.dask.DaskGeoDataFrame\n"
             "    Received value of type: {typ}".format(typ=type(left_df)))
 
     if not isinstance(right_df, GeoDataFrame):
         raise ValueError(
             "`right_df` must be a spatialpandas.GeoDataFrame\n"
             "    Received value of type: {typ}".format(typ=type(right_df)))
+
+    # Validate op
+    valid_op = ["intersects"]
+    if op not in valid_op:
+        raise ValueError(
+            "`op` must be one of {valid_op}\n"
+            "    Received: {val}".format(val=repr(how), valid_op=valid_op)
+        )
 
     # Validate join type
     valid_how = ["left", "right", "inner"]
@@ -45,13 +59,46 @@ def sjoin(
             "    Received: {val}".format(val=repr(how), valid_how=valid_how)
         )
 
-    # Validate op
-    valid_op = ["intersects"]
-    if op not in valid_op:
-        raise ValueError(
-            "`op` must be one of {valid_op}\n"
-            "    Received: {val}".format(val=repr(how), valid_op=valid_op)
+    # Perform sjoin
+    if isinstance(left_df, GeoDataFrame):
+        return _sjoin_pandas_pandas(
+            left_df, right_df, how=how, op=op, lsuffix=lsuffix, rsuffix=rsuffix
         )
+    elif isinstance(left_df, DaskGeoDataFrame):
+        return _sjoin_dask_pandas(
+            left_df, right_df, how=how, op=op, lsuffix=lsuffix, rsuffix=rsuffix
+        )
+
+
+def _sjoin_dask_pandas(
+        left_ddf, right_df, how="inner", op="intersects",
+        lsuffix="left", rsuffix="right"
+):
+    # Get bounding box of right_df
+    right_total_bounds = right_df.geometry.array.total_bounds
+
+    if how == "inner":
+        # Downselect partitions in left_df to those that overlap with right_total_bounds
+        # This is only valid for how == "inner"
+        xslice = slice(right_total_bounds[0], right_total_bounds[2])
+        yslice = slice(right_total_bounds[1], right_total_bounds[3])
+        left_ddf = left_ddf.cx_partitions[xslice, yslice]
+    elif how == "right":
+        raise ValueError(
+            "`how` may not be 'right' when left_df is a DaskGeoDataFrame"
+        )
+
+    # Perform sjoin per partition
+    return left_ddf.map_partitions(lambda left_df: _sjoin_pandas_pandas(
+        left_df, right_df, how=how, op=op, lsuffix=lsuffix, rsuffix=rsuffix
+    ))
+
+
+def _sjoin_pandas_pandas(
+        left_df, right_df, how="inner", op="intersects",
+        lsuffix="left", rsuffix="right"
+):
+    from spatialpandas import GeoDataFrame
 
     # Record original index name(s), generate new index name(s), reset index column(s)
     original_right_df = right_df
@@ -179,4 +226,4 @@ def sjoin(
         else:
             joined.index.name = right_index_name[0]
 
-    return joined
+    return GeoDataFrame(joined)

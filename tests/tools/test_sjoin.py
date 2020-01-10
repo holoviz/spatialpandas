@@ -1,13 +1,16 @@
 import numpy as np
 import pandas as pd
-
 import geopandas as gp
-import spatialpandas as sp
+import pytest
+import dask.dataframe as dd
 from hypothesis import given
+import hypothesis.strategies as hs
+
+import spatialpandas as sp
 from spatialpandas import GeoDataFrame
+from spatialpandas.dask import DaskGeoDataFrame
 from tests.geometry.strategies import st_point_array, st_polygon_array
 from tests.test_parquet import hyp_settings
-import hypothesis.strategies as hs
 
 
 @given(
@@ -42,15 +45,33 @@ def test_sjoin(gp_points, gp_polygons, how):
 
     # join with spatialpandas
     left_spdf = GeoDataFrame(left_gpdf)
-    right_spds = GeoDataFrame(right_gpdf)
+    right_spdf = GeoDataFrame(right_gpdf)
 
     result = sp.sjoin(
-        left_spdf, right_spds, how=how
+        left_spdf, right_spdf, how=how
     ).sort_values(['v_left', 'v_right'])
+    assert isinstance(result, GeoDataFrame)
 
-    # Check results
+    # Check pandas results
     if len(result) == 0:
         assert len(gp_expected) == 0
     else:
         expected = GeoDataFrame(gp_expected).sort_values(['v_left', 'v_right'])
+        pd.testing.assert_frame_equal(expected, result)
+
+        # left_df as Dask frame
+        left_spddf = dd.from_pandas(left_spdf, npartitions=4)
+
+        if how == "right":
+            # Right join not supported when left_df is a Dask DataFrame
+            with pytest.raises(ValueError):
+                sp.sjoin(left_spddf, right_spdf, how=how)
+            return
+        else:
+            result_ddf = sp.sjoin(
+                left_spddf, right_spdf, how=how
+            )
+        assert isinstance(result_ddf, DaskGeoDataFrame)
+        assert result_ddf.npartitions <= 4
+        result = result_ddf.compute().sort_values(['v_left', 'v_right'])
         pd.testing.assert_frame_equal(expected, result)
