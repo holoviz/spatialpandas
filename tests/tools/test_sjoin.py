@@ -53,8 +53,8 @@ def test_sjoin(gp_points, gp_polygons, how):
     assert isinstance(result, GeoDataFrame)
 
     # Check pandas results
-    if len(result) == 0:
-        assert len(gp_expected) == 0
+    if len(gp_expected) == 0:
+        assert len(result) == 0
     else:
         expected = GeoDataFrame(gp_expected).sort_values(['v_left', 'v_right'])
         pd.testing.assert_frame_equal(expected, result)

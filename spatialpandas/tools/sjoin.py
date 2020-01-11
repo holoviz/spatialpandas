@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from dask import delayed
+from dask.dataframe import from_delayed, from_pandas
 
 
 def _record_reset_index(df, suffix):
@@ -90,24 +92,39 @@ def _sjoin_dask_pandas(
         left_ddf, right_df, how="inner", op="intersects",
         lsuffix="left", rsuffix="right"
 ):
-    # Get bounding box of right_df
-    right_total_bounds = right_df.geometry.array.total_bounds
-
-    if how == "inner":
-        # Downselect partitions in left_df to those that overlap with right_total_bounds
-        # This is only valid for how == "inner"
-        xslice = slice(right_total_bounds[0], right_total_bounds[2])
-        yslice = slice(right_total_bounds[1], right_total_bounds[3])
-        left_ddf = left_ddf.cx_partitions[xslice, yslice]
-    elif how == "right":
+    if how == "right":
         raise ValueError(
             "`how` may not be 'right' when left_df is a DaskGeoDataFrame"
         )
+    dfs = left_ddf.to_delayed()
+    partition_bounds = left_ddf.geometry.partition_bounds
+    sjoin_pandas = delayed(_sjoin_pandas_pandas)
 
-    # Perform sjoin per partition
-    return left_ddf.map_partitions(lambda left_df: _sjoin_pandas_pandas(
-        left_df, right_df, how=how, op=op, lsuffix=lsuffix, rsuffix=rsuffix
-    ))
+    # Get spatial index for right_df
+    right_sindex = right_df.geometry.sindex
+
+    # Build list of delayed sjoin results
+    joined_dfs = []
+    for df, (i, bounds) in zip(dfs, partition_bounds.iterrows()):
+        right_inds = right_sindex.intersects(bounds.values)
+        if how == "left" or len(right_inds) > 0:
+            joined_dfs.append(
+                sjoin_pandas(
+                    df, right_df.iloc[right_inds], how=how,
+                    rsuffix=rsuffix, lsuffix=lsuffix
+                )
+            )
+
+    # Compute meta
+    meta = _sjoin_pandas_pandas(
+        left_ddf._meta, right_df.iloc[:0], how=how, lsuffix=lsuffix, rsuffix=rsuffix
+    )
+
+    # Build resulting Dask DataFrame
+    if not joined_dfs:
+        return from_pandas(meta, npartitions=1)
+    else:
+        return from_delayed(joined_dfs, meta=meta)
 
 
 def _sjoin_pandas_pandas(
@@ -166,8 +183,12 @@ def _sjoin_pandas_pandas(
             right_inds[i] = np.full(len(intersecting_inds), i)
 
     # Flatten nested arrays of indices
-    flat_left_inds = np.concatenate(left_inds)
-    flat_right_inds = np.concatenate(right_inds)
+    if left_inds:
+        flat_left_inds = np.concatenate(left_inds)
+        flat_right_inds = np.concatenate(right_inds)
+    else:
+        flat_left_inds = np.array([], dtype='uint32')
+        flat_right_inds = np.array([], dtype='uint32')
 
     # Build pandas DataFrame from inds
     result = pd.DataFrame({

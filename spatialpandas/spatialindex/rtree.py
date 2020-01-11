@@ -179,7 +179,7 @@ class HilbertRtree:
         self._page_size = max(1, page_size)  # 1 is smallest valid page size
         self._numba_rtree = None
         self._sorted_bounds, self._keys, self._bounds_tree = \
-            HilbertRtree._build_hilbert_rtree(bounds, p, self._page_size)
+            HilbertRtree._build_hilbert_rtree(bounds.astype('float64'), p, self._page_size)
 
     def __getstate__(self):
         # Remove _NumbaRtree instance during serialization since jitclass instances
