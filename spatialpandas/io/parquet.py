@@ -259,9 +259,17 @@ def _perform_read_parquet_dask(
         partition_bounds = {}
 
     # Use Dask's read_parquet to get metadata
+    if columns is not None:
+        cols_no_index = [col for col in columns if col != "hilbert_distance"]
+    else:
+        cols_no_index = None
+
     meta = dd_read_parquet(
-        paths[0], columns=columns, filesystem=filesystem,
-        engine='pyarrow', gather_statistics=False
+        paths[0],
+        columns=cols_no_index,
+        filesystem=filesystem,
+        engine='pyarrow',
+        gather_statistics=False
     )._meta
 
     # Import geometry columns in meta, not needed for pyarrow >= 0.16
