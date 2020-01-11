@@ -6,7 +6,8 @@ from functools import reduce
 import pandas as pd
 from dask import delayed
 from dask.dataframe import (
-    to_parquet as dd_to_parquet, from_delayed, from_pandas
+    to_parquet as dd_to_parquet,  read_parquet as dd_read_parquet,
+    from_delayed, from_pandas,
 )
 from dask.dataframe.utils import make_meta, clear_known_categories
 
@@ -257,13 +258,28 @@ def _perform_read_parquet_dask(
     else:
         partition_bounds = {}
 
-    # Create meta DataFrame
-    # Make categories unknown because we can't be sure all categories are present in
-    # the first partition.
-    meta = delayed(make_meta)(delayed_partitions[0]).compute()
-    meta = clear_known_categories(meta)
+    # Use Dask's read_parquet to get metadata
+    if columns is not None:
+        cols_no_index = [col for col in columns if col != "hilbert_distance"]
+    else:
+        cols_no_index = None
 
-    # Handle geometry
+    meta = dd_read_parquet(
+        paths[0],
+        columns=cols_no_index,
+        filesystem=filesystem,
+        engine='pyarrow',
+        gather_statistics=False
+    )._meta
+
+    # Import geometry columns in meta, not needed for pyarrow >= 0.16
+    metadata = _load_parquet_pandas_metadata(paths[0], filesystem=filesystem)
+    geom_cols = _get_geometry_columns(metadata)
+    if geom_cols:
+        meta = _import_geometry_columns(meta, geom_cols)
+    meta = GeoDataFrame(meta)
+
+    # Handle geometry in meta
     if geometry:
         meta = meta.set_geometry(geometry)
 
@@ -377,8 +393,8 @@ def _load_divisions(pqds):
         )
 
     mins, maxes = zip(*[
-        (rg.column(div_col).statistics.min, rg.column(12).statistics.max)
+        (rg.column(div_col).statistics.min, rg.column(div_col).statistics.max)
         for rg in row_groups
     ])
 
-    return mins, maxes
+    return list(mins), list(maxes)
