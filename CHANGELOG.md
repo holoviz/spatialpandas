@@ -1,3 +1,10 @@
+Version 0.3.1
+=============
+
+### Fixed
+ - Restored `categories` argument to `read_parquet_dask` function
+ - Retry filesystem operations in `pack_partitions_to_parquet` using exponential backoff
+
 Version 0.3.0
 =============
 
