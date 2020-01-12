@@ -318,7 +318,8 @@ class DaskGeoDataFrame(dd.DataFrame):
             # single GeoDataFrame
             if not filesystem.ls(parts_tmp_path):
                 # Empty partition
-                filesystem.rm(parts_tmp_path, recursive=True)
+                if filesystem.exists(parts_tmp_path):
+                    filesystem.rm(parts_tmp_path, recursive=True)
                 return None
             else:
                 part_df = read_parquet(parts_tmp_path, filesystem=filesystem)
