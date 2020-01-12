@@ -206,6 +206,11 @@ def read_parquet_dask(
     # Expand glob
     if len(path) == 1 and ('*' in path[0] or '?' in path[0] or '[' in path[0]):
         path = filesystem.glob(path[0])
+        if filesystem.protocol != "file":
+            # Add back prefix (e.g. s3://)
+            path = [
+                "{proto}://{p}".format(proto=filesystem.protocol, p=p) for p in path
+            ]
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
