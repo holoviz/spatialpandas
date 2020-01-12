@@ -143,7 +143,6 @@ def to_parquet_dask(
                     path,
                     columns=[series_name],
                     filesystem=filesystem,
-                    storage_options=storage_options,
                     load_divisions=False
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
@@ -162,7 +161,7 @@ def to_parquet_dask(
 
 def read_parquet_dask(
         path, columns=None, filesystem=None, load_divisions=False,
-        geometry=None, bounds=None, **kwargs
+        geometry=None, bounds=None, categories=None,
 ):
     """
     Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
@@ -183,6 +182,13 @@ def read_parquet_dask(
         bounds: If specified, only load partitions that have the potential to intersect
             with the provided bounding box coordinates. bounds is a length-4 tuple of
             the form (xmin, ymin, xmax, ymax).
+        categories : list, dict or None
+            For any fields listed here, if the parquet encoding is Dictionary,
+            the column will be created with dtype category. Use only if it is
+            guaranteed that the column is encoded as dictionary in all row-groups.
+            If a list, assumes up to 2**16-1 labels; if a dict, specify the number
+            of labels expected; if None, will load categories automatically for
+            data written by dask/fastparquet, not otherwise.
     Returns:
     DaskGeoDataFrame
     """
@@ -204,14 +210,16 @@ def read_parquet_dask(
     # Perform read parquet
     result = _perform_read_parquet_dask(
         path, columns, filesystem,
-        load_divisions=load_divisions, geometry=geometry, bounds=bounds
+        load_divisions=load_divisions, geometry=geometry, bounds=bounds,
+        categories=categories
     )
 
     return result
 
 
 def _perform_read_parquet_dask(
-        paths, columns, filesystem, load_divisions, geometry=None, bounds=None
+        paths, columns, filesystem, load_divisions, geometry=None, bounds=None,
+        categories=None,
 ):
     filesystem = validate_coerce_filesystem(paths[0], filesystem)
     datasets = [pa.parquet.ParquetDataset(
@@ -275,7 +283,8 @@ def _perform_read_parquet_dask(
         columns=cols_no_index,
         filesystem=filesystem,
         engine='pyarrow',
-        gather_statistics=False
+        categories=categories,
+        gather_statistics=False,
     )._meta
 
     # Import geometry columns in meta, not needed for pyarrow >= 0.16
@@ -342,7 +351,9 @@ def _perform_read_parquet_dask(
 
     # Create DaskGeoDataFrame
     if delayed_partitions:
-        result = from_delayed(delayed_partitions, divisions=divisions, meta=meta)
+        result = from_delayed(
+            delayed_partitions, divisions=divisions, meta=meta, verify_meta=False
+        )
     else:
         # Single partition empty result
         result = from_pandas(meta, npartitions=1)
