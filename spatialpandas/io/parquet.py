@@ -10,6 +10,7 @@ from dask.dataframe import (
     from_delayed, from_pandas,
 )
 from dask.dataframe.utils import make_meta, clear_known_categories
+from dask.utils import natural_sort_key
 
 from pandas.io.parquet import (
     to_parquet as pd_to_parquet,
@@ -218,7 +219,12 @@ def _perform_read_parquet_dask(
     ) for path in paths]
 
     # Create delayed partition for each piece
-    pieces = [piece for dataset in datasets for piece in dataset.pieces]
+    pieces = []
+    for dataset in datasets:
+        # Perform natural sort on pieces so that "part.10" comes after "part.2"
+        dataset_pieces = sorted(dataset.pieces, key=lambda piece: natural_sort_key(piece.path))
+        pieces.extend(dataset_pieces)
+
     delayed_partitions = [
         delayed(read_parquet)(
             piece.path, columns=columns, filesystem=filesystem
