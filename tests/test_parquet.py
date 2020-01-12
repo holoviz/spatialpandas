@@ -144,8 +144,8 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
 
 
 @given(
-    gp_multipoint=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
-    gp_multiline=st_multiline_array(min_size=10, max_size=40, geoseries=True),
+    gp_multipoint=st_multipoint_array(min_size=60, max_size=100, geoseries=True),
+    gp_multiline=st_multiline_array(min_size=60, max_size=100, geoseries=True),
     use_temp_format=hs.booleans()
 )
 @settings(deadline=None, max_examples=30)
@@ -168,12 +168,12 @@ def test_pack_partitions_to_parquet(
         tempdir_format = None
 
     ddf_packed = ddf.pack_partitions_to_parquet(
-        path, npartitions=4,
+        path, npartitions=12,
         tempdir_format=tempdir_format
     )
 
     # Check the number of partitions (< 4 can happen in the case of empty partitions)
-    assert ddf_packed.npartitions <= 4
+    assert ddf_packed.npartitions <= 12
 
     # Check that rows are now sorted in order of hilbert distance
     total_bounds = df.lines.total_bounds
