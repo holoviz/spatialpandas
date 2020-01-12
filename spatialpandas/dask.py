@@ -224,7 +224,11 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem = validate_coerce_filesystem(path, filesystem)
 
         # Decorator for operations that should be retried
-        retryit = retry(wait_exponential_multiplier=1000, wait_exponential_max=10000)
+        retryit = retry(
+            wait_exponential_multiplier=1000,
+            wait_exponential_max=10000,
+            stop_max_attempt_number=10
+        )
 
         @retryit
         def rm_retry(file_path):
