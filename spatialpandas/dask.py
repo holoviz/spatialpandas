@@ -17,6 +17,7 @@ import os
 import uuid
 import json
 import copy
+from retrying import retry
 
 
 class DaskGeoSeries(dd.Series):
@@ -222,6 +223,31 @@ class DaskGeoDataFrame(dd.DataFrame):
         # Get fsspec filesystem object
         filesystem = validate_coerce_filesystem(path, filesystem)
 
+        # Decorator for operations that should be retried
+        retryit = retry(
+            wait_exponential_multiplier=1000,
+            wait_exponential_max=10000,
+            stop_max_attempt_number=10
+        )
+
+        @retryit
+        def rm_retry(file_path):
+            if filesystem.exists(file_path):
+                filesystem.rm(file_path, recursive=True)
+
+        @retryit
+        def mkdirs_retry(dir_path):
+            filesystem.makedirs(dir_path, exist_ok=True)
+
+        @retryit
+        def ls_retry(dir_path):
+            return filesystem.ls(dir_path)
+
+        @retryit
+        def move_retry(p1, p2):
+            if filesystem.exists(p1):
+                filesystem.move(p1, p2)
+
         # Compute tempdir_format string
         dataset_uuid = str(uuid.uuid4())
         if tempdir_format is None:
@@ -265,19 +291,21 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Initialize output partition directory structure
         filesystem.invalidate_cache()
-        if filesystem.exists(path):
-            filesystem.rm(path, recursive=True)
+        rm_retry(path)
 
         for tmp_path in parts_tmp_paths:
-            if filesystem.exists(tmp_path):
-                filesystem.rm(tmp_path, recursive=True)
-
+            rm_retry(tmp_path)
 
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
-            filesystem.makedirs(part_dir, exist_ok=True)
+            mkdirs_retry(part_dir)
 
         # Shuffle and write a parquet dataset for each output partition
+        @retryit
+        def write_partition(df_part, part_path):
+            with filesystem.open(part_path, "wb") as f:
+                df_part.to_parquet(f, compression=compression, index=True)
+
         def process_partition(df):
             part_uuid = str(uuid.uuid4())
             for out_partition, df_part in df.groupby('_partition'):
@@ -288,9 +316,8 @@ class DaskGeoDataFrame(dd.DataFrame):
                 df_part = df_part.drop('_partition', axis=1).set_index(
                     'hilbert_distance', drop=True
                 )
+                write_partition(df_part, part_path)
 
-                with filesystem.open(part_path, "wb") as f:
-                    df_part.to_parquet(f, compression=compression, index=True)
             return part_uuid
 
         ddf.map_partitions(
@@ -298,14 +325,22 @@ class DaskGeoDataFrame(dd.DataFrame):
         ).compute()
 
         # Concat parquet dataset per partition into parquet file per partition
+        @retryit
+        def write_concatted_part(part_df, part_output_path, md_list):
+            with filesystem.open(part_output_path, 'wb') as f:
+                pq.write_table(
+                    pa.Table.from_pandas(part_df),
+                    f, compression=compression, metadata_collector=md_list
+                )
+
         def concat_parts(parts_tmp_path, part_output_path):
             filesystem.invalidate_cache()
 
             # Load directory of parquet parts for this partition into a
             # single GeoDataFrame
-            if not filesystem.ls(parts_tmp_path):
+            if not ls_retry(parts_tmp_path):
                 # Empty partition
-                filesystem.rm(parts_tmp_path, recursive=True)
+                rm_retry(parts_tmp_path)
                 return None
             else:
                 part_df = read_parquet(parts_tmp_path, filesystem=filesystem)
@@ -318,10 +353,8 @@ class DaskGeoDataFrame(dd.DataFrame):
                     total_bounds[series_name] = series.total_bounds
 
             # Delete directory of parquet parts for partition
-            if filesystem.exists(parts_tmp_path):
-                filesystem.rm(parts_tmp_path, recursive=True)
-            if filesystem.exists(part_output_path):
-                filesystem.rm(part_output_path, recursive=True)
+            rm_retry(parts_tmp_path)
+            rm_retry(part_output_path)
 
             # Sort by part_df by hilbert_distance index
             part_df.sort_index(inplace=True)
@@ -330,11 +363,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             # constructing the full dataset _metadata file.
             md_list = []
             filesystem.invalidate_cache()
-            with filesystem.open(part_output_path, 'wb') as f:
-                pq.write_table(
-                    pa.Table.from_pandas(part_df),
-                    f, compression=compression, metadata_collector=md_list
-                )
+            write_concatted_part(part_df, part_output_path, md_list)
 
             # Return metadata and total_bounds for part
             return {"meta": md_list[0], "total_bounds": total_bounds}
@@ -351,15 +380,18 @@ class DaskGeoDataFrame(dd.DataFrame):
         output_paths = part_output_paths[:len(input_paths)]
         for p1, p2 in zip(input_paths, output_paths):
             if p1 != p2:
-                filesystem.move(p1, p2)
+                move_retry(p1, p2)
 
         # Write _metadata
         meta = write_info[0]['meta']
         for i in range(1, len(write_info)):
             meta.append_row_groups(write_info[i]["meta"])
 
-        with filesystem.open(os.path.join(path, "_metadata"), 'wb') as f:
-            meta.write_metadata_file(f)
+        @retryit
+        def write_metadata_file():
+            with filesystem.open(os.path.join(path, "_metadata"), 'wb') as f:
+                meta.write_metadata_file(f)
+        write_metadata_file()
 
         # Collect total_bounds per partition for all geometry columns
         all_bounds = {}
@@ -380,15 +412,18 @@ class DaskGeoDataFrame(dd.DataFrame):
         b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
         # Write _common_metadata
-        with filesystem.open(os.path.join(path, "part.0.parquet")) as f:
-            pf = pq.ParquetFile(f)
+        @retryit
+        def write_commonmetadata_file():
+            with filesystem.open(os.path.join(path, "part.0.parquet")) as f:
+                pf = pq.ParquetFile(f)
 
-        all_metadata = copy.copy(pf.metadata.metadata)
-        all_metadata[b'spatialpandas'] = b_spatial_metadata
+            all_metadata = copy.copy(pf.metadata.metadata)
+            all_metadata[b'spatialpandas'] = b_spatial_metadata
 
-        new_schema = pf.schema.to_arrow_schema().with_metadata(all_metadata)
-        with filesystem.open(os.path.join(path, "_common_metadata"), 'wb') as f:
-            pq.write_metadata(new_schema, f)
+            new_schema = pf.schema.to_arrow_schema().with_metadata(all_metadata)
+            with filesystem.open(os.path.join(path, "_common_metadata"), 'wb') as f:
+                pq.write_metadata(new_schema, f)
+        write_commonmetadata_file()
 
         return read_parquet_dask(path, filesystem=filesystem)
 
