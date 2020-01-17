@@ -333,6 +333,10 @@ class DaskGeoDataFrame(dd.DataFrame):
                     f, compression=compression, metadata_collector=md_list
                 )
 
+        @retryit
+        def read_parquet_retry(parts_tmp_path):
+            return read_parquet(parts_tmp_path, filesystem=filesystem)
+
         def concat_parts(parts_tmp_path, part_output_path):
             filesystem.invalidate_cache()
 
@@ -343,7 +347,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                 rm_retry(parts_tmp_path)
                 return None
             else:
-                part_df = read_parquet(parts_tmp_path, filesystem=filesystem)
+                part_df = read_parquet_retry(parts_tmp_path)
 
             # Compute total_bounds for all geometry columns in part_df
             total_bounds = {}
