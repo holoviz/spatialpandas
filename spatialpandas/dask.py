@@ -363,14 +363,17 @@ class DaskGeoDataFrame(dd.DataFrame):
             )
             if sorted(subpart_paths) != ls_res:
                 missing = set(subpart_paths) - set(ls_res)
+                extras = set(ls_res) - set(subpart_paths)
                 raise ValueError(
                     "Filesystem not yet consistent\n"
                     "  Expected len: {expected}\n"
                     "  Found len: {received}\n"
-                    "  Missing: {missing}".format(
+                    "  Missing: {missing}\n"
+                    "  Extras: {extras}".format(
                         expected=len(subpart_paths),
                         received=len(ls_res),
-                        missing=list(missing)
+                        missing=list(missing),
+                        extras=list(extras)
                     )
                 )
             return read_parquet(parts_tmp_path, filesystem=filesystem)
