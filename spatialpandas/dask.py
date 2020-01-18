@@ -251,6 +251,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         @retryit
         def ls_retry(dir_path):
+            filesystem.invalidate_cache()
             return filesystem.ls(dir_path, **ls_kwargs)
 
         @retryit
@@ -363,9 +364,9 @@ class DaskGeoDataFrame(dd.DataFrame):
             if sorted(subpart_paths) != ls_res:
                 raise ValueError(
                     "Filesystem not yet consistent\n"
-                    "  Expected: {expected}\n"
-                    "  Found: {received}".format(
-                        expected=sorted(subpart_paths), received=ls_res
+                    "  Expected len: {expected}\n"
+                    "  Found len: {received}".format(
+                        expected=len(subpart_paths), received=len(ls_res)
                     )
                 )
             return read_parquet(parts_tmp_path, filesystem=filesystem)
