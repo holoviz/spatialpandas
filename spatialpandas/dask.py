@@ -347,8 +347,15 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         @retryit
         def read_parquet_retry(parts_tmp_path, subpart_paths):
-            if sorted(subpart_paths) != sorted(filesystem.ls(parts_tmp_path)):
-                raise ValueError("Filesystem not yet consistent")
+            ls_res = sorted(filesystem.ls(parts_tmp_path))
+            if sorted(subpart_paths) != ls_res:
+                raise ValueError(
+                    "Filesystem not yet consistent\n"
+                    "  Expected: {expected}\n"
+                    "  Found: {received}".format(
+                        expected=sorted(subpart_paths), received=ls_res
+                    )
+                )
             return read_parquet(parts_tmp_path, filesystem=filesystem)
 
         def concat_parts(parts_tmp_path, subpart_paths, part_output_path):
