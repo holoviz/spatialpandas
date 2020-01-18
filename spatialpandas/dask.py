@@ -17,6 +17,7 @@ import os
 import uuid
 import json
 import copy
+from inspect import signature
 from retrying import retry
 
 
@@ -242,9 +243,15 @@ class DaskGeoDataFrame(dd.DataFrame):
         def mkdirs_retry(dir_path):
             filesystem.makedirs(dir_path, exist_ok=True)
 
+        # For filesystems that provide a "refresh" argument, set it to True
+        if 'refresh' in signature(filesystem.ls).parameters:
+            ls_kwargs = {'refresh': True}
+        else:
+            ls_kwargs = {}
+
         @retryit
         def ls_retry(dir_path):
-            return filesystem.ls(dir_path)
+            return filesystem.ls(dir_path, **ls_kwargs)
 
         @retryit
         def move_retry(p1, p2):
@@ -349,7 +356,9 @@ class DaskGeoDataFrame(dd.DataFrame):
         @retryit
         def read_parquet_retry(parts_tmp_path, subpart_paths):
             ls_res = sorted(
-                _maybe_prepend_protocol(filesystem.ls(parts_tmp_path), filesystem)
+                _maybe_prepend_protocol(
+                    filesystem.ls(parts_tmp_path, **ls_kwargs), filesystem
+                )
             )
             if sorted(subpart_paths) != ls_res:
                 raise ValueError(
