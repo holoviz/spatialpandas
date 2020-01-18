@@ -187,7 +187,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
     def pack_partitions_to_parquet(
             self, path, filesystem=None, npartitions=None, p=15, compression="snappy",
-            tempdir_format=None
+            tempdir_format=None, _retry_args=None
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -224,11 +224,13 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem = validate_coerce_filesystem(path, filesystem)
 
         # Decorator for operations that should be retried
-        retryit = retry(
-            wait_exponential_multiplier=1000,
-            wait_exponential_max=60000,
-            stop_max_attempt_number=12
-        )
+        if _retry_args is None:
+            _retry_args = dict(
+                wait_exponential_multiplier=1000,
+                wait_exponential_max=60000,
+                stop_max_attempt_number=12
+            )
+        retryit = retry(**_retry_args)
 
         @retryit
         def rm_retry(file_path):
