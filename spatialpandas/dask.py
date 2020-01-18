@@ -219,6 +219,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         """
         from .io import read_parquet, read_parquet_dask
         from .io.utils import validate_coerce_filesystem
+        from .io.parquet import _maybe_prepend_protocol
 
         # Get fsspec filesystem object
         filesystem = validate_coerce_filesystem(path, filesystem)
@@ -347,7 +348,9 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         @retryit
         def read_parquet_retry(parts_tmp_path, subpart_paths):
-            ls_res = sorted(filesystem.ls(parts_tmp_path))
+            ls_res = sorted(
+                _maybe_prepend_protocol(filesystem.ls(parts_tmp_path), filesystem)
+            )
             if sorted(subpart_paths) != ls_res:
                 raise ValueError(
                     "Filesystem not yet consistent\n"
