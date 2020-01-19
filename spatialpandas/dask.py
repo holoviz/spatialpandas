@@ -336,7 +336,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             return subpart_paths
 
         part_path_infos = dask.compute(*[
-            dask.delayed(process_partition)(df, i)
+            dask.delayed(process_partition, pure=False)(df, i)
             for i, df in enumerate(ddf.to_delayed())
         ])
 
@@ -421,7 +421,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             return {"meta": md_list[0], "total_bounds": total_bounds}
 
         write_info = dask.compute(*[
-            dask.delayed(concat_parts)(
+            dask.delayed(concat_parts, pure=False)(
                 parts_tmp_paths[out_partition],
                 part_num_to_subparts.get(out_partition, []),
                 part_output_paths[out_partition]
