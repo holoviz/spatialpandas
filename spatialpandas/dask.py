@@ -236,8 +236,14 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         @retryit
         def rm_retry(file_path):
+            filesystem.invalidate_cache()
             if filesystem.exists(file_path):
                 filesystem.rm(file_path, recursive=True)
+                if filesystem.exists(file_path):
+                    # Make sure we keep retrying until file does not exist
+                    raise ValueError("Deletion of {path} not yet complete".format(
+                        path=file_path
+                    ))
 
         @retryit
         def mkdirs_retry(dir_path):
