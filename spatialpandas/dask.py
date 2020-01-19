@@ -317,13 +317,12 @@ class DaskGeoDataFrame(dd.DataFrame):
             with filesystem.open(part_path, "wb") as f:
                 df_part.to_parquet(f, compression=compression, index=True)
 
-        def process_partition(df):
-            part_uuid = str(uuid.uuid4())
+        def process_partition(df, i):
             subpart_paths = {}
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    'part.%s.parquet' % part_uuid
+                    'part.%d.parquet' % i
                 )
                 df_part = df_part.drop('_partition', axis=1).set_index(
                     'hilbert_distance', drop=True
@@ -333,9 +332,10 @@ class DaskGeoDataFrame(dd.DataFrame):
 
             return subpart_paths
 
-        part_path_infos = ddf.map_partitions(
-            process_partition, meta=pd.Series([], dtype='object')
-        ).compute()
+        part_path_infos = dask.compute(*[
+            dask.delayed(process_partition)(df, i)
+            for i, df in enumerate(ddf.to_delayed())
+        ])
 
         # Build dict from part number to list of subpart paths
         part_num_to_subparts = {}
