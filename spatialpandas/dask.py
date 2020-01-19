@@ -310,9 +310,6 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem.invalidate_cache()
         rm_retry(path)
 
-        for tmp_path in parts_tmp_paths:
-            rm_retry(tmp_path)
-
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
             mkdirs_retry(part_dir)
