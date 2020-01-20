@@ -1,4 +1,4 @@
-from hypothesis import given, settings
+from hypothesis import given, settings, HealthCheck
 import hypothesis.strategies as hs
 import dask.dataframe as dd
 import pandas as pd
@@ -12,7 +12,9 @@ from spatialpandas.io import (
     to_parquet, read_parquet, read_parquet_dask, to_parquet_dask
 )
 
-hyp_settings = settings(deadline=None, max_examples=100)
+hyp_settings = settings(
+    deadline=None, max_examples=100, suppress_health_check=[HealthCheck.too_slow]
+)
 
 
 @given(
@@ -148,7 +150,7 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
     gp_multiline=st_multiline_array(min_size=60, max_size=100, geoseries=True),
     use_temp_format=hs.booleans()
 )
-@settings(deadline=None, max_examples=30)
+@settings(deadline=None, max_examples=30, suppress_health_check=[HealthCheck.too_slow])
 def test_pack_partitions_to_parquet(
         gp_multipoint, gp_multiline, use_temp_format, tmp_path
 ):
@@ -203,7 +205,7 @@ def test_pack_partitions_to_parquet(
     gp_multipoint2=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline2=st_multiline_array(min_size=10, max_size=40, geoseries=True),
 )
-@settings(deadline=None, max_examples=30)
+@settings(deadline=None, max_examples=30, suppress_health_check=[HealthCheck.too_slow])
 def test_pack_partitions_to_parquet_glob(
         gp_multipoint1, gp_multiline1,
         gp_multipoint2, gp_multiline2,
@@ -273,7 +275,7 @@ def test_pack_partitions_to_parquet_glob(
     gp_multiline2=st_multiline_array(min_size=10, max_size=40, geoseries=True),
     bounds=st_bounds(),
 )
-@settings(deadline=None, max_examples=30)
+@settings(deadline=None, max_examples=30, suppress_health_check=[HealthCheck.too_slow])
 def test_pack_partitions_to_parquet_list_bounds(
         gp_multipoint1, gp_multiline1,
         gp_multipoint2, gp_multiline2,

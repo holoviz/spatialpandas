@@ -17,6 +17,7 @@ import os
 import uuid
 import json
 import copy
+from inspect import signature
 from retrying import retry
 
 
@@ -187,7 +188,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
     def pack_partitions_to_parquet(
             self, path, filesystem=None, npartitions=None, p=15, compression="snappy",
-            tempdir_format=None
+            tempdir_format=None, _retry_args=None
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -219,29 +220,45 @@ class DaskGeoDataFrame(dd.DataFrame):
         """
         from .io import read_parquet, read_parquet_dask
         from .io.utils import validate_coerce_filesystem
+        from .io.parquet import _maybe_prepend_protocol
 
         # Get fsspec filesystem object
         filesystem = validate_coerce_filesystem(path, filesystem)
 
         # Decorator for operations that should be retried
-        retryit = retry(
-            wait_exponential_multiplier=1000,
-            wait_exponential_max=10000,
-            stop_max_attempt_number=10
-        )
+        if _retry_args is None:
+            _retry_args = dict(
+                wait_exponential_multiplier=100,
+                wait_exponential_max=60000,
+                stop_max_attempt_number=12
+            )
+        retryit = retry(**_retry_args)
 
         @retryit
         def rm_retry(file_path):
+            filesystem.invalidate_cache()
             if filesystem.exists(file_path):
                 filesystem.rm(file_path, recursive=True)
+                if filesystem.exists(file_path):
+                    # Make sure we keep retrying until file does not exist
+                    raise ValueError("Deletion of {path} not yet complete".format(
+                        path=file_path
+                    ))
 
         @retryit
         def mkdirs_retry(dir_path):
             filesystem.makedirs(dir_path, exist_ok=True)
 
+        # For filesystems that provide a "refresh" argument, set it to True
+        if 'refresh' in signature(filesystem.ls).parameters:
+            ls_kwargs = {'refresh': True}
+        else:
+            ls_kwargs = {}
+
         @retryit
         def ls_retry(dir_path):
-            return filesystem.ls(dir_path)
+            filesystem.invalidate_cache()
+            return filesystem.ls(dir_path, **ls_kwargs)
 
         @retryit
         def move_retry(p1, p2):
@@ -293,9 +310,6 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem.invalidate_cache()
         rm_retry(path)
 
-        for tmp_path in parts_tmp_paths:
-            rm_retry(tmp_path)
-
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
             mkdirs_retry(part_dir)
@@ -306,23 +320,33 @@ class DaskGeoDataFrame(dd.DataFrame):
             with filesystem.open(part_path, "wb") as f:
                 df_part.to_parquet(f, compression=compression, index=True)
 
-        def process_partition(df):
-            part_uuid = str(uuid.uuid4())
+        def process_partition(df, i):
+            subpart_paths = {}
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    'part.%s.parquet' % part_uuid
+                    'part.%d.parquet' % i
                 )
                 df_part = df_part.drop('_partition', axis=1).set_index(
                     'hilbert_distance', drop=True
                 )
                 write_partition(df_part, part_path)
+                subpart_paths[out_partition] = part_path
 
-            return part_uuid
+            return subpart_paths
 
-        ddf.map_partitions(
-            process_partition, meta=pd.Series([], dtype='object')
-        ).compute()
+        part_path_infos = dask.compute(*[
+            dask.delayed(process_partition, pure=False)(df, i)
+            for i, df in enumerate(ddf.to_delayed())
+        ])
+
+        # Build dict from part number to list of subpart paths
+        part_num_to_subparts = {}
+        for part_path_info in part_path_infos:
+            for part_num, subpath in part_path_info.items():
+                subpaths = part_num_to_subparts.get(part_num, [])
+                subpaths.append(subpath)
+                part_num_to_subparts[part_num] = subpaths
 
         # Concat parquet dataset per partition into parquet file per partition
         @retryit
@@ -333,17 +357,41 @@ class DaskGeoDataFrame(dd.DataFrame):
                     f, compression=compression, metadata_collector=md_list
                 )
 
-        def concat_parts(parts_tmp_path, part_output_path):
+        @retryit
+        def read_parquet_retry(parts_tmp_path, subpart_paths):
+            ls_res = sorted(
+                _maybe_prepend_protocol(
+                    filesystem.ls(parts_tmp_path, **ls_kwargs), filesystem
+                )
+            )
+            if sorted(subpart_paths) != ls_res:
+                missing = set(subpart_paths) - set(ls_res)
+                extras = set(ls_res) - set(subpart_paths)
+                raise ValueError(
+                    "Filesystem not yet consistent\n"
+                    "  Expected len: {expected}\n"
+                    "  Found len: {received}\n"
+                    "  Missing: {missing}\n"
+                    "  Extras: {extras}".format(
+                        expected=len(subpart_paths),
+                        received=len(ls_res),
+                        missing=list(missing),
+                        extras=list(extras)
+                    )
+                )
+            return read_parquet(parts_tmp_path, filesystem=filesystem)
+
+        def concat_parts(parts_tmp_path, subpart_paths, part_output_path):
             filesystem.invalidate_cache()
 
             # Load directory of parquet parts for this partition into a
             # single GeoDataFrame
-            if not ls_retry(parts_tmp_path):
+            if not subpart_paths:
                 # Empty partition
                 rm_retry(parts_tmp_path)
                 return None
             else:
-                part_df = read_parquet(parts_tmp_path, filesystem=filesystem)
+                part_df = read_parquet_retry(parts_tmp_path, subpart_paths)
 
             # Compute total_bounds for all geometry columns in part_df
             total_bounds = {}
@@ -369,8 +417,12 @@ class DaskGeoDataFrame(dd.DataFrame):
             return {"meta": md_list[0], "total_bounds": total_bounds}
 
         write_info = dask.compute(*[
-            dask.delayed(concat_parts)(tmp_path, output_path)
-            for tmp_path, output_path in zip(parts_tmp_paths, part_output_paths)
+            dask.delayed(concat_parts, pure=False)(
+                parts_tmp_paths[out_partition],
+                part_num_to_subparts.get(out_partition, []),
+                part_output_paths[out_partition]
+            )
+            for out_partition in out_partitions
         ])
 
         # Handle empty partitions.
