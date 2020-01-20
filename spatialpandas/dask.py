@@ -384,10 +384,6 @@ class DaskGeoDataFrame(dd.DataFrame):
         def concat_parts(parts_tmp_path, subpart_paths, part_output_path):
             filesystem.invalidate_cache()
 
-            if filesystem.isfile(part_output_path):
-                # concat already performed
-                return
-
             # Load directory of parquet parts for this partition into a
             # single GeoDataFrame
             if not subpart_paths:
