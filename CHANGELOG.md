@@ -1,3 +1,9 @@
+Version 0.3.1 / 0.3.1 
+=====================
+
+### Fixed
+ - Various reliability improvements for `pack_partitions_to_parquet`
+
 Version 0.3.1
 =============
 
