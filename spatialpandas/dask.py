@@ -358,7 +358,13 @@ class DaskGeoDataFrame(dd.DataFrame):
                 )
 
         @retryit
-        def read_parquet_retry(parts_tmp_path, subpart_paths):
+        def read_parquet_retry(parts_tmp_path, subpart_paths, part_output_path):
+            if filesystem.isfile(part_output_path) and not filesystem.isdir(parts_tmp_path):
+                # Handle rare case where the task was resubmitted and the work has
+                # already been done.  This shouldn't happen with pure=False, but it
+                # seems like it does very rarely.
+                return read_parquet(part_output_path, filesystem=filesystem)
+
             ls_res = sorted(
                 _maybe_prepend_protocol(
                     filesystem.ls(parts_tmp_path, **ls_kwargs), filesystem
@@ -391,7 +397,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                 rm_retry(parts_tmp_path)
                 return None
             else:
-                part_df = read_parquet_retry(parts_tmp_path, subpart_paths)
+                part_df = read_parquet_retry(parts_tmp_path, subpart_paths, part_output_path)
 
             # Compute total_bounds for all geometry columns in part_df
             total_bounds = {}
