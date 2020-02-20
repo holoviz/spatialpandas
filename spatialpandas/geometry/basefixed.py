@@ -84,7 +84,7 @@ class GeometryFixedArray(GeometryArray):
 
         numpy_dtype = None
         pa_type = None
-        if isinstance(array, pa.Array):
+        if isinstance(array, (pa.Array, pa.ChunkedArray)):
             if dtype is None:
                 invalid_array()
             numpy_dtype = np.dtype(dtype)
