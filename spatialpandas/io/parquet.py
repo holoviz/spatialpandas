@@ -219,7 +219,7 @@ def read_parquet_dask(
 
 
 def _maybe_prepend_protocol(paths, filesystem):
-    if filesystem.protocol != "file":
+    if filesystem.protocol not in ("file", "abstract"):
         # Add back prefix (e.g. s3://)
         paths = [
             "{proto}://{p}".format(proto=filesystem.protocol, p=p) for p in paths
