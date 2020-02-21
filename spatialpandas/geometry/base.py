@@ -4,9 +4,8 @@ from collections import Iterable
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.inference import is_array_like
+from pandas.api.extensions import ExtensionArray, ExtensionDtype
+from pandas.api.types import is_array_like
 
 from spatialpandas.spatialindex import HilbertRtree
 from spatialpandas.spatialindex.rtree import _distances_from_bounds
@@ -363,17 +362,40 @@ Cannot check equality of {typ} of length {a_len} with:
                 selected_indices = np.arange(len(self))[item]
                 return self.take(selected_indices, allow_fill=False)
         elif isinstance(item, Iterable):
-            item = np.asarray(item)
+            if isinstance(item, (np.ndarray, ExtensionArray)):
+                # Leave numpy and pandas arrays alone
+                kind = item.dtype.kind
+            else:
+                item = pd.array(item)
+                kind = item.dtype.kind
+
             if len(item) == 0:
                 return self.take([], allow_fill=False)
-            elif item.dtype == 'bool':
+            elif kind == 'b':
+                # Check mask length is compatible
+                if len(item) != len(self):
+                    raise IndexError(
+                        "boolean mask length ({}) doesn't match array length ({})"
+                        .format(len(item), len(self))
+                    )
+
+                # check for NA values
+                if any(pd.isna(item)):
+                    raise ValueError(
+                        "Cannot mask with a boolean indexer containing NA values"
+                    )
+
                 # Convert to unsigned integer array of indices
                 indices = np.nonzero(item)[0].astype(np.uint32)
                 if len(indices):
                     return self.take(indices, allow_fill=False)
                 else:
                     return self[:0]
-            elif item.dtype.kind in ('i', 'u'):
+            elif kind in ('i', 'u'):
+                if any(pd.isna(item)):
+                    raise ValueError(
+                        "Cannot index with an integer indexer containing NA values"
+                    )
                 return self.take(item, allow_fill=False)
             else:
                 raise IndexError(err_msg)
