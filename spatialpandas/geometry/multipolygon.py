@@ -155,7 +155,7 @@ class MultiPolygonArray(GeometryListArray):
         Returns:
             MultiPolygonArray
         """
-        mpa = cls([MultiPolygon._shapely_to_coordinates(shape) for shape in ga])
+        mpa = super().from_geopandas(ga)
         if orient:
             return mpa.oriented()
         else:

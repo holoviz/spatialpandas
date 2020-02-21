@@ -87,3 +87,69 @@ def test_import_geopandas_preserves_geometry_column():
         gpdf = gpdf.set_geometry(geom_name)
         spdf = sp.GeoDataFrame(gpdf)
         assert spdf.geometry.name == geom_name
+
+
+def test_import_geopandas_with_none():
+    # Construct geopandas dataframe with column for each geometry type that includes
+    # Nones
+    gp_points = gp.array.from_shapely([
+        sg.Point([0, 0]), sg.Point(1, 1), None
+    ])
+
+    gp_lines = gp.array.from_shapely([
+        sg.LineString([(0, 0), (1, 1)]), None, sg.LineString([(1, 1), (2, 2)])
+    ])
+
+    gp_rings = gp.array.from_shapely([
+        sg.LineString([(0, 0), (1, 1), (0, 0)]),
+        None,
+        sg.LineString([(1, 1), (2, 2), (1, 1)]),
+    ])
+
+    gp_multilines = gp.array.from_shapely([
+        None,
+        sg.MultiLineString([[(0, 0), (1, 1)]]),
+        sg.MultiLineString([[(1, 1), (2, 2)]])
+    ])
+
+    gp_polygons = gp.array.from_shapely([
+        None,
+        sg.Polygon([(0, 0), (1, 1), (0, 1)]),
+        sg.Polygon([(1, 1), (2, 2), (1, 0)])
+    ])
+
+    gp_multipolygons = gp.array.from_shapely([
+        sg.MultiPolygon([sg.Polygon([(0, 0), (1, 1), (0, 1)])]),
+        sg.MultiPolygon([sg.Polygon([(1, 1), (2, 2), (1, 0)])]),
+        None
+    ])
+
+    gpdf = gp.GeoDataFrame({
+        'a': [1, 2, 3],
+        'point': gp_points,
+        'b': [3, 4, 5],
+        'line': gp_lines,
+        'ring': gp_rings,
+        'multiline': gp_multilines,
+        'polygon': gp_polygons,
+        'multipolygon': gp_multipolygons,
+
+    })
+
+    # Construct spatialpandas GeoDataFrame
+    spdf = sp.GeoDataFrame(gpdf)
+
+    # Check that expected entries are NA
+    pd.testing.assert_frame_equal(
+        spdf.isna(),
+        pd.DataFrame({
+            'a': [0, 0, 0],
+            'point': [0, 0, 1],
+            'b': [0, 0, 0],
+            'line': [0, 1, 0],
+            'ring': [0, 1, 0],
+            'multiline': [1, 0, 0],
+            'polygon': [1, 0, 0],
+            'multipolygon': [0, 0, 1]
+        }, dtype='bool')
+    )

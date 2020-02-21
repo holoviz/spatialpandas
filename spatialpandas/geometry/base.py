@@ -190,7 +190,11 @@ class GeometryArray(ExtensionArray):
             raise ValueError(
                 "from_geopandas must be called on a subclass of GeometryArray"
             )
-        return cls([cls._element_type._shapely_to_coordinates(shape) for shape in ga])
+        return cls([
+            cls._element_type._shapely_to_coordinates(shape)
+            if shape is not None else None
+            for shape in ga
+        ])
 
     def to_geopandas(self):
         """
