@@ -38,8 +38,15 @@ class GeoDataFrame(pd.DataFrame):
         if geometry is None:
             if isinstance(data, GeoDataFrame) and data._has_valid_geometry():
                 geometry = data._geometry
-            else:
-                geometry = first_geometry_col
+            elif isinstance(data, gp.GeoDataFrame):
+                try:
+                    geometry = data.geometry.name
+                except AttributeError:
+                    # Geometry column not set
+                    pass
+
+        if geometry is None:
+            geometry = first_geometry_col
 
         self._geometry = None
         if geometry is not None:
