@@ -6,7 +6,8 @@ Version 0.3.4
  - Fixed `abstract://` protocol error in `pack_partitions_to_parquet` when run on
  local filesystem.
  - Preserve active geometry column when importing GeoPandas `GeoDataFrame`.
-  
+ - Always load index columns when the `columns` argument is passed to `read_parquet`.  
+
 ### Updated
  - Added support for pandas 1.0.
  - Added support for pyarrow 0.16. When 0.16 is available, the performance of

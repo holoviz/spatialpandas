@@ -36,11 +36,14 @@ def test_parquet(gp_point, gp_multipoint, gp_multiline, tmp_path):
         'a': list(range(n))
     })
 
+    df.index.name = 'range_idx'
+
     path = tmp_path / 'df.parq'
     to_parquet(df, path)
-    df_read = read_parquet(path)
+    df_read = read_parquet(path, columns=['point', 'multipoint', 'multiline', 'a'])
     assert isinstance(df_read, GeoDataFrame)
     assert all(df == df_read)
+    assert df_read.index.name == df.index.name
 
 
 @given(
@@ -198,7 +201,7 @@ def test_pack_partitions_to_parquet(
 
     # Read columns
     columns = ['a', 'lines']
-    ddf_read_cols = read_parquet_dask(path, columns=columns + ['hilbert_distance'])
+    ddf_read_cols = read_parquet_dask(path, columns=columns)
     pd.testing.assert_frame_equal(
         ddf_read_cols.compute(), ddf_packed[columns].compute()
     )

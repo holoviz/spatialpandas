@@ -102,13 +102,32 @@ def to_parquet(
 def read_parquet(path, columns=None, filesystem=None):
     filesystem = validate_coerce_filesystem(path, filesystem)
 
+    # Load pandas parquet metadata
+    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
+
+    # If columns specified, prepend index columns to it
+    if columns is not None:
+        index_col_metadata = metadata.get('index_columns', [])
+        extra_index_columns = []
+        for idx_metadata in index_col_metadata:
+            if isinstance(idx_metadata, str):
+                name = idx_metadata
+            elif isinstance(idx_metadata, dict):
+                name = idx_metadata.get('name', None)
+            else:
+                name = None
+
+            if name is not None and name not in columns:
+                extra_index_columns.append(name)
+
+        columns = extra_index_columns + list(columns)
+
     # Load using pyarrow to handle parquet files and directories across filesystems
     df = pq.ParquetDataset(
         path, filesystem=filesystem, validate_schema=False
     ).read(columns=columns).to_pandas()
 
     # Import geometry columns, not needed for pyarrow >= 0.16
-    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
     geom_cols = _get_geometry_columns(metadata)
     if geom_cols:
         df = _import_geometry_columns(df, geom_cols)
