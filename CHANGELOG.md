@@ -1,3 +1,9 @@
+Version 0.3.5
+=============
+
+### Fixed
+ - Fixed `GeoDataFrame` constructor exception when GeoPandas is not installed.
+ 
 Version 0.3.4
 =============
 

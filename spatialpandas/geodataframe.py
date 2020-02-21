@@ -39,7 +39,7 @@ class GeoDataFrame(pd.DataFrame):
         if geometry is None:
             if isinstance(data, GeoDataFrame) and data._has_valid_geometry():
                 geometry = data._geometry
-            elif isinstance(data, gp.GeoDataFrame):
+            elif gp and isinstance(data, gp.GeoDataFrame):
                 try:
                     geometry = data.geometry.name
                 except AttributeError:
