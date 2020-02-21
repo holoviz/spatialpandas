@@ -1,5 +1,6 @@
 from hypothesis import given, settings, HealthCheck
 import hypothesis.strategies as hs
+import dask
 import dask.dataframe as dd
 import pandas as pd
 from spatialpandas import GeoSeries, GeoDataFrame
@@ -11,6 +12,8 @@ import numpy as np
 from spatialpandas.io import (
     to_parquet, read_parquet, read_parquet_dask, to_parquet_dask
 )
+
+dask.config.set(scheduler="single-threaded")
 
 hyp_settings = settings(
     deadline=None, max_examples=100, suppress_health_check=[HealthCheck.too_slow]
@@ -87,7 +90,9 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
     assert isinstance(ddf_read, DaskGeoDataFrame)
 
     # Check that partition bounds were loaded
-    nonempty = np.nonzero(ddf.map_partitions(len).compute() > 0)[0]
+    nonempty = np.nonzero(
+        np.asarray(ddf.map_partitions(len).compute() > 0)
+    )[0]
     assert set(ddf_read._partition_bounds) == {'points', 'lines'}
     expected_partition_bounds = (
         ddf['points'].partition_bounds.iloc[nonempty].reset_index(drop=True)
