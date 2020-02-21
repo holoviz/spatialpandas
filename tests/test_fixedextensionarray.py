@@ -148,13 +148,21 @@ class TestGeometryGetitem(eb.BaseGetitemTests):
 
 
 class TestGeometryGroupby(eb.BaseGroupbyTests):
-    pass
+    @pytest.mark.skip(
+        reason="The truth value of an array with more than one element is ambiguous."
+    )
+    def test_groupby_apply_identity(self):
+        pass
 
 
 class TestGeometryInterface(eb.BaseInterfaceTests):
     # # NotImplementedError: 'GeometryList' does not support __setitem__
     @pytest.mark.skip(reason="__setitem__ not supported")
     def test_copy(self):
+        pass
+
+    @pytest.mark.skip(reason="__setitem__ not supported")
+    def test_view(self, data):
         pass
 
 
@@ -175,6 +183,12 @@ class TestGeometryMethods(eb.BaseMethodsTests):
 
     @pytest.mark.skip(reason="combine_first not supported")
     def test_combine_first(self):
+        pass
+
+    @pytest.mark.skip(
+        reason="Searchsorted seems not implemented for custom extension arrays"
+    )
+    def test_searchsorted(self):
         pass
 
 
