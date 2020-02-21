@@ -153,3 +153,41 @@ def test_import_geopandas_with_none():
             'multipolygon': [0, 0, 1]
         }, dtype='bool')
     )
+
+
+def test_drop_geometry_column():
+    gp_points = gp.array.from_shapely([
+        sg.Point([0, 0]), sg.Point(1, 1)
+    ])
+
+    gp_lines = gp.array.from_shapely([
+        sg.LineString([(0, 0), (1, 1)]), sg.LineString([(1, 1), (2, 2)])
+    ])
+
+    gpdf = gp.GeoDataFrame({
+        'a': [1, 2],
+        'point': gp_points,
+        'b': [3, 4],
+        'line1': gp_lines,
+        'line2': gp_lines
+    }, geometry='line2')
+
+    # Import with no geometry column set
+    spdf = sp.GeoDataFrame(gpdf)
+    assert spdf.geometry.name == 'line2'
+
+    # Active geometry column preserved when dropping a different non-geometry column
+    df = spdf.drop('b', axis=1)
+    assert df.geometry.name == 'line2'
+
+    # Active geometry column preserved when dropping a different geometry column
+    df = spdf.drop('line1', axis=1)
+    assert df.geometry.name == 'line2'
+
+    # Dropping active geometry column results in GeoDataFrame with no active geometry
+    df = spdf.drop(['point', 'line2'], axis=1)
+    assert df._has_valid_geometry() is False
+
+    # Dropping all geometry columns results in pandas DataFrame
+    pdf = spdf.drop(['point', 'line1', 'line2'], axis=1)
+    assert type(pdf) is pd.DataFrame
