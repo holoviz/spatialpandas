@@ -1,3 +1,18 @@
+Version 0.3.4
+=============
+
+### Fixed
+ - Support importing GeoPandas geometry series that contain `None` values.
+ - Fixed `abstract://` protocol error in `pack_partitions_to_parquet` when run on
+ local filesystem.
+ - Preserve active geometry column when importing GeoPandas `GeoDataFrame`.
+  
+### Updated
+ - Added support for pandas 1.0.
+ - Added support for pyarrow 0.16. When 0.16 is available, the performance of
+ `read_parquet` and `read_parquet_dask` is significantly improved.
+
+
 Version 0.3.2 / 0.3.3 
 =====================
 
