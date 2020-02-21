@@ -5,6 +5,10 @@ import pytest
 import dask.dataframe as dd
 import dask
 
+import spatialpandas as sp
+import geopandas as gp
+import shapely.geometry as sg
+
 dask.config.set(scheduler="single-threaded")
 
 
@@ -59,3 +63,27 @@ def test_dataframe_slice_types():
     assert isinstance(gdf['points'], GeoSeries)
     assert isinstance(gdf[['a', 'b']], pd.DataFrame)
     assert isinstance(gdf[['a', 'line']], GeoDataFrame)
+
+
+def test_import_geopandas_preserves_geometry_column():
+    gp_points = gp.array.from_shapely([
+        sg.Point([0, 0]), sg.Point(1, 1)
+    ])
+
+    gp_lines = gp.array.from_shapely([
+        sg.LineString([(0, 0), (1, 1)]), sg.LineString([(1, 1), (2, 2)])
+    ])
+
+    gpdf = gp.GeoDataFrame({
+        'a': [1, 2], 'point': gp_points, 'b': [3, 4], 'line': gp_lines
+    })
+
+    # Import with no geometry column set
+    spdf = sp.GeoDataFrame(gpdf)
+    assert spdf.geometry.name == 'point'
+
+    # Import with geometry column set
+    for geom_name in ['point', 'line']:
+        gpdf = gpdf.set_geometry(geom_name)
+        spdf = sp.GeoDataFrame(gpdf)
+        assert spdf.geometry.name == geom_name
