@@ -364,7 +364,9 @@ Cannot check equality of {typ} of length {a_len} with:
                 return self.take(selected_indices, allow_fill=False)
         elif isinstance(item, Iterable):
             item = np.asarray(item)
-            if item.dtype == 'bool':
+            if len(item) == 0:
+                return self.take([], allow_fill=False)
+            elif item.dtype == 'bool':
                 # Convert to unsigned integer array of indices
                 indices = np.nonzero(item)[0].astype(np.uint32)
                 if len(indices):
@@ -382,7 +384,8 @@ Cannot check equality of {typ} of length {a_len} with:
         indices = np.asarray(indices)
 
         # Validate self non-empty (Pandas expects this error when array is empty)
-        if len(self) == 0 and (not allow_fill or any(indices >= 0)):
+        if (len(self) == 0 and len(indices) > 0 and
+                (not allow_fill or any(indices >= 0))):
             raise IndexError("cannot do a non-empty take on {typ}".format(
                 typ=self.__class__.__name__,
             ))
