@@ -1,15 +1,16 @@
 import pandas as pd
 from .geometry import GeometryDtype
-from .geoseries import GeoSeries
+from .geoseries import GeoSeries, _MaybeGeoSeries
 from ._optional_imports import gp
 
 
-def _maybe_geo_frame(data, **kwargs):
-    try:
-        return GeoDataFrame(data, **kwargs)
-    except ValueError:
-        # No geometry compatible columns
-        return pd.DataFrame(data, **kwargs)
+class _MaybeGeoDataFrame(pd.DataFrame):
+    def __new__(cls, *args, **kwargs):
+        try:
+            return GeoDataFrame(*args, **kwargs)
+        except ValueError:
+            # No geometry compatible columns
+            return pd.DataFrame(*args, **kwargs)
 
 
 class GeoDataFrame(pd.DataFrame):
@@ -54,12 +55,11 @@ class GeoDataFrame(pd.DataFrame):
 
     @property
     def _constructor(self):
-        return _maybe_geo_frame
+        return _MaybeGeoDataFrame
 
     @property
     def _constructor_sliced(self):
-        from .geoseries import _maybe_geo_series
-        return _maybe_geo_series
+        return _MaybeGeoSeries
 
     def set_geometry(self, geometry, inplace=False):
         if (geometry not in self or
@@ -111,3 +111,9 @@ class GeoDataFrame(pd.DataFrame):
         return _CoordinateIndexer(
             self.geometry.array, parent=self
         )
+
+    def _ensure_type(self, obj):
+        # Override because a GeoDataFrame operation may result in a regular DataFrame,
+        # and that's ok
+        assert isinstance(obj, type(self)) or isinstance(self, type(obj)), type(obj)
+        return obj

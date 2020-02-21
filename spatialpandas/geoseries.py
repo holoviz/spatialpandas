@@ -3,16 +3,19 @@ import pandas as pd
 from .geometry import GeometryDtype, Geometry
 
 
-def _maybe_geo_series(data, **kwargs):
-    if isinstance(getattr(data, 'dtype', None), GeometryDtype):
-        return GeoSeries(data, **kwargs)
-    else:
-        return pd.Series(data, **kwargs)
+class _MaybeGeoSeries(pd.Series):
+    def __new__(cls, data, *args, **kwargs):
+        if isinstance(getattr(data, 'dtype', None), GeometryDtype):
+            series_cls = GeoSeries
+        else:
+            series_cls = pd.Series
+        return series_cls(data, *args, **kwargs)
 
 
 class GeoSeries(pd.Series):
     def __init__(self, data, index=None, name=None, dtype=None, **kwargs):
         from .geometry.base import to_geometry_array
+
         # Handle scalar geometry with index
         if isinstance(data, Geometry):
             n = len(index) if index is not None else 1
@@ -33,7 +36,7 @@ class GeoSeries(pd.Series):
 
     @property
     def _constructor(self):
-        return _maybe_geo_series
+        return _MaybeGeoSeries
 
     @property
     def _constructor_expanddim(self):
