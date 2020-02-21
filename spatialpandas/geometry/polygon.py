@@ -142,7 +142,7 @@ class PolygonArray(GeometryListArray):
         Returns:
             PolygonArray
         """
-        polygons = cls([Polygon._shapely_to_coordinates(shape) for shape in ga])
+        polygons = super().from_geopandas(ga)
         if orient:
             return polygons.oriented()
         else:
