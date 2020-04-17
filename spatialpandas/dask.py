@@ -365,12 +365,10 @@ class DaskGeoDataFrame(dd.DataFrame):
                 # seems like it does very rarely.
                 return read_parquet(part_output_path, filesystem=filesystem)
 
-            ls_res = sorted(
-                _maybe_prepend_protocol(
-                    filesystem.ls(parts_tmp_path, **ls_kwargs), filesystem
-                )
-            )
-            if sorted(subpart_paths) != ls_res:
+            ls_res = sorted(filesystem.ls(parts_tmp_path, **ls_kwargs))
+            subpart_paths_stripped = sorted([filesystem._strip_protocol(_) for _ in subpart_paths])
+
+            if subpart_paths_stripped != ls_res:
                 missing = set(subpart_paths) - set(ls_res)
                 extras = set(ls_res) - set(subpart_paths)
                 raise ValueError(
