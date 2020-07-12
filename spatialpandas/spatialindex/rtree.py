@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jitclass
+from numba.experimental import jitclass
 from numba import int64, float64
 
 from spatialpandas.spatialindex.hilbert_curve import (
