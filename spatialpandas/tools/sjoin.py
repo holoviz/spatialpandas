@@ -77,6 +77,12 @@ def sjoin(
             "    Received: {val}".format(val=repr(how), valid_how=valid_how)
         )
 
+    # Validate suffixes
+    if lsuffix == rsuffix:
+        raise ValueError(
+            "`lsuffix` and `rsuffix` must not be equal"
+        )
+
     # Perform sjoin
     if isinstance(left_df, GeoDataFrame):
         return _sjoin_pandas_pandas(
