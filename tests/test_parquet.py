@@ -40,7 +40,7 @@ def test_parquet(gp_point, gp_multipoint, gp_multiline, tmp_path):
 
     path = tmp_path / 'df.parq'
     to_parquet(df, path)
-    df_read = read_parquet(path, columns=['point', 'multipoint', 'multiline', 'a'])
+    df_read = read_parquet(str(path), columns=['point', 'multipoint', 'multiline', 'a'])
     assert isinstance(df_read, GeoDataFrame)
     assert all(df == df_read)
     assert df_read.index.name == df.index.name
@@ -65,7 +65,7 @@ def test_parquet_columns(gp_point, gp_multipoint, gp_multiline, tmp_path):
     path = tmp_path / 'df.parq'
     to_parquet(df, path)
     columns = ['a', 'multiline']
-    df_read = read_parquet(path, columns=columns)
+    df_read = read_parquet(str(path), columns=columns)
     assert isinstance(df_read, GeoDataFrame)
     assert all(df[columns] == df_read)
 
@@ -86,8 +86,8 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path):
     ddf = dd.from_pandas(df, npartitions=3)
 
     path = tmp_path / 'ddf.parq'
-    ddf.to_parquet(path)
-    ddf_read = read_parquet_dask(path)
+    ddf.to_parquet(str(path))
+    ddf_read = read_parquet_dask(str(path))
 
     # Check type
     assert isinstance(ddf_read, DaskGeoDataFrame)
@@ -173,12 +173,13 @@ def test_pack_partitions_to_parquet(
 
     path = tmp_path / 'ddf.parq'
     if use_temp_format:
+        (tmp_path / 'scratch').mkdir(parents=True, exist_ok=True)
         tempdir_format = str(tmp_path / 'scratch' / 'part-{uuid}-{partition:03d}')
     else:
         tempdir_format = None
 
     ddf_packed = ddf.pack_partitions_to_parquet(
-        path, npartitions=12,
+        str(path), npartitions=12,
         tempdir_format=tempdir_format
     )
 
@@ -228,7 +229,7 @@ def test_pack_partitions_to_parquet_glob(
     }).set_geometry('lines')
     ddf1 = dd.from_pandas(df1, npartitions=3)
     path1 = tmp_path / 'ddf1.parq'
-    ddf_packed1 = ddf1.pack_partitions_to_parquet(path1, npartitions=3)
+    ddf_packed1 = ddf1.pack_partitions_to_parquet(str(path1), npartitions=3)
 
     # Build dataframe2
     n = min(len(gp_multipoint2), len(gp_multiline2))
@@ -239,7 +240,7 @@ def test_pack_partitions_to_parquet_glob(
     }).set_geometry('lines')
     ddf2 = dd.from_pandas(df2, npartitions=3)
     path2 = tmp_path / 'ddf2.parq'
-    ddf_packed2 = ddf2.pack_partitions_to_parquet(path2, npartitions=4)
+    ddf_packed2 = ddf2.pack_partitions_to_parquet(str(path2), npartitions=4)
 
     # Load both packed datasets with glob
     ddf_globbed = read_parquet_dask(tmp_path / "ddf*.parq", geometry="lines")
@@ -298,7 +299,7 @@ def test_pack_partitions_to_parquet_list_bounds(
     }).set_geometry('lines')
     ddf1 = dd.from_pandas(df1, npartitions=3)
     path1 = tmp_path / 'ddf1.parq'
-    ddf_packed1 = ddf1.pack_partitions_to_parquet(path1, npartitions=3)
+    ddf_packed1 = ddf1.pack_partitions_to_parquet(str(path1), npartitions=3)
 
     # Build dataframe2
     n = min(len(gp_multipoint2), len(gp_multiline2))
@@ -309,11 +310,11 @@ def test_pack_partitions_to_parquet_list_bounds(
     }).set_geometry('lines')
     ddf2 = dd.from_pandas(df2, npartitions=3)
     path2 = tmp_path / 'ddf2.parq'
-    ddf_packed2 = ddf2.pack_partitions_to_parquet(path2, npartitions=4)
+    ddf_packed2 = ddf2.pack_partitions_to_parquet(str(path2), npartitions=4)
 
     # Load both packed datasets with glob
     ddf_read = read_parquet_dask(
-        [tmp_path / "ddf1.parq", tmp_path / "ddf2.parq"],
+        [str(tmp_path / "ddf1.parq"), str(tmp_path / "ddf2.parq")],
         geometry="points", bounds=bounds
     )
 
