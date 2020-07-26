@@ -146,6 +146,10 @@ class TestGeometryGetitem(eb.BaseGetitemTests):
     def test_reindex_non_na_fill_value(self, data_missing):
         pass
 
+    @pytest.mark.skip("Cannot mask with a boolean indexer containing NA values")
+    def test_getitem_boolean_na_treated_as_false(self, data):
+        pass
+
 
 class TestGeometryGroupby(eb.BaseGroupbyTests):
     @pytest.mark.skip(
@@ -204,4 +208,3 @@ class TestGeometryReshaping(eb.BaseReshapingTests):
     @pytest.mark.skip(reason="__setitem__ not supported")
     def test_ravel(self):
         pass
-
