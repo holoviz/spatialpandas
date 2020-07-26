@@ -1,4 +1,4 @@
-from hypothesis import given, settings, HealthCheck
+from hypothesis import given, settings, HealthCheck, Phase, Verbosity
 import hypothesis.strategies as hs
 import dask
 import dask.dataframe as dd
@@ -158,7 +158,18 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
     gp_multiline=st_multiline_array(min_size=60, max_size=100, geoseries=True),
     use_temp_format=hs.booleans()
 )
-@settings(deadline=None, max_examples=30, suppress_health_check=[HealthCheck.too_slow])
+@settings(
+    deadline=None,
+    max_examples=30,
+    suppress_health_check=[HealthCheck.too_slow],
+    phases=[
+        Phase.explicit,
+        Phase.reuse,
+        Phase.generate,
+        Phase.target
+    ],
+    verbosity=Verbosity.verbose,
+)
 def test_pack_partitions_to_parquet(
         gp_multipoint, gp_multiline, use_temp_format, tmp_path
 ):
@@ -178,9 +189,17 @@ def test_pack_partitions_to_parquet(
     else:
         tempdir_format = None
 
+    _retry_args = dict(
+        wait_exponential_multiplier=10,
+        wait_exponential_max=20000,
+        stop_max_attempt_number=4
+    )
+
     ddf_packed = ddf.pack_partitions_to_parquet(
-        str(path), npartitions=12,
-        tempdir_format=tempdir_format
+        str(path),
+        npartitions=12,
+        tempdir_format=tempdir_format,
+        _retry_args=_retry_args,
     )
 
     # Check the number of partitions (< 4 can happen in the case of empty partitions)
