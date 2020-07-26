@@ -313,6 +313,8 @@ class DaskGeoDataFrame(dd.DataFrame):
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
             mkdirs_retry(part_dir)
+            tmp_part_dir = tempdir_format.format(partition=out_partition, uuid=dataset_uuid)
+            mkdirs_retry(tmp_part_dir)
 
         # Shuffle and write a parquet dataset for each output partition
         @retryit
