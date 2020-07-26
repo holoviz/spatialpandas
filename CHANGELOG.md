@@ -1,9 +1,25 @@
+Version 0.3.6
+=============
+
+### Added
+ - More intuitive error when lsuffix == rsuffix on sjoin ([#35](https://github.com/holoviz/spatialpandas/issues/35))
+
+### Fixed
+ - `read_parquet_dask` fails to read from s3 glob ([#34](https://github.com/holoviz/spatialpandas/issues/34))
+ - Tests failing with `ValueError: Cannot mask with a boolean indexer containing NA values` ([#41](https://github.com/holoviz/spatialpandas/issues/41))
+ - Tests in `test_parquet` failing with `TypeError: argument of type 'PosixPath' is not iterable` ([#42](https://github.com/holoviz/spatialpandas/issues/42))
+ - Create temp directory for partitions explitictly, fixes failure of test `test_pack_partitions_to_parquet`
+
+### Updated
+ - Numba import updated to address deprecation warning ([#36](https://github.com/holoviz/spatialpandas/issues/36))
+
+
 Version 0.3.5
 =============
 
 ### Fixed
  - Fixed `GeoDataFrame` constructor exception when GeoPandas is not installed.
- 
+
 Version 0.3.4
 =============
 
@@ -12,7 +28,7 @@ Version 0.3.4
  - Fixed `abstract://` protocol error in `pack_partitions_to_parquet` when run on
  local filesystem.
  - Preserve active geometry column when importing GeoPandas `GeoDataFrame`.
- - Always load index columns when the `columns` argument is passed to `read_parquet`.  
+ - Always load index columns when the `columns` argument is passed to `read_parquet`.
 
 ### Updated
  - Added support for pandas 1.0.
@@ -20,7 +36,7 @@ Version 0.3.4
  `read_parquet` and `read_parquet_dask` is significantly improved.
 
 
-Version 0.3.2 / 0.3.3 
+Version 0.3.2 / 0.3.3
 =====================
 
 ### Fixed
@@ -59,7 +75,7 @@ Version 0.1.1
  - Documented dependencies required for the Overview notebook ([#18](https://github.com/holoviz/spatialpandas/pull/18))
 
 ### Fixed
- - Fixed Ring.to_shapely error ([#17](https://github.com/holoviz/spatialpandas/pull/17)) 
+ - Fixed Ring.to_shapely error ([#17](https://github.com/holoviz/spatialpandas/pull/17))
 
 Version 0.1.0
 =============
