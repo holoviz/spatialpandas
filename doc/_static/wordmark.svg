@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:export-ydpi="19.200001"
+   inkscape:export-xdpi="19.200001"
+   inkscape:export-filename="/Users/jbednar/Downloads/wordmark.png"
+   sodipodi:docname="wordmark.svg"
+   inkscape:version="1.0 (4035a4f, 2020-05-01)"
+   version="1.1"
+   id="svg9445"
+   viewBox="0 0 1031.8582 172.97999"
+   height="48.818798mm"
+   width="291.21329mm">
+  <defs
+     id="defs9447" />
+  <sodipodi:namedview
+     fit-margin-bottom="0"
+     fit-margin-right="0"
+     fit-margin-left="0"
+     fit-margin-top="0"
+     showguides="false"
+     inkscape:document-rotation="0"
+     inkscape:window-maximized="0"
+     inkscape:window-y="242"
+     inkscape:window-x="107"
+     inkscape:window-height="755"
+     inkscape:window-width="1080"
+     showgrid="true"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="px"
+     inkscape:cy="247.4374"
+     inkscape:cx="558.0156"
+     inkscape:zoom="0.22201129"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="1"
+     borderopacity="1.0"
+     bordercolor="#666666"
+     pagecolor="#ffffff"
+     id="base">
+    <inkscape:grid
+       originy="-235.34874"
+       originx="-633.82542"
+       id="grid13985"
+       type="xygrid" />
+    <inkscape:grid
+       originy="-235.34874"
+       originx="-633.82542"
+       id="grid867"
+       type="xygrid" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata9450">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(-633.82534,-235.34878)"
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <text
+       xml:space="preserve"
+       style="font-size:180px;line-height:1.25;font-family:sans-serif;word-spacing:0px;fill:#e70488;fill-opacity:1;stroke-width:0.9375"
+       x="627.16534"
+       y="375.02878"
+       id="text852"><tspan
+         sodipodi:role="line"
+         id="tspan850"
+         x="627.16534"
+         y="375.02878"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:180px;font-family:Ubuntu;-inkscape-font-specification:'Ubuntu Bold';letter-spacing:-14.0719px;fill:#e70488;fill-opacity:1;stroke-width:0.9375">SpatialPandas</tspan></text>
+  </g>
+</svg>
