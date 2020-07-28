@@ -125,13 +125,38 @@ class GeometryList(Geometry, _ListArrayBufferMixin):
     """
     _nesting_levels = 0
 
+    @staticmethod
+    def _pa_element_value_type(data):
+        """
+        Get value type of pyarrow ListArray element for different versions of pyarrow
+        """
+        try:
+            # Try pyarrow 1.0 API
+            return data.values.type
+        except AttributeError:
+            # Try pre 1.0 API
+            return data.value_type
+
+    @staticmethod
+    def _pa_element_values(data):
+        """
+        Get values of nested pyarrow ListArray element for different versions of pyarrow
+        """
+        try:
+            # Try pyarrow 1.0 API
+            return data.values
+        except AttributeError:
+            # Try pre 1.0 API
+            return pa.array(data.as_py(), data.value_type)
+
     def __init__(self, data, dtype=None):
         super().__init__(data)
         if len(self.data) > 0:
-            _validate_nested_arrow_type(self._nesting_levels, self.data.value_type)
+            value_type = GeometryList._pa_element_value_type(self.data)
+            _validate_nested_arrow_type(self._nesting_levels, value_type)
 
         # create listarray for _ListArrayBufferMixin
-        self.listarray = pa.array(self.data.as_py(), self.data.value_type)
+        self.listarray = GeometryList._pa_element_values(self.data)
 
     def __lt__(self, other):
         if type(other) is not type(self):
@@ -150,9 +175,9 @@ class GeometryList(Geometry, _ListArrayBufferMixin):
         if isinstance(self.listarray, pa.NullArray):
             return None
         else:
-            typ = self.data.value_type
+            typ = GeometryList._pa_element_value_type(self.data)
             for _ in range(self._nesting_levels):
-                typ = typ.value_type
+                typ = GeometryList._pa_element_value_type(typ)
             return np.dtype(typ.to_pandas_dtype())
 
 
