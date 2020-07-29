@@ -128,6 +128,18 @@ def use_numpy(request):
     return request.param
 
 
+@pytest.fixture(params=[None, lambda x: x])
+def sort_by_key(request):
+    """
+    copied from pandas.conftest. Not sure why importing this module isn't enough
+    to register fixture with pytest
+
+    Simple fixture for testing keys in sorting methods.
+    Tests None (no key) and the identity key.
+    """
+    return request.param
+
+
 # Subclass BaseDtypeTests to run pandas-provided extension array test suite
 class TestGeometryConstructors(eb.BaseConstructorsTests):
     pass
@@ -193,6 +205,18 @@ class TestGeometryMethods(eb.BaseMethodsTests):
         reason="Searchsorted seems not implemented for custom extension arrays"
     )
     def test_searchsorted(self):
+        pass
+
+    @pytest.mark.skip(
+        reason="__setitem__ not supported"
+    )
+    def test_shift_0_periods(self, data):
+        pass
+
+    @pytest.mark.skip(
+        reason="value_counts not yet supported"
+    )
+    def test_value_counts_with_normalize(self, data):
         pass
 
 

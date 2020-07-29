@@ -68,7 +68,14 @@ class GeometryDtype(ExtensionDtype):
     @classmethod
     def construct_from_string(cls, string):
         # lowercase string
-        string = string.lower()
+        try:
+            string = string.lower()
+            if not isinstance(string, str):
+                raise AttributeError
+        except AttributeError:
+            raise TypeError(
+                "'construct_from_string' expects a string, got {typ}".format(
+                    typ=type(string)))
 
         msg = "Cannot construct a '%s' from '{}'" % cls.__name__
         if string.startswith(cls._geometry_name.lower()):
@@ -465,6 +472,8 @@ Cannot check equality of {typ} of length {a_len} with:
     def _from_sequence(cls, scalars, dtype=None, copy=None):
         if isinstance(scalars, cls):
             return scalars
+        elif isinstance(scalars, Geometry):
+            scalars = [scalars]
 
         return cls([
             None if np.isscalar(v) and np.isnan(v) else v for v in scalars

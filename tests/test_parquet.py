@@ -42,7 +42,7 @@ def test_parquet(gp_point, gp_multipoint, gp_multiline, tmp_path):
     to_parquet(df, path)
     df_read = read_parquet(str(path), columns=['point', 'multipoint', 'multiline', 'a'])
     assert isinstance(df_read, GeoDataFrame)
-    assert all(df == df_read)
+    pd.testing.assert_frame_equal(df, df_read)
     assert df_read.index.name == df.index.name
 
 
@@ -67,7 +67,7 @@ def test_parquet_columns(gp_point, gp_multipoint, gp_multiline, tmp_path):
     columns = ['a', 'multiline']
     df_read = read_parquet(str(path), columns=columns)
     assert isinstance(df_read, GeoDataFrame)
-    assert all(df[columns] == df_read)
+    pd.testing.assert_frame_equal(df[columns], df_read)
 
 
 @given(
