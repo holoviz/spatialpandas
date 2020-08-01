@@ -130,7 +130,7 @@ class GeometryDtype(ExtensionDtype):
 
 class Geometry:
     def __init__(self, data, dtype=None):
-        if isinstance(data, pa.ArrayValue):
+        if isinstance(data, pa.Scalar):
             # Use arrow ArrayValue as is
             self.data = data
         else:
