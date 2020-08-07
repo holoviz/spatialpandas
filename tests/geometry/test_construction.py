@@ -33,7 +33,7 @@ def test_construct_pointarray_tuple():
 
 
 def test_construct_pointarray_2d_with_None():
-    src_array = np.array([None, [2, 3], [4, 5], None])
+    src_array = np.array([None, [2, 3], [4, 5], None], dtype=object)
     expected_xs = np.array([np.nan, 2, 4, np.nan], dtype=np.float64)
     expected_ys = np.array([np.nan, 3, 5, np.nan], dtype=np.float64)
 
