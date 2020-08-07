@@ -131,10 +131,10 @@ class GeometryDtype(ExtensionDtype):
 class Geometry:
     def __init__(self, data, dtype=None):
         if isinstance(data, pa.Scalar):
-            # Use arrow ArrayValue as is
+            # Use arrow Scalar as is
             self.data = data
         else:
-            # Convert to ArrayValue
+            # Convert to arrow Scalar
             self.data = pa.array([data])[0]
 
     def __repr__(self):
