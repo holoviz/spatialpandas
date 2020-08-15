@@ -2,9 +2,10 @@ from hypothesis import given
 from pandas.testing import assert_series_equal
 from spatialpandas import GeoSeries
 from tests.geometry.strategies import (
-    st_multipoint_array, st_bounds, st_line_array, st_multiline_array, st_ring_array,
-    st_polygon_array, st_multipolygon_array, hyp_settings,
-    st_point_array)
+    st_multipoint_array, st_line_array, st_multiline_array,
+    st_ring_array, st_polygon_array, st_multipolygon_array,
+    hyp_settings, st_point_array
+)
 
 
 @given(st_point_array(geoseries=True))

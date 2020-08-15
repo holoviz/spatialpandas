@@ -449,7 +449,6 @@ Cannot check equality of {typ} of length {a_len} with:
                     "Invalid index value for {typ} with allow_fill=True: "
                     "{idx}".format(
                         typ=self.__class__.__name__,
-                        n=len(self),
                         idx=indices[invalid_mask][0]
                     )
                 )

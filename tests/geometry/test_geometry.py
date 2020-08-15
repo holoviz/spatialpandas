@@ -1,8 +1,7 @@
 import numpy as np
 from spatialpandas.geometry import (
     Point, PointArray, MultiPoint, MultiPointArray, Line, LineArray,
-    MultiLine, MultiLineArray, Polygon, PolygonArray, Ring, RingArray,
-    MultiPolygon, MultiPolygonArray
+    Polygon, PolygonArray, Ring, MultiPolygon, MultiPolygonArray
 )
 
 unit_square_cw = np.array([1, 1,  1, 2,  2, 2,  2, 1,  1, 1], dtype='float64')

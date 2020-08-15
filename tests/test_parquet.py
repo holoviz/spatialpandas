@@ -10,7 +10,7 @@ from tests.geometry.strategies import (
     st_point_array, st_bounds)
 import numpy as np
 from spatialpandas.io import (
-    to_parquet, read_parquet, read_parquet_dask, to_parquet_dask
+    to_parquet, read_parquet, read_parquet_dask
 )
 
 dask.config.set(scheduler="single-threaded")
