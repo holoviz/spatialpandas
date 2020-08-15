@@ -10,7 +10,7 @@ extras_require = {
         'scipy',
         'shapely',
         'geopandas',
-        'rtree'
+        'descartes',
     ],
     'examples': [
         'geopandas',
