@@ -2,21 +2,22 @@ from setuptools import setup, find_packages
 import param
 
 extras_require = {
-      'tests': [
-          'pytest',
-          'flake8',
-          'hypothesis',
-          'scipy',
-          'shapely',
-          'geopandas',
-      ],
-      'examples': [
-          'geopandas',
-          'matplotlib',
-          'descartes',
-          'datashader',
-          'holoviews',
-      ]
+    'tests': [
+        'pytest',
+        'pytest-cov',
+        'flake8',
+        'hypothesis',
+        'scipy',
+        'shapely',
+        'geopandas',
+    ],
+    'examples': [
+        'geopandas',
+        'matplotlib',
+        'descartes',
+        'datashader',
+        'holoviews',
+    ]
 }
 
 install_requires = [
