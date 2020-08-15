@@ -1,14 +1,19 @@
 import shapely.geometry as sg
 import numpy as np
 import pandas as pd
+
 from geopandas.array import from_shapely
 from hypothesis import given, example, strategies as st
 from spatialpandas import GeoSeries
-from spatialpandas.geometry import PointArray, Point, MultiPoint, Line, MultiLine, \
-    Polygon, MultiPolygon
-from tests.geometry.strategies import st_point_array, st_multipoint_array, hyp_settings, \
-    st_line_array, st_polygon_array, st_multipolygon_array
+from spatialpandas.geometry import (
+    PointArray, Point, MultiPoint, Line, MultiLine, Polygon,
+    MultiPolygon
+)
 
+from ..strategies import (
+    st_point_array, st_multipoint_array, hyp_settings, st_line_array,
+    st_polygon_array, st_multipolygon_array
+)
 
 @given(st_point_array(), st_point_array(min_size=1, max_size=1))
 @hyp_settings

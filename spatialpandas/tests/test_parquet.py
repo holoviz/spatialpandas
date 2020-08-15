@@ -1,16 +1,19 @@
-from hypothesis import given, settings, HealthCheck, Phase, Verbosity
-import hypothesis.strategies as hs
 import dask
 import dask.dataframe as dd
+import hypothesis.strategies as hs
+import numpy as np
 import pandas as pd
+
+from hypothesis import given, settings, HealthCheck, Phase, Verbosity
+
 from spatialpandas import GeoSeries, GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
-from tests.geometry.strategies import (
-    st_multipoint_array, st_multiline_array,
-    st_point_array, st_bounds)
-import numpy as np
 from spatialpandas.io import (
-    to_parquet, read_parquet, read_parquet_dask, to_parquet_dask
+    to_parquet, read_parquet, read_parquet_dask
+)
+
+from .geometry.strategies import (
+    st_multipoint_array, st_multiline_array, st_point_array, st_bounds
 )
 
 dask.config.set(scheduler="single-threaded")

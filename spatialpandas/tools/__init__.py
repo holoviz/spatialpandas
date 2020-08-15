@@ -1,1 +1,1 @@
-from .sjoin import sjoin
+from .sjoin import sjoin # noqa

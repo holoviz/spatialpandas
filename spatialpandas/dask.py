@@ -220,7 +220,6 @@ class DaskGeoDataFrame(dd.DataFrame):
         """
         from .io import read_parquet, read_parquet_dask
         from .io.utils import validate_coerce_filesystem
-        from .io.parquet import _maybe_prepend_protocol
 
         # Get fsspec filesystem object
         filesystem = validate_coerce_filesystem(path, filesystem)
