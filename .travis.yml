@@ -15,7 +15,7 @@ env:
     - CHANS_REL="-c pyviz"
     - LABELS_DEV="--label dev"
     - LABELS_REL="--label dev --label main"
-    - PKG_TEST_PYTHON="--test-python=py27 --test-python=py36"
+    - PKG_TEST_PYTHON="--test-python=py36"
     # conda build fills up travis /tmp (tmpfs)
     - TMPDIR=$HOME/tmp
     - PYPI="https://upload.pypi.org/legacy/"
