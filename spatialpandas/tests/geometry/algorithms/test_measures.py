@@ -1,7 +1,9 @@
 import numpy as np
+
 from hypothesis import given
 from spatialpandas.geometry import MultiPolygonArray, PolygonArray
-from tests.geometry.strategies import (
+
+from ..strategies import (
     st_multipolygon_array, hyp_settings, st_polygon_array
 )
 

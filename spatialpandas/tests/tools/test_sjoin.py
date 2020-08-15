@@ -1,17 +1,18 @@
+import dask.dataframe as dd
+import geopandas as gp
+import hypothesis.strategies as hs
 import numpy as np
 import pandas as pd
-import geopandas as gp
 import pytest
-import dask.dataframe as dd
+
 from hypothesis import given
-import hypothesis.strategies as hs
 
 import spatialpandas as sp
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
-from tests.geometry.strategies import st_point_array, st_polygon_array
-from tests.test_parquet import hyp_settings
 
+from ..geometry.strategies import st_point_array, st_polygon_array
+from ..test_parquet import hyp_settings
 
 @given(
     st_point_array(min_size=1, geoseries=True),

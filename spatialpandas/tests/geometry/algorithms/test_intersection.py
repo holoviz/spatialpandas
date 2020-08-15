@@ -1,18 +1,22 @@
 import numpy as np
+
 from hypothesis import given, example
 from shapely import geometry as sg
 
 from spatialpandas.geometry import (
-    Polygon, MultiPointArray, LineArray,
-    MultiLineArray, PolygonArray, MultiPolygonArray,
-    PointArray)
+    Polygon, MultiPointArray, LineArray, MultiLineArray, PolygonArray,
+    MultiPolygonArray, PointArray
+)
 from spatialpandas.geometry._algorithms.intersection import (
     segments_intersect, point_intersects_polygon,
-    segment_intersects_point)
-from tests.geometry.strategies import (
-    st_polygon, st_multipoint_array, st_bounds, st_line_array, st_multiline_array,
-    st_polygon_array, st_multipolygon_array, hyp_settings, coord, st_points,
-    st_point_array)
+    segment_intersects_point
+)
+
+from ..strategies import (
+    st_polygon, st_multipoint_array, st_bounds, st_line_array,
+    st_multiline_array, st_polygon_array, st_multipolygon_array,
+    hyp_settings, coord, st_points, st_point_array
+)
 
 
 @given(coord, coord, coord, coord, coord, coord)
