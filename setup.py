@@ -3,30 +3,31 @@ import param
 
 extras_require = {
       'tests': [
-            'pytest',
-            'hypothesis',
-            'scipy',
-            'shapely',
-            'geopandas',
+          'pytest',
+          'flake8',
+          'hypothesis',
+          'scipy',
+          'shapely',
+          'geopandas',
       ],
       'examples': [
-            'geopandas',
-            'matplotlib',
-            'descartes',
-            'datashader',
-            'holoviews',
+          'geopandas',
+          'matplotlib',
+          'descartes',
+          'datashader',
+          'holoviews',
       ]
 }
 
 install_requires = [
-      'pandas>=0.25',
-      'dask>=2.0',
-      'numba',
-      'numpy',
-      'pyarrow>=0.15',
-      'param',
-      'fsspec',
-      'retrying',
+    'pandas>=0.25',
+    'dask>=2.0',
+    'numba',
+    'numpy',
+    'pyarrow>=0.15',
+    'param',
+    'fsspec',
+    'retrying',
 ]
 
 setup_args = dict(

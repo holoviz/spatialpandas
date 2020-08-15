@@ -1,1 +1,1 @@
-from .rtree import HilbertRtree
+from .rtree import HilbertRtree # noqa

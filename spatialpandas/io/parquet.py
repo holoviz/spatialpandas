@@ -5,11 +5,10 @@ from functools import reduce
 
 import pandas as pd
 from dask import delayed
-from dask.dataframe import (
+from dask.dataframe import ( # noqa
     to_parquet as dd_to_parquet,  read_parquet as dd_read_parquet,
     from_delayed, from_pandas,
 )
-from dask.dataframe.utils import make_meta, clear_known_categories
 from dask.utils import natural_sort_key
 
 from pandas.io.parquet import (

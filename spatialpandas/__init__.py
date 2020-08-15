@@ -1,13 +1,13 @@
-from . import geometry, spatialindex, tools
-from .geoseries import GeoSeries
-from .geodataframe import GeoDataFrame
-from .tools.sjoin import sjoin
+from . import geometry, spatialindex, tools # noqa
+from .geoseries import GeoSeries # noqa
+from .geodataframe import GeoDataFrame # noqa
+from .tools.sjoin import sjoin # noqa
 import param as _param
 
 try:
-    import dask.dataframe
+    import dask.dataframe # noqa
     # Import to trigger registration of types with Dask
-    import spatialpandas.dask
+    import spatialpandas.dask # noqa
 except ImportError:
     # Dask dataframe not available
     pass
