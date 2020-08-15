@@ -14,6 +14,18 @@ from spatialpandas.dask import DaskGeoDataFrame
 from ..geometry.strategies import st_point_array, st_polygon_array
 from ..test_parquet import hyp_settings
 
+try:
+    import rtree # noqa
+    gpd_spatialindex = True
+except Exception:
+    try:
+        import pygeos # noqa
+        gpd_spatialindex = True
+    except Exception:
+        gpd_spatialindex = False
+
+    
+@pytest.mark.skipIf(not gpd_spatialindex, reason='Geopandas spatialindex not available to compare against')
 @given(
     st_point_array(min_size=1, geoseries=True),
     st_polygon_array(min_size=1, geoseries=True),
@@ -21,7 +33,7 @@ from ..test_parquet import hyp_settings
 )
 @hyp_settings
 def test_sjoin(gp_points, gp_polygons, how):
-    # join with geopandas
+    # join witgh geopandas
     left_gpdf = gp.GeoDataFrame({
         'geometry': gp_points,
         'a': np.arange(10, 10 + len(gp_points)),
