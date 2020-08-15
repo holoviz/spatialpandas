@@ -60,7 +60,6 @@ jobs:
         - doit env_capture
       script:
         - doit test_all
-        - export NUMBA_DISABLE_JIT=1; doit test_unit_nojit
       after_success: codecov
 
     # test using python 3.7
@@ -68,8 +67,6 @@ jobs:
       env: PYTHON_VERSION=3.7
       script:
         - doit test_all
-        - export NUMBA_DISABLE_JIT=1; doit test_unit_nojit
-
 
     ########## END-USER PACKAGES ##########
 
