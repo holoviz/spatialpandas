@@ -8,7 +8,6 @@ extras_require = {
             'scipy',
             'shapely',
             'geopandas',
-            'hilbertcurve'
       ],
       'examples': [
             'geopandas',

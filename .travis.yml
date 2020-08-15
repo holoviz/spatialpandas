@@ -56,6 +56,7 @@ jobs:
         - doit env_create $CHANS_DEV --python=$PYTHON_VERSION --name=$PYTHON_VERSION
         - source activate $PYTHON_VERSION
         - doit develop_install $CHANS_DEV $OPTS
+        - pip install hilbertcurve
         - doit env_capture
       script:
         - doit test_all
