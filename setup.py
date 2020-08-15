@@ -22,7 +22,7 @@ extras_require = {
 
 install_requires = [
     'pandas>=0.25',
-    'dask>=2.0',
+    'dask[complete] >=2.0',
     'numba',
     'numpy',
     'pyarrow>=0.15',
