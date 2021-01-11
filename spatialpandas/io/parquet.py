@@ -2,7 +2,10 @@ import copy
 import json
 import pathlib
 from functools import reduce
+from numbers import Number
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
+import fsspec
 import pandas as pd
 from dask import delayed
 from dask.dataframe import ( # noqa
@@ -98,7 +101,11 @@ def to_parquet(
     )
 
 
-def read_parquet(path, columns=None, filesystem=None):
+def read_parquet(
+    path: str,
+    columns: Optional[Iterable[str]] = None,
+    filesystem: Optional[fsspec.spec.AbstractFileSystem] = None,
+) -> GeoDataFrame:
     filesystem = validate_coerce_filesystem(path, filesystem)
 
     # Load pandas parquet metadata
@@ -178,9 +185,14 @@ def to_parquet_dask(
 
 
 def read_parquet_dask(
-        path, columns=None, filesystem=None, load_divisions=False,
-        geometry=None, bounds=None, categories=None,
-):
+    path: str,
+    columns: Optional[Iterable[str]] = None,
+    filesystem: Optional[fsspec.spec.AbstractFileSystem] = None,
+    load_divisions: Optional[bool] = False,
+    geometry: Optional[str] = None,
+    bounds: Optional[Tuple[Number, Number, Number, Number]] = None,
+    categories: Optional[Union[List[str], Dict[str, str]]] = None,
+) -> DaskGeoDataFrame:
     """
     Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
     have been written with the DaskGeoDataFrame.to_parquet or
