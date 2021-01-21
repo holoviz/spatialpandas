@@ -636,7 +636,10 @@ class _BaseCoordinateIndexer:
                 "intervals in continuous coordinate space, and a slice step has no "
                 "clear interpretation in this context."
             )
-        xmin, ymin, xmax, ymax = self._sindex.total_bounds
+        if self._sindex:
+            xmin, ymin, xmax, ymax = self._sindex.total_bounds
+        else:
+            xmin, ymin, xmax, ymax = self._obj.total_bounds
         x0, y0, x1, y1 = (
             xs.start if xs.start is not None else xmin,
             ys.start if ys.start is not None else ymin,
@@ -652,7 +655,10 @@ class _BaseCoordinateIndexer:
 
     def __getitem__(self, key):
         x0, x1, y0, y1 = self._get_bounds(key)
-        covers_inds, overlaps_inds = self._sindex.covers_overlaps((x0, y0, x1, y1))
+        if self._sindex:
+            covers_inds, overlaps_inds = self._sindex.covers_overlaps((x0, y0, x1, y1))
+        else:
+            covers_inds, overlaps_inds = None, None
         return self._perform_get_item(covers_inds, overlaps_inds, x0, x1, y0, y1)
 
     def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
@@ -661,7 +667,7 @@ class _BaseCoordinateIndexer:
 
 class _CoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, parent=None):
-        super().__init__(obj.sindex)
+        super().__init__(obj._sindex)
         self._obj = obj
         self._parent = parent
 
@@ -669,16 +675,24 @@ class _CoordinateIndexer(_BaseCoordinateIndexer):
         overlaps_inds_mask = self._obj.intersects_bounds(
             (x0, y0, x1, y1), overlaps_inds
         )
-        selected_inds = np.sort(
-            np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
-        )
-        if self._parent is not None:
-            if len(self._parent) > 0:
-                return self._parent.iloc[selected_inds]
-            else:
-                return self._parent
-        else:
+        print(overlaps_inds_mask)
+        if covers_inds is not None:
+            selected_inds = np.sort(
+                np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
+            )
+            if self._parent is not None:
+                if len(self._parent) > 0:
+                    return self._parent.iloc[selected_inds]
+                else:
+                    return self._parent
             return self._obj[selected_inds]
+        else:
+            if self._parent is not None:
+                if len(self._parent) > 0:
+                    return self._parent[overlaps_inds_mask]
+                else:
+                    return self._parent
+            return self._obj[overlaps_inds_mask]
 
 
 @ngjit
