@@ -675,7 +675,6 @@ class _CoordinateIndexer(_BaseCoordinateIndexer):
         overlaps_inds_mask = self._obj.intersects_bounds(
             (x0, y0, x1, y1), overlaps_inds
         )
-        print(overlaps_inds_mask)
         if covers_inds is not None:
             selected_inds = np.sort(
                 np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
