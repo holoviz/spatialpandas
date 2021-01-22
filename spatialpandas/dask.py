@@ -575,11 +575,21 @@ class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
             # No partitions intersect with query region, return empty result
             return dd.from_pandas(self._obj._meta, npartitions=1)
 
-        def cx_fn(df, x0, x1, y0, y1):
+        @delayed
+        def cx_fn(df):
             return df.cx[x0:x1, y0:y1]
 
         ddf = self._obj.partitions[all_partition_inds]
-        return ddf.map_partitions(cx_fn, meta=ddf._meta, x0=x0, x1=x1, y0=y0, y1=y1)
+        delayed_dfs = []
+        for partition_ind, delayed_df in zip(all_partition_inds, ddf.to_delayed()):
+            if partition_ind in overlaps_inds:
+                delayed_dfs.append(
+                    cx_fn(delayed_df)
+                )
+            else:
+                delayed_dfs.append(delayed_df)
+
+        return dd.from_delayed(delayed_dfs, meta=ddf._meta, divisions=ddf.divisions)
 
 
 class _DaskPartitionCoordinateIndexer(_BaseCoordinateIndexer):
