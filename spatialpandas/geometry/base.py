@@ -542,8 +542,6 @@ Cannot check equality of {typ} of length {a_len} with:
     def build_sindex(self):
         if self._sindex is None:
             self._sindex = HilbertRtree(self.bounds)
-        else:
-            raise ValueError("Spatial index has already been built.")
 
     @property
     def cx(self):
