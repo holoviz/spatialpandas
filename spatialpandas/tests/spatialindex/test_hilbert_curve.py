@@ -36,7 +36,7 @@ def test_coordinates_from_distance(p, n):
     reference_hc = HilbertCurve(p, n)
     for i, distance in enumerate(distances):
         # Reference
-        expected = tuple(reference_hc.coordinates_from_distance(distance))
+        expected = tuple(reference_hc.point_from_distance(distance))
 
         # Scalar result
         scalar_result = tuple(coordinate_from_distance(p, n, distance))
@@ -64,7 +64,7 @@ def test_distance_from_coordinates(p, n):
         coord = coords[i, :]
 
         # Reference
-        expected = reference_hc.distance_from_coordinates(coord)
+        expected = reference_hc.distance_from_point(coord)
 
         # Compute scalar distance and compare
         scalar_result = distance_from_coordinate(p, coord)
