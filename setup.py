@@ -4,6 +4,7 @@ import param
 extras_require = {
     'tests': [
         'pytest',
+        'codecov',
         'pytest-cov',
         'flake8',
         'hypothesis',
