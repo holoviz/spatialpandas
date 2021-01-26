@@ -76,6 +76,12 @@ class DaskGeoSeries(dd.Series):
     def cx_partitions(self):
         return _DaskPartitionCoordinateIndexer(self, self.partition_sindex)
 
+    def build_sindex(self):
+        def build_sindex(series):
+            series.build_sindex()
+            return series
+        return self.map_partitions(build_sindex, meta=self._meta)
+
     def intersects_bounds(self, bounds):
         return self.map_partitions(lambda s: s.intersects_bounds(bounds))
 
@@ -514,6 +520,12 @@ class DaskGeoDataFrame(dd.DataFrame):
         if new_series.name in self._partition_sindex:
             new_series._partition_sindex = self._partition_sindex[new_series.name]
         return new_series
+
+    def build_sindex(self):
+        def build_sindex(df):
+            df.build_sindex()
+            return df
+        return self.map_partitions(build_sindex, meta=self._meta)
 
     def persist(self, **kwargs):
         return self._propagate_props_to_dataframe(
