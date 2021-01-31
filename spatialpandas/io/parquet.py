@@ -179,7 +179,7 @@ def to_parquet_dask(
 
 def read_parquet_dask(
         path, columns=None, filesystem=None, load_divisions=False,
-        geometry=None, bounds=None, categories=None,
+        geometry=None, bounds=None, categories=None, build_sindex=False
 ):
     """
     Read spatialpandas parquet dataset(s) as DaskGeoDataFrame. Datasets are assumed to
@@ -207,6 +207,8 @@ def read_parquet_dask(
             If a list, assumes up to 2**16-1 labels; if a dict, specify the number
             of labels expected; if None, will load categories automatically for
             data written by dask/fastparquet, not otherwise.
+        build_sindex : boolean
+            Whether to build partition level spatial indexes to speed up indexing.
     Returns:
     DaskGeoDataFrame
     """
@@ -232,6 +234,9 @@ def read_parquet_dask(
         load_divisions=load_divisions, geometry=geometry, bounds=bounds,
         categories=categories
     )
+
+    if build_sindex:
+        result = result.build_sindex()
 
     return result
 

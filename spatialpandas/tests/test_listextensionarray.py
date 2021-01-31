@@ -181,8 +181,8 @@ class TestGeometryInterface(eb.BaseInterfaceTests):
     def test_view(self):
         pass
 
-    @pytest.mark.skip(reason="__contains__ not supported")
-    def test_contains(self, data, data_missing):
+    @pytest.mark.skip(reason="contains not supported")
+    def test_contains(self):
         pass
 
 
@@ -236,6 +236,6 @@ class TestGeometryReshaping(eb.BaseReshapingTests):
     def test_ravel(self):
         pass
 
-    @pytest.mark.skip(reason="__setitem__ not supported")
+    @pytest.mark.skip(reason="transpose with numpy array elements seems not supported")
     def test_transpose(self):
         pass
