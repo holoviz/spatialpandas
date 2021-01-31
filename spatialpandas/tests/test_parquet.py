@@ -3,18 +3,14 @@ import dask.dataframe as dd
 import hypothesis.strategies as hs
 import numpy as np
 import pandas as pd
-
-from hypothesis import given, settings, HealthCheck, Phase, Verbosity
-
-from spatialpandas import GeoSeries, GeoDataFrame
+import pytest
+from hypothesis import HealthCheck, Phase, Verbosity, given, settings
+from spatialpandas import GeoDataFrame, GeoSeries
 from spatialpandas.dask import DaskGeoDataFrame
-from spatialpandas.io import (
-    to_parquet, read_parquet, read_parquet_dask
-)
+from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet
 
-from .geometry.strategies import (
-    st_multipoint_array, st_multiline_array, st_point_array, st_bounds
-)
+from .geometry.strategies import (st_bounds, st_multiline_array,
+                                  st_multipoint_array, st_point_array)
 
 dask.config.set(scheduler="single-threaded")
 
@@ -76,6 +72,7 @@ def test_parquet_columns(gp_point, gp_multipoint, gp_multiline,
         pd.testing.assert_frame_equal(df[columns], df_read)
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint=st_multipoint_array(min_size=1, geoseries=True),
     gp_multiline=st_multiline_array(min_size=1, geoseries=True),
@@ -161,6 +158,7 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
     np.testing.assert_equal(expected_distances, hilbert_distances)
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint=st_multipoint_array(min_size=60, max_size=100, geoseries=True),
     gp_multiline=st_multiline_array(min_size=60, max_size=100, geoseries=True),
@@ -235,6 +233,7 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline,
         )
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint1=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline1=st_multiline_array(min_size=10, max_size=40, geoseries=True),
@@ -303,6 +302,7 @@ def test_pack_partitions_to_parquet_glob(gp_multipoint1, gp_multiline1,
         assert ddf_globbed.geometry.name == 'lines'
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint1=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline1=st_multiline_array(min_size=10, max_size=40, geoseries=True),
