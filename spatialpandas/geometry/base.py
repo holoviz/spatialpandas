@@ -509,7 +509,6 @@ Cannot check equality of {typ} of length {a_len} with:
         from pandas.api.types import is_array_like
         from pandas.core.missing import get_fill_func
         from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import get_fill_func
 
         value, method = validate_fillna_kwargs(value, method)
 
