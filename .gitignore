@@ -108,3 +108,5 @@ venv.bak/
 spatialpandas/.version
 
 .vscode/
+
+monkeytype.sqlite3
