@@ -25,7 +25,7 @@ install_requires = [
     'pandas>=0.25',
     'dask[complete] >=2.0',
     'numba',
-    'numpy',
+    'numpy<1.20',
     'pyarrow>=0.15',
     'param',
     'fsspec',
@@ -54,4 +54,3 @@ setup_args = dict(
 
 if __name__ == '__main__':
     setup(**setup_args)
-
