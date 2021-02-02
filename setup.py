@@ -26,7 +26,7 @@ install_requires = [
     'dask[complete] >=2.0',
     'numba',
     'numpy<1.20',
-    'pyarrow>=0.15',
+    'pyarrow>=0.15, <3',
     'param',
     'fsspec',
     'retrying',
