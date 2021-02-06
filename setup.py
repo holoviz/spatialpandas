@@ -44,7 +44,7 @@ if sys.platform == 'darwin':
 else:
     install_requires.extend([
         'numpy',
-        'pyarrow',
+        'pyarrow>=0.15',
     ])
 
 setup_args = dict(
