@@ -39,16 +39,10 @@ if sys.platform == 'darwin':
         'pyarrow>=0.15,<2',
     ])
 else:
-    if sys.version_info[:2] == (3, 6):
-        install_requires.extend([
-            'numpy<1.20',
-            'pyarrow<3',
-        ])
-    else:
-        install_requires.extend([
-            'numpy>=1.20',
-            'pyarrow<3',
-        ])
+    install_requires.extend([
+        'numpy',
+        'pyarrow>=3',
+    ])
 
 setup_args = dict(
     name='spatialpandas',
