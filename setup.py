@@ -33,6 +33,9 @@ install_requires = [
     'snappy',
 ]
 
+# Checking for platform explicitly because
+# pyctdev does not handle dependency conditions
+# such as 'numpy<1.20;platform_system=="Darwin"'
 if sys.platform == 'darwin':
     install_requires.extend([
         'numpy<1.20',
@@ -41,7 +44,7 @@ if sys.platform == 'darwin':
 else:
     install_requires.extend([
         'numpy',
-        'pyarrow>=3',
+        'pyarrow',
     ])
 
 setup_args = dict(
