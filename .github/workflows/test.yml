@@ -21,11 +21,11 @@ jobs:
           - os: macos-latest
             python-version: 3.6
           - os: macos-latest
-            python-version: 3.8
+            python-version: 3.7
     timeout-minutes: 40
     defaults:
       run:
-        shell: bash -l {0} 
+        shell: bash -l {0}
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
       CHANS_DEV: "-c pyviz/label/dev"
@@ -64,7 +64,7 @@ jobs:
           conda activate test-environment
           conda list
           doit develop_install ${{ env.CHANS_DEV }} -o tests
-          pip install hilbertcurve 
+          pip install hilbertcurve
       - name: doit env_capture
         run: |
           eval "$(conda shell.bash hook)"
