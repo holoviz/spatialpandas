@@ -1,5 +1,7 @@
-from setuptools import setup, find_packages
+import sys
+
 import param
+from setuptools import find_packages, setup
 
 extras_require = {
     'tests': [
@@ -25,13 +27,16 @@ install_requires = [
     'pandas>=0.25',
     'dask[complete] >=2.0',
     'numba',
-    'numpy;platform_system!="Darwin"',
-    'numpy<1.20;platform_system=="Darwin"',
     'pyarrow>=0.15',
     'param',
     'fsspec',
     'retrying',
 ]
+
+if sys.platform == 'darwin':
+    install_requires.extend(['numpy<1.20'])
+else:
+    install_requires.extend(['numpy'])
 
 setup_args = dict(
     name='spatialpandas',
