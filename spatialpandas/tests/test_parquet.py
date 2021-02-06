@@ -15,7 +15,9 @@ from .geometry.strategies import (st_bounds, st_multiline_array,
 dask.config.set(scheduler="single-threaded")
 
 hyp_settings = settings(
-    deadline=None, max_examples=100, suppress_health_check=[HealthCheck.too_slow]
+    deadline=None,
+    max_examples=100,
+    suppress_health_check=[HealthCheck.too_slow],
 )
 
 
