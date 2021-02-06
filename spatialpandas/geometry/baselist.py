@@ -273,10 +273,10 @@ def _lexographic_lt0(a1, a2):
 
 
 def _lexographic_lt(a1, a2):
-    if a1.dtype != np.object and a1.dtype != np.object:
+    if a1.dtype != np.dtype(object) and a1.dtype != np.dtype(object):
         # a1 and a2 primitive
         return _lexographic_lt0(a1, a2)
-    elif a1.dtype == np.object and a1.dtype == np.object:
+    elif a1.dtype == np.dtype(object) and a1.dtype == np.dtype(object):
         # a1 and a2 object, process recursively
         for e1, e2 in zip(a1, a2):
             if _lexographic_lt(e1, e2):
@@ -284,7 +284,7 @@ def _lexographic_lt(a1, a2):
             elif _lexographic_lt(e2, e1):
                 return False
         return len(a1) < len(a2)
-    elif a1.dtype != np.object:
+    elif a1.dtype != np.dtype(object):
         # a2 is object array, a1 primitive
         return True
     else:
@@ -333,5 +333,3 @@ def _geometry_map_nested3(
             start = value_offsets1[value_offsets0[i]]
             stop = value_offsets1[value_offsets0[i + 1]]
             result[i] = fn(values, value_offsets2[start:stop + 1])
-
-

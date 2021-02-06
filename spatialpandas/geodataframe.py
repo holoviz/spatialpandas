@@ -112,6 +112,9 @@ class GeoDataFrame(pd.DataFrame):
             self.geometry.array, parent=self
         )
 
+    def build_sindex(self):
+        self.geometry.build_sindex()
+
     def _ensure_type(self, obj):
         # Override because a GeoDataFrame operation may result in a regular DataFrame,
         # and that's ok

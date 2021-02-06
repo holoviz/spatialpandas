@@ -1,18 +1,17 @@
+import re
+from collections.abc import Container, Iterable
 from numbers import Integral
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
 from pandas.api.types import is_array_like
-
 from spatialpandas.spatialindex import HilbertRtree
 from spatialpandas.spatialindex.rtree import _distances_from_bounds
-import re
-
 from spatialpandas.utils import ngjit
-from .._optional_imports import sg, gp
+
+from .._optional_imports import gp, sg
 
 
 def _unwrap_geometry(a, element_dtype):
@@ -144,6 +143,8 @@ class Geometry:
         return hash((self.__class__, np.array(self.data.as_py()).tobytes()))
 
     def __eq__(self, other):
+        if isinstance(other, Container):
+            return other == self
         if type(other) is not type(self):
             return False
         return self.data == other.data
@@ -336,10 +337,17 @@ Cannot check equality of {typ} instances of unequal length
             for i in range(len(self)):
                 result[i] = self[i] == other[i]
             return result
-        else:
-            raise ValueError("""
+        if isinstance(other, (self.dtype.type, type(None))):
+            result = np.zeros(len(self), dtype=np.bool_)
+            for i in range(len(self)):
+                result[i] = self[i] == other
+            return result
+        raise ValueError("""
 Cannot check equality of {typ} of length {a_len} with:
     {other}""".format(typ=type(self).__name__, a_len=len(self), other=repr(other)))
+
+    def __contains__(self, item) -> bool:
+        raise NotImplementedError
 
     def __len__(self):
         return len(self.data)
@@ -499,8 +507,8 @@ Cannot check equality of {typ} of length {a_len} with:
 
     def fillna(self, value=None, method=None, limit=None):
         from pandas.api.types import is_array_like
+        from pandas.core.missing import get_fill_func
         from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import pad_1d, backfill_1d
 
         value, method = validate_fillna_kwargs(value, method)
 
@@ -516,7 +524,7 @@ Cannot check equality of {typ} of length {a_len} with:
 
         if mask.any():
             if method is not None:
-                func = pad_1d if method == "pad" else backfill_1d
+                func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, self._dtype)
             else:
@@ -536,8 +544,12 @@ Cannot check equality of {typ} of length {a_len} with:
     @property
     def sindex(self):
         if self._sindex is None:
-            self._sindex = HilbertRtree(self.bounds)
+            self.build_sindex()
         return self._sindex
+
+    def build_sindex(self):
+        if self._sindex is None:
+            self._sindex = HilbertRtree(self.bounds)
 
     @property
     def cx(self):
@@ -636,7 +648,10 @@ class _BaseCoordinateIndexer:
                 "intervals in continuous coordinate space, and a slice step has no "
                 "clear interpretation in this context."
             )
-        xmin, ymin, xmax, ymax = self._sindex.total_bounds
+        if self._sindex:
+            xmin, ymin, xmax, ymax = self._sindex.total_bounds
+        else:
+            xmin, ymin, xmax, ymax = self._obj.total_bounds
         x0, y0, x1, y1 = (
             xs.start if xs.start is not None else xmin,
             ys.start if ys.start is not None else ymin,
@@ -652,7 +667,10 @@ class _BaseCoordinateIndexer:
 
     def __getitem__(self, key):
         x0, x1, y0, y1 = self._get_bounds(key)
-        covers_inds, overlaps_inds = self._sindex.covers_overlaps((x0, y0, x1, y1))
+        if self._sindex:
+            covers_inds, overlaps_inds = self._sindex.covers_overlaps((x0, y0, x1, y1))
+        else:
+            covers_inds, overlaps_inds = None, None
         return self._perform_get_item(covers_inds, overlaps_inds, x0, x1, y0, y1)
 
     def _perform_get_item(self, covers_inds, overlaps_inds, x0, x1, y0, y1):
@@ -661,7 +679,7 @@ class _BaseCoordinateIndexer:
 
 class _CoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, parent=None):
-        super().__init__(obj.sindex)
+        super().__init__(obj._sindex)
         self._obj = obj
         self._parent = parent
 
@@ -669,16 +687,23 @@ class _CoordinateIndexer(_BaseCoordinateIndexer):
         overlaps_inds_mask = self._obj.intersects_bounds(
             (x0, y0, x1, y1), overlaps_inds
         )
-        selected_inds = np.sort(
-            np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
-        )
-        if self._parent is not None:
-            if len(self._parent) > 0:
-                return self._parent.iloc[selected_inds]
-            else:
-                return self._parent
-        else:
+        if covers_inds is not None:
+            selected_inds = np.sort(
+                np.concatenate([covers_inds, overlaps_inds[overlaps_inds_mask]])
+            )
+            if self._parent is not None:
+                if len(self._parent) > 0:
+                    return self._parent.iloc[selected_inds]
+                else:
+                    return self._parent
             return self._obj[selected_inds]
+        else:
+            if self._parent is not None:
+                if len(self._parent) > 0:
+                    return self._parent[overlaps_inds_mask]
+                else:
+                    return self._parent
+            return self._obj[overlaps_inds_mask]
 
 
 @ngjit
@@ -749,10 +774,8 @@ def is_geometry_array(data):
 
 
 def to_geometry_array(data, dtype=None):
-    from . import (
-        PointArray, MultiPointArray,  LineArray, RingArray,
-        MultiLineArray, PolygonArray, MultiPolygonArray
-    )
+    from . import (LineArray, MultiLineArray, MultiPointArray,
+                   MultiPolygonArray, PointArray, PolygonArray, RingArray)
     if sg is not None:
         shapely_to_spatialpandas = {
             sg.Point: PointArray,

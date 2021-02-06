@@ -1,13 +1,12 @@
 import numpy as np
-
+import pytest
 from hypothesis import given
 from spatialpandas.geometry import MultiPolygonArray, PolygonArray
 
-from ..strategies import (
-    st_multipolygon_array, hyp_settings, st_polygon_array
-)
+from ..strategies import hyp_settings, st_multipolygon_array, st_polygon_array
 
 
+@pytest.mark.slow
 @given(st_polygon_array())
 @hyp_settings
 def test_polygon_area(gp_polygon):
@@ -17,6 +16,7 @@ def test_polygon_area(gp_polygon):
     np.testing.assert_allclose(area, expected_area)
 
 
+@pytest.mark.slow
 @given(st_multipolygon_array())
 @hyp_settings
 def test_multipolygon_area(gp_multipolygon):
