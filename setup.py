@@ -29,19 +29,26 @@ install_requires = [
     'numba',
     'pandas>=0.25',
     'param',
-    'pyarrow>=0.15',
     'retrying',
 ]
 
 if sys.platform == 'darwin':
-    install_requires.extend(['numpy<1.20'])
+    install_requires.extend([
+        'numpy<1.20',
+        'pyarrow>=0.15,<3',
+    ])
 else:
-    install_requires.extend(['numpy'])
+    install_requires.extend([
+        'numpy>=1.20',
+        'pyarrow>=3',
+    ])
 
 setup_args = dict(
     name='spatialpandas',
     version=param.version.get_setup_version(
-        __file__, "spatialpandas", archive_commit="$Format:%h$"
+        __file__,
+        "spatialpandas",
+        archive_commit="$Format:%h$",
     ),
     description='Pandas extension arrays for spatial/geometric operations',
     long_description=open("README.md").read(),
@@ -55,7 +62,7 @@ setup_args = dict(
     tests_require=extras_require['tests'],
     license='BSD-2-Clause',
     packages=find_packages(exclude=('tests', 'tests.*')),
-    include_package_data=True
+    include_package_data=True,
 )
 
 if __name__ == '__main__':

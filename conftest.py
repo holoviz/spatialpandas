@@ -2,7 +2,7 @@
 import pytest
 
 
-_DEFAULT_SKIPSLOW = False
+_DEFAULT_SKIPSLOW = True
 
 def pytest_addoption(parser):
     """Add command-line flags for pytest."""

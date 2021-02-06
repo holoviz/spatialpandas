@@ -74,7 +74,6 @@ def test_parquet_columns(gp_point, gp_multipoint, gp_multiline,
         pd.testing.assert_frame_equal(df[columns], df_read)
 
 
-@pytest.mark.slow
 @given(
     gp_multipoint=st_multipoint_array(min_size=1, geoseries=True),
     gp_multiline=st_multiline_array(min_size=1, geoseries=True),
