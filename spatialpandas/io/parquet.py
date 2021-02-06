@@ -3,31 +3,26 @@ import json
 import pathlib
 from functools import reduce
 from numbers import Number
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
 import pandas as pd
-from dask import delayed
-from dask.dataframe import ( # noqa
-    to_parquet as dd_to_parquet,  read_parquet as dd_read_parquet,
-    from_delayed, from_pandas,
-)
-from dask.utils import natural_sort_key
-
-from pandas.io.parquet import (
-    to_parquet as pd_to_parquet,
-)
-
 import pyarrow as pa
+from dask import delayed
+from dask.dataframe import from_delayed, from_pandas
+from dask.dataframe import read_parquet as dd_read_parquet
+from dask.dataframe import to_parquet as dd_to_parquet  # noqa
+from dask.utils import natural_sort_key
+from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow import parquet as pq
-from spatialpandas.io.utils import validate_coerce_filesystem
+
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
+from spatialpandas.geometry import (GeometryDtype, LineDtype, MultiLineDtype,
+                                    MultiPointDtype, MultiPolygonDtype,
+                                    PointDtype, PolygonDtype, RingDtype)
 from spatialpandas.geometry.base import to_geometry_array
-from spatialpandas.geometry import (
-    PointDtype, MultiPointDtype, RingDtype, LineDtype,
-    MultiLineDtype, PolygonDtype, MultiPolygonDtype, GeometryDtype
-)
+from spatialpandas.io.utils import validate_coerce_filesystem
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
@@ -89,15 +84,20 @@ def _get_geometry_columns(pandas_metadata):
 
 
 def to_parquet(
-    df,
+    df: GeoDataFrame,
     fname,
-    compression="snappy",
-    index=None,
-    **kwargs
-):
+    compression: Optional[str] = "snappy",
+    index: Optional[bool] = None,
+    **kwargs,
+) -> None:
     # Standard pandas to_parquet with pyarrow engine
     pd_to_parquet(
-        df, fname, engine="pyarrow", compression=compression, index=index, **kwargs
+        df,
+        fname,
+        engine="pyarrow",
+        compression=compression,
+        index=index,
+        **kwargs,
     )
 
 
@@ -143,16 +143,25 @@ def read_parquet(
 
 
 def to_parquet_dask(
-        ddf, path, compression="snappy", filesystem=None, storage_options=None, **kwargs
-):
+    ddf: DaskGeoDataFrame,
+    path,
+    compression: Optional[str] = "snappy",
+    filesystem: Optional[fsspec.spec.AbstractFileSystem] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
+    **kwargs,
+) -> None:
     assert isinstance(ddf, DaskGeoDataFrame)
     filesystem = validate_coerce_filesystem(path, filesystem)
     if path and filesystem.isdir(path):
         filesystem.rm(path, recursive=True)
 
     dd_to_parquet(
-        ddf, path, engine="pyarrow", compression=compression,
-        storage_options=storage_options, **kwargs
+        ddf,
+        path,
+        engine="pyarrow",
+        compression=compression,
+        storage_options=storage_options,
+        **kwargs,
     )
 
     # Write partition bounding boxes to the _metadata file
