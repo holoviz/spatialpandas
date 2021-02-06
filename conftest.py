@@ -2,18 +2,20 @@
 import pytest
 
 
+_DEFAULT_SKIPSLOW = False
+
 def pytest_addoption(parser):
     """Add command-line flags for pytest."""
     parser.addoption(
         "--skip-slow",
         action="store_true",
         help="skips slow tests",
-        default=True,
+        default=_DEFAULT_SKIPSLOW,
     )
     parser.addoption(
         "--runslow",
         action="store_true",
-        default=False,
+        default=False,  # Only used for cli override
         help="run slow tests",
     )
 

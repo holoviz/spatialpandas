@@ -5,31 +5,31 @@ from setuptools import find_packages, setup
 
 extras_require = {
     'tests': [
-        'pytest',
         'codecov',
-        'pytest-cov',
         'flake8',
+        'geopandas',
         'hypothesis',
+        'pytest-cov',
+        'pytest',
         'scipy',
         'shapely',
-        'geopandas',
     ],
     'examples': [
-        'geopandas',
-        'matplotlib',
-        'descartes',
         'datashader',
+        'descartes',
+        'geopandas',
         'holoviews',
+        'matplotlib',
     ]
 }
 
 install_requires = [
-    'pandas>=0.25',
     'dask[complete] >=2.0',
-    'numba',
-    'pyarrow>=0.15',
-    'param',
     'fsspec',
+    'numba',
+    'pandas>=0.25',
+    'param',
+    'pyarrow>=0.15',
     'retrying',
 ]
 
