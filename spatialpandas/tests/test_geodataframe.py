@@ -1,13 +1,14 @@
-from spatialpandas import GeoDataFrame, GeoSeries
-import pandas as pd
 from collections import OrderedDict
-import pytest
-import dask.dataframe as dd
+
 import dask
+import dask.dataframe as dd
+import geopandas as gp
+import pandas as pd
+import pytest
+import shapely.geometry as sg
 
 import spatialpandas as sp
-import geopandas as gp
-import shapely.geometry as sg
+from spatialpandas import GeoDataFrame, GeoSeries
 
 dask.config.set(scheduler="single-threaded")
 

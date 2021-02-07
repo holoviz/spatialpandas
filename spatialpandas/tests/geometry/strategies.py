@@ -1,13 +1,13 @@
 import numpy as np
 from geopandas import GeoSeries
 from geopandas.array import from_shapely
-from hypothesis import HealthCheck, strategies as st, settings
+from hypothesis import HealthCheck, settings
+from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 from scipy.spatial.qhull import Voronoi
 from shapely import geometry as sg
 from shapely.affinity import scale, translate
 from shapely.ops import cascaded_union, polygonize
-
 
 hyp_settings = settings(
     deadline=None,

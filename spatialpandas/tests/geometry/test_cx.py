@@ -2,15 +2,26 @@ import dask.dataframe as dd
 import pytest
 from hypothesis import given
 from pandas.testing import assert_frame_equal, assert_series_equal
-from spatialpandas import GeoDataFrame, GeoSeries
-from spatialpandas.geometry import (LineArray, MultiLineArray, MultiPointArray,
-                                    MultiPolygonArray, PointArray,
-                                    PolygonArray)
 
-from .strategies import (hyp_settings, st_bounds, st_line_array,
-                         st_multiline_array, st_multipoint_array,
-                         st_multipolygon_array, st_point_array,
-                         st_polygon_array)
+from .strategies import (
+    hyp_settings,
+    st_bounds,
+    st_line_array,
+    st_multiline_array,
+    st_multipoint_array,
+    st_multipolygon_array,
+    st_point_array,
+    st_polygon_array,
+)
+from spatialpandas import GeoDataFrame, GeoSeries
+from spatialpandas.geometry import (
+    LineArray,
+    MultiLineArray,
+    MultiPointArray,
+    MultiPolygonArray,
+    PointArray,
+    PolygonArray,
+)
 
 
 def get_slices(v0, v1):

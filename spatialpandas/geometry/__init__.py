@@ -1,4 +1,4 @@
-from .polygon import Polygon, PolygonArray, PolygonDtype  # noqa 
+from .polygon import Polygon, PolygonArray, PolygonDtype  # noqa
 from .multipolygon import ( # noqa
     MultiPolygon, MultiPolygonArray, MultiPolygonDtype
 )

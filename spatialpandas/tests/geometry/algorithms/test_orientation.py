@@ -1,9 +1,8 @@
 from hypothesis import given
 from shapely import geometry as sg
 
+from ..strategies import coord, hyp_settings
 from spatialpandas.geometry._algorithms.orientation import triangle_orientation
-
-from ..strategies import hyp_settings, coord
 
 
 @given(coord, coord, coord, coord, coord, coord)

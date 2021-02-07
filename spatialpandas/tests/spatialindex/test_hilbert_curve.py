@@ -1,9 +1,9 @@
-from hypothesis import given
-import hypothesis.strategies as st
-from hypothesis import settings
 from itertools import product
+
+import hypothesis.strategies as st
 import numpy as np
 import pytest
+from hypothesis import given, settings
 
 try:
     from hilbertcurve.hilbertcurve import HilbertCurve
@@ -12,8 +12,11 @@ except ImportError:
 
 # ### hypothesis settings ###
 from spatialpandas.spatialindex.hilbert_curve import (
-    coordinates_from_distances, distances_from_coordinates,
-    distance_from_coordinate, coordinate_from_distance)
+    coordinate_from_distance,
+    coordinates_from_distances,
+    distance_from_coordinate,
+    distances_from_coordinates,
+)
 
 hyp_settings = settings(deadline=None)
 

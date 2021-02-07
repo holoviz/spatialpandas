@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 from hypothesis import given
-from spatialpandas.geometry import MultiPolygonArray, PolygonArray
 
 from ..strategies import hyp_settings, st_multipolygon_array, st_polygon_array
+from spatialpandas.geometry import MultiPolygonArray, PolygonArray
 
 
 @pytest.mark.slow

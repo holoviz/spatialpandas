@@ -1,9 +1,9 @@
 import numpy as np
-
-from spatialpandas.geometry._algorithms.bounds import total_bounds_interleaved
-from spatialpandas.geometry._algorithms.orientation import triangle_orientation
-from spatialpandas.utils import ngjit, ngpjit
 from numba import prange
+
+from ...geometry._algorithms.bounds import total_bounds_interleaved
+from ...geometry._algorithms.orientation import triangle_orientation
+from ...utils import ngjit, ngpjit
 
 
 @ngjit

@@ -43,9 +43,9 @@ def sjoin(
     Returns:
         GeoDataFrame or DaskGeoDataFrame (same type as left_df argument)
     """
-    from spatialpandas import GeoDataFrame
+    from .. import GeoDataFrame
     try:
-        from spatialpandas.dask import DaskGeoDataFrame
+        from ..dask import DaskGeoDataFrame
     except ImportError:
         DaskGeoDataFrame = type(None)
 
@@ -137,7 +137,7 @@ def _sjoin_pandas_pandas(
         left_df, right_df, how="inner", op="intersects",
         lsuffix="left", rsuffix="right"
 ):
-    from spatialpandas import GeoDataFrame
+    from .. import GeoDataFrame
 
     # Record original index name(s), generate new index name(s), reset index column(s)
     original_right_df = right_df

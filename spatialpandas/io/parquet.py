@@ -16,13 +16,13 @@ from dask.utils import natural_sort_key
 from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow import parquet as pq
 
-from spatialpandas import GeoDataFrame
-from spatialpandas.dask import DaskGeoDataFrame
-from spatialpandas.geometry import (GeometryDtype, LineDtype, MultiLineDtype,
+from .. import GeoDataFrame
+from ..dask import DaskGeoDataFrame
+from ..geometry import (GeometryDtype, LineDtype, MultiLineDtype,
                                     MultiPointDtype, MultiPolygonDtype,
                                     PointDtype, PolygonDtype, RingDtype)
-from spatialpandas.geometry.base import to_geometry_array
-from spatialpandas.io.utils import validate_coerce_filesystem
+from ..geometry.base import to_geometry_array
+from ..io.utils import validate_coerce_filesystem
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,

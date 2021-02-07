@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis.extra.numpy import arrays
+
 from spatialpandas.spatialindex import HilbertRtree
 
 # ### hypothesis settings ###

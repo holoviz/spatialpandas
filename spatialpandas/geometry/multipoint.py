@@ -1,10 +1,10 @@
 import numpy as np
+from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from spatialpandas.geometry._algorithms.intersection import multipoints_intersect_bounds
-from spatialpandas.geometry.base import GeometryDtype
-from spatialpandas.geometry.baselist import GeometryListArray, GeometryList
-from dask.dataframe.extensions import make_array_nonempty
+from ..geometry._algorithms.intersection import multipoints_intersect_bounds
+from ..geometry.base import GeometryDtype
+from ..geometry.baselist import GeometryList, GeometryListArray
 
 
 @register_extension_dtype

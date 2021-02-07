@@ -7,11 +7,11 @@ import pandas as pd
 import pyarrow as pa
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
 from pandas.api.types import is_array_like
-from spatialpandas.spatialindex import HilbertRtree
-from spatialpandas.spatialindex.rtree import _distances_from_bounds
-from spatialpandas.utils import ngjit
 
 from .._optional_imports import gp, sg
+from ..spatialindex import HilbertRtree
+from ..spatialindex.rtree import _distances_from_bounds
+from ..utils import ngjit
 
 
 def _unwrap_geometry(a, element_dtype):

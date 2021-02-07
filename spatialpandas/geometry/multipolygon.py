@@ -1,22 +1,19 @@
 import numpy as np
 import pyarrow as pa
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from spatialpandas.geometry import Polygon
-from spatialpandas.geometry._algorithms.intersection import (
-    multipolygons_intersect_bounds
-)
-from spatialpandas.geometry._algorithms.orientation import orient_polygons
-from spatialpandas.geometry.base import GeometryDtype
-from spatialpandas.geometry.baselist import (
-    GeometryListArray, GeometryList, _geometry_map_nested3
-)
-from spatialpandas.geometry.multiline import MultiLineArray, MultiLine
-
-from spatialpandas.geometry._algorithms.measures import (
-    compute_line_length, compute_area
-)
-
 from dask.dataframe.extensions import make_array_nonempty
+from pandas.core.dtypes.dtypes import register_extension_dtype
+
+from ..geometry import Polygon
+from ..geometry._algorithms.intersection import multipolygons_intersect_bounds
+from ..geometry._algorithms.measures import compute_area, compute_line_length
+from ..geometry._algorithms.orientation import orient_polygons
+from ..geometry.base import GeometryDtype
+from ..geometry.baselist import (
+    GeometryList,
+    GeometryListArray,
+    _geometry_map_nested3,
+)
+from ..geometry.multiline import MultiLine, MultiLineArray
 
 
 @register_extension_dtype

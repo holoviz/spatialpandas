@@ -2,7 +2,7 @@ from math import sqrt
 
 import numpy as np
 
-from spatialpandas.utils import ngjit
+from ...utils import ngjit
 
 
 @ngjit

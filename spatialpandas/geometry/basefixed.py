@@ -1,12 +1,12 @@
 from functools import total_ordering
-import pyarrow as pa
-import numpy as np
 
-from spatialpandas.geometry.base import Geometry, GeometryArray, GeometryDtype
-from spatialpandas.geometry.baselist import _lexographic_lt
-from ._algorithms.bounds import (
-    total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
-)
+import numpy as np
+import pyarrow as pa
+
+from ..geometry.base import Geometry, GeometryArray, GeometryDtype
+from ..geometry.baselist import _lexographic_lt
+from ._algorithms.bounds import (bounds_interleaved, total_bounds_interleaved,
+                                 total_bounds_interleaved_1d)
 
 
 @total_ordering

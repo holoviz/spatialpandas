@@ -1,12 +1,12 @@
 import numpy as np
-from pandas.core.dtypes.dtypes import register_extension_dtype
-from spatialpandas.geometry._algorithms.intersection import segment_intersects_point, \
-    point_intersects_polygon
-
-from spatialpandas.geometry.base import GeometryDtype
-from spatialpandas.geometry.basefixed import GeometryFixed, GeometryFixedArray
 from dask.dataframe.extensions import make_array_nonempty
-from spatialpandas.utils import ngpjit
+from pandas.core.dtypes.dtypes import register_extension_dtype
+
+from ..geometry._algorithms.intersection import (point_intersects_polygon,
+                                                 segment_intersects_point)
+from ..geometry.base import GeometryDtype
+from ..geometry.basefixed import GeometryFixed, GeometryFixedArray
+from ..utils import ngpjit
 
 
 @register_extension_dtype
@@ -133,7 +133,7 @@ or MultiPoint""".format(typ=type(shape).__name__))
         )
 
     def intersects(self, shape):
-        from . import MultiPoint, Line, MultiLine, Polygon, MultiPolygon
+        from . import Line, MultiLine, MultiPoint, MultiPolygon, Polygon
         if isinstance(shape, Point):
             return self._intersects_point(shape)
         elif isinstance(shape, MultiPoint):
@@ -239,7 +239,7 @@ class PointArray(GeometryFixedArray):
         )
 
     def intersects(self, shape, inds=None):
-        from . import MultiPoint, Line, MultiLine, Polygon, MultiPolygon
+        from . import Line, MultiLine, MultiPoint, MultiPolygon, Polygon
         if isinstance(shape, Point):
             return self._intersects_point(shape, inds)
         elif isinstance(shape, MultiPoint):

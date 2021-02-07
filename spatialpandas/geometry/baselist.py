@@ -1,13 +1,12 @@
 from functools import total_ordering
-import pyarrow as pa
-import numpy as np
 
+import numpy as np
+import pyarrow as pa
 from numba import jit, prange
 
-from spatialpandas.geometry.base import Geometry, GeometryArray
-from ._algorithms.bounds import (
-    total_bounds_interleaved, total_bounds_interleaved_1d, bounds_interleaved
-)
+from ..geometry.base import Geometry, GeometryArray
+from ._algorithms.bounds import (bounds_interleaved, total_bounds_interleaved,
+                                 total_bounds_interleaved_1d)
 
 
 def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
