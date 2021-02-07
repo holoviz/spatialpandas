@@ -39,7 +39,7 @@ install_requires = [
 if sys.platform == 'darwin':
     install_requires.extend([
         'numpy<1.20',
-        'pyarrow=2',
+        'pyarrow==2',
     ])
 else:
     install_requires.extend([
