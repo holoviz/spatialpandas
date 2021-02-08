@@ -2,7 +2,7 @@
 import pytest
 
 
-_DEFAULT_SKIPSLOW = True
+_DEFAULT_SKIPSLOW = False
 
 
 def pytest_addoption(parser):
