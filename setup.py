@@ -24,7 +24,6 @@ extras_require = {
 }
 
 install_requires = [
-    'dask[complete] >=2.0',
     'fsspec',
     'numba',
     'pandas>=0.25',
@@ -39,12 +38,14 @@ install_requires = [
 if sys.platform == 'darwin':
     install_requires.extend([
         'numpy<1.20',
-        'conda-forge::pyarrow==2',
+        'pyarrow==2',
+        'dask[complete]>=2.0,<2021.2',
     ])
 else:
     install_requires.extend([
         'numpy',
         'pyarrow>=0.15',
+        'dask[complete]>=2.0',
     ])
 
 setup_args = dict(
