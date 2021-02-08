@@ -1,3 +1,25 @@
+Version 0.4.0
+=============
+
+### Added
+ - Add HoloViz build infrastructure. ([#50](https://github.com/holoviz/spatialpandas/pull/50))
+ - Add `--skip-slow` and `--run-slow` options, slow tests are still run by default. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+ - Add some type hints to parquet functions. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+
+### Fixed
+ - Fix compatibility with latest pandas. ([#55](https://github.com/holoviz/spatialpandas/pull/55))
+ - Fix certain tests fail due to hypothesis health check. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+ - Pin numpy and dask on MacOS to pass tests. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+
+
+### Updated
+ - Allow using cx indexer without spatial index. ([#54](https://github.com/holoviz/spatialpandas/pull/54))
+ - Switch to GitHub Actions. ([#55](https://github.com/holoviz/spatialpandas/pull/55))
+ - Updated Geometry class __eq__ method so that if other object is a container, the equality method on the container is called, so now performing an equality check between a geometry object and a geometry array should return correct results, which should be a bool array, whereas previously it would simply return False because the objects were not the same immediate type. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+ - Update GeometryArray class __eq__ method to allow comparison of an individual element to all objects in the array, returning an array of bool. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+ - Add NotImplementedError for __contains__ method. ([#60](https://github.com/holoviz/spatialpandas/pull/60))
+
+
 Version 0.3.6
 =============
 
