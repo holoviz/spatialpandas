@@ -39,7 +39,7 @@ if sys.platform == 'darwin':
     install_requires.extend([
         'numpy<1.20',
         'pyarrow==2',
-        'dask[complete]>=2.0,<2021.1',
+        'dask[complete]>=2.0,<2020.12',
     ])
 else:
     install_requires.extend([
