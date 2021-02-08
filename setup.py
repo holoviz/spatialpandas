@@ -28,6 +28,7 @@ install_requires = [
     'numba',
     'pandas>=0.25',
     'param',
+    'pyarrow>=0.15',
     'retrying',
     'snappy',
 ]
@@ -37,15 +38,13 @@ install_requires = [
 # such as 'numpy<1.20;platform_system=="Darwin"'
 if sys.platform == 'darwin':
     install_requires.extend([
-        'numpy<1.20',
-        'pyarrow==2',
         'dask[complete]>=2.0,<2020.12',
+        'numpy<1.20',
     ])
 else:
     install_requires.extend([
-        'numpy',
-        'pyarrow>=0.15',
         'dask[complete]>=2.0',
+        'numpy',
     ])
 
 setup_args = dict(
