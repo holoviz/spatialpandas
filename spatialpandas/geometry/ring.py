@@ -1,9 +1,8 @@
-from pandas.core.dtypes.dtypes import register_extension_dtype
 import numpy as np
-from spatialpandas.geometry.line import (
-    LineDtype, Line, LineArray
-)
 from dask.dataframe.extensions import make_array_nonempty
+from pandas.core.dtypes.dtypes import register_extension_dtype
+
+from ..geometry.line import Line, LineArray, LineDtype
 
 
 @register_extension_dtype

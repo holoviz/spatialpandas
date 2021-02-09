@@ -1,6 +1,7 @@
-import spatialpandas as sp
 import dask.dataframe as dd
 import pandas as pd
+
+import spatialpandas as sp
 
 
 def test_dask_registration():
@@ -10,4 +11,3 @@ def test_dask_registration():
         'v': [1, 2, 3]
     }), npartitions=3)
     assert isinstance(ddf, sp.dask.DaskGeoDataFrame)
-

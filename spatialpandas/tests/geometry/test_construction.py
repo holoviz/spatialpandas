@@ -1,5 +1,6 @@
-from spatialpandas.geometry import PointArray
 import numpy as np
+
+from spatialpandas.geometry import PointArray
 
 
 def test_construct_pointarray_interleaved():

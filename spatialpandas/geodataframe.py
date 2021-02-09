@@ -1,7 +1,8 @@
 import pandas as pd
+
+from ._optional_imports import gp
 from .geometry import GeometryDtype
 from .geoseries import GeoSeries, _MaybeGeoSeries
-from ._optional_imports import gp
 
 
 class _MaybeGeoDataFrame(pd.DataFrame):

@@ -1,15 +1,13 @@
 import numpy as np
-from numba import int64, float64
+from numba import float64, int64
 
 try:
     from numba.experimental import jitclass
 except ImportError:
     from numba import jitclass
 
-from spatialpandas.spatialindex.hilbert_curve import (
-    distances_from_coordinates
-)
-from spatialpandas.utils import ngjit, _data2coord
+from ..spatialindex.hilbert_curve import distances_from_coordinates
+from ..utils import _data2coord, ngjit
 
 
 @ngjit

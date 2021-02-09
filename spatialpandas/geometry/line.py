@@ -1,14 +1,12 @@
-from pandas.core.dtypes.dtypes import register_extension_dtype
-
-from spatialpandas.geometry._algorithms.intersection import lines_intersect_bounds
-from spatialpandas.geometry._algorithms.measures import compute_line_length
-from spatialpandas.geometry.base import GeometryDtype
-
-from spatialpandas.geometry.baselist import (
-    GeometryListArray, GeometryList, _geometry_map_nested1
-)
 import numpy as np
 from dask.dataframe.extensions import make_array_nonempty
+from pandas.core.dtypes.dtypes import register_extension_dtype
+
+from ..geometry._algorithms.intersection import lines_intersect_bounds
+from ..geometry._algorithms.measures import compute_line_length
+from ..geometry.base import GeometryDtype
+from ..geometry.baselist import (GeometryList, GeometryListArray,
+                                 _geometry_map_nested1)
 
 
 @register_extension_dtype

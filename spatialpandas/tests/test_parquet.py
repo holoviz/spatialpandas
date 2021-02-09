@@ -3,23 +3,25 @@ import dask.dataframe as dd
 import hypothesis.strategies as hs
 import numpy as np
 import pandas as pd
-
-from hypothesis import given, settings, HealthCheck, Phase, Verbosity
-
-from spatialpandas import GeoSeries, GeoDataFrame
-from spatialpandas.dask import DaskGeoDataFrame
-from spatialpandas.io import (
-    to_parquet, read_parquet, read_parquet_dask
-)
+import pytest
+from hypothesis import HealthCheck, Phase, Verbosity, given, settings
 
 from .geometry.strategies import (
-    st_multipoint_array, st_multiline_array, st_point_array, st_bounds
+    st_bounds,
+    st_multiline_array,
+    st_multipoint_array,
+    st_point_array,
 )
+from spatialpandas import GeoDataFrame, GeoSeries
+from spatialpandas.dask import DaskGeoDataFrame
+from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet
 
 dask.config.set(scheduler="single-threaded")
 
 hyp_settings = settings(
-    deadline=None, max_examples=100, suppress_health_check=[HealthCheck.too_slow]
+    deadline=None,
+    max_examples=100,
+    suppress_health_check=[HealthCheck.too_slow],
 )
 
 
@@ -161,6 +163,7 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
     np.testing.assert_equal(expected_distances, hilbert_distances)
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint=st_multipoint_array(min_size=60, max_size=100, geoseries=True),
     gp_multiline=st_multiline_array(min_size=60, max_size=100, geoseries=True),
@@ -235,6 +238,7 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline,
         )
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint1=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline1=st_multiline_array(min_size=10, max_size=40, geoseries=True),
@@ -303,6 +307,7 @@ def test_pack_partitions_to_parquet_glob(gp_multipoint1, gp_multiline1,
         assert ddf_globbed.geometry.name == 'lines'
 
 
+@pytest.mark.slow
 @given(
     gp_multipoint1=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline1=st_multiline_array(min_size=10, max_size=40, geoseries=True),

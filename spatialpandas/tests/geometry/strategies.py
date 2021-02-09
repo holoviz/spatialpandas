@@ -1,15 +1,19 @@
 import numpy as np
 from geopandas import GeoSeries
 from geopandas.array import from_shapely
-from hypothesis import strategies as st, settings
+from hypothesis import HealthCheck, settings
+from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
 from scipy.spatial.qhull import Voronoi
 from shapely import geometry as sg
 from shapely.affinity import scale, translate
 from shapely.ops import cascaded_union, polygonize
 
-
-hyp_settings = settings(deadline=None, max_examples=500)
+hyp_settings = settings(
+    deadline=None,
+    max_examples=500,
+    suppress_health_check=[HealthCheck.too_slow],
+)
 
 coord = st.floats(
     allow_infinity=False, allow_nan=False, max_value=1000, min_value=-1000

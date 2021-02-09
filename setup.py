@@ -1,41 +1,58 @@
-from setuptools import setup, find_packages
+import sys
+
 import param
+from setuptools import find_packages, setup
 
 extras_require = {
     'tests': [
-        'pytest',
         'codecov',
-        'pytest-cov',
         'flake8',
+        'geopandas',
         'hypothesis',
+        'pytest-cov',
+        'pytest',
         'scipy',
         'shapely',
-        'geopandas',
     ],
     'examples': [
-        'geopandas',
-        'matplotlib',
-        'descartes',
         'datashader',
+        'descartes',
+        'geopandas',
         'holoviews',
+        'matplotlib',
     ]
 }
 
 install_requires = [
-    'pandas>=0.25',
-    'dask[complete] >=2.0',
-    'numba',
-    'numpy',
-    'pyarrow>=0.15',
-    'param',
     'fsspec',
+    'numba',
+    'pandas>=0.25',
+    'param',
+    'pyarrow>=0.15',
     'retrying',
+    'snappy',
 ]
+
+# Checking for platform explicitly because
+# pyctdev does not handle dependency conditions
+# such as 'numpy<1.20;platform_system=="Darwin"'
+if sys.platform == 'darwin':
+    install_requires.extend([
+        'dask[complete]>=2.0,<2020.12',
+        'numpy<1.20',
+    ])
+else:
+    install_requires.extend([
+        'dask[complete]>=2.0',
+        'numpy',
+    ])
 
 setup_args = dict(
     name='spatialpandas',
     version=param.version.get_setup_version(
-        __file__, "spatialpandas", archive_commit="$Format:%h$"
+        __file__,
+        "spatialpandas",
+        archive_commit="$Format:%h$",
     ),
     description='Pandas extension arrays for spatial/geometric operations',
     long_description=open("README.md").read(),
@@ -49,9 +66,8 @@ setup_args = dict(
     tests_require=extras_require['tests'],
     license='BSD-2-Clause',
     packages=find_packages(exclude=('tests', 'tests.*')),
-    include_package_data=True
+    include_package_data=True,
 )
 
 if __name__ == '__main__':
     setup(**setup_args)
-

@@ -1,21 +1,34 @@
 import numpy as np
-
-from hypothesis import given, example
+import pytest
+from hypothesis import example, given
 from shapely import geometry as sg
 
+from ..strategies import (
+    coord,
+    hyp_settings,
+    st_bounds,
+    st_line_array,
+    st_multiline_array,
+    st_multipoint_array,
+    st_multipolygon_array,
+    st_point_array,
+    st_points,
+    st_polygon,
+    st_polygon_array,
+)
 from spatialpandas.geometry import (
-    Polygon, MultiPointArray, LineArray, MultiLineArray, PolygonArray,
-    MultiPolygonArray, PointArray
+    LineArray,
+    MultiLineArray,
+    MultiPointArray,
+    MultiPolygonArray,
+    PointArray,
+    Polygon,
+    PolygonArray,
 )
 from spatialpandas.geometry._algorithms.intersection import (
-    segments_intersect, point_intersects_polygon,
-    segment_intersects_point
-)
-
-from ..strategies import (
-    st_polygon, st_multipoint_array, st_bounds, st_line_array,
-    st_multiline_array, st_polygon_array, st_multipolygon_array,
-    hyp_settings, coord, st_points, st_point_array
+    point_intersects_polygon,
+    segment_intersects_point,
+    segments_intersect,
 )
 
 
@@ -164,6 +177,7 @@ def test_multiline_intersects_rect(gp_multiline, rect):
     np.testing.assert_equal(result, expected)
 
 
+@pytest.mark.slow
 @given(
     st_polygon_array(),
     st_bounds(
@@ -193,6 +207,7 @@ def test_polygon_intersects_rect(gp_polygon, rect):
     np.testing.assert_equal(result, expected)
 
 
+@pytest.mark.slow
 @given(
     st_multipolygon_array(),
     st_bounds(

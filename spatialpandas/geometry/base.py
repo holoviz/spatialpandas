@@ -1,5 +1,6 @@
+import re
+from collections.abc import Container, Iterable
 from numbers import Integral
-from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -7,12 +8,10 @@ import pyarrow as pa
 from pandas.api.extensions import ExtensionArray, ExtensionDtype
 from pandas.api.types import is_array_like
 
-from spatialpandas.spatialindex import HilbertRtree
-from spatialpandas.spatialindex.rtree import _distances_from_bounds
-import re
-
-from spatialpandas.utils import ngjit
-from .._optional_imports import sg, gp
+from .._optional_imports import gp, sg
+from ..spatialindex import HilbertRtree
+from ..spatialindex.rtree import _distances_from_bounds
+from ..utils import ngjit
 
 
 def _unwrap_geometry(a, element_dtype):
@@ -144,6 +143,8 @@ class Geometry:
         return hash((self.__class__, np.array(self.data.as_py()).tobytes()))
 
     def __eq__(self, other):
+        if isinstance(other, Container):
+            return other == self
         if type(other) is not type(self):
             return False
         return self.data == other.data
@@ -336,10 +337,17 @@ Cannot check equality of {typ} instances of unequal length
             for i in range(len(self)):
                 result[i] = self[i] == other[i]
             return result
-        else:
-            raise ValueError("""
+        if isinstance(other, (self.dtype.type, type(None))):
+            result = np.zeros(len(self), dtype=np.bool_)
+            for i in range(len(self)):
+                result[i] = self[i] == other
+            return result
+        raise ValueError("""
 Cannot check equality of {typ} of length {a_len} with:
     {other}""".format(typ=type(self).__name__, a_len=len(self), other=repr(other)))
+
+    def __contains__(self, item) -> bool:
+        raise NotImplementedError
 
     def __len__(self):
         return len(self.data)
@@ -499,8 +507,8 @@ Cannot check equality of {typ} of length {a_len} with:
 
     def fillna(self, value=None, method=None, limit=None):
         from pandas.api.types import is_array_like
-        from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import get_fill_func
+        from pandas.util._validators import validate_fillna_kwargs
 
         value, method = validate_fillna_kwargs(value, method)
 
@@ -766,10 +774,8 @@ def is_geometry_array(data):
 
 
 def to_geometry_array(data, dtype=None):
-    from . import (
-        PointArray, MultiPointArray,  LineArray, RingArray,
-        MultiLineArray, PolygonArray, MultiPolygonArray
-    )
+    from . import (LineArray, MultiLineArray, MultiPointArray,
+                   MultiPolygonArray, PointArray, PolygonArray, RingArray)
     if sg is not None:
         shapely_to_spatialpandas = {
             sg.Point: PointArray,

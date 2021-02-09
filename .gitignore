@@ -106,3 +106,9 @@ venv.bak/
 *.parq
 .idea/
 spatialpandas/.version
+
+.vscode/
+
+monkeytype.sqlite3
+
+.doit.db

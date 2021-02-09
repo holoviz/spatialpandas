@@ -1,24 +1,26 @@
-import dask.dataframe as dd
-from dask import delayed
-from dask.dataframe.partitionquantiles import partition_quantiles
-
-from spatialpandas.geometry.base import _BaseCoordinateIndexer, GeometryDtype
-from spatialpandas.spatialindex import HilbertRtree
-from .geoseries import GeoSeries
-from .geodataframe import GeoDataFrame
-import dask
-from dask.dataframe.core import get_parallel_type
-from dask.dataframe.utils import make_meta, meta_nonempty, make_array_nonempty
-import pandas as pd
-import numpy as np
-import pyarrow.parquet as pq
-import pyarrow as pa
+import copy
+import json
 import os
 import uuid
-import json
-import copy
 from inspect import signature
+
+import numpy as np
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from retrying import retry
+
+import dask
+import dask.dataframe as dd
+from dask import delayed
+from dask.dataframe.core import get_parallel_type
+from dask.dataframe.partitionquantiles import partition_quantiles
+from dask.dataframe.utils import make_array_nonempty, make_meta, meta_nonempty
+
+from .geodataframe import GeoDataFrame
+from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
+from .geoseries import GeoSeries
+from .spatialindex import HilbertRtree
 
 
 class DaskGeoSeries(dd.Series):

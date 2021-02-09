@@ -1,5 +1,6 @@
 import pandas.tests.extension.base as eb
 import pytest
+
 from spatialpandas.geometry import LineArray, LineDtype
 
 

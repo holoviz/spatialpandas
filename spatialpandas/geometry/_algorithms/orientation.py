@@ -1,6 +1,7 @@
-from spatialpandas.geometry._algorithms.measures import compute_area
-from spatialpandas.utils import ngjit
 import numpy as np
+
+from ...geometry._algorithms.measures import compute_area
+from ...utils import ngjit
 
 
 @ngjit

@@ -1,10 +1,12 @@
-from hypothesis import given
-import hypothesis.strategies as st
-from hypothesis import settings
-from hypothesis.extra.numpy import arrays
-import numpy as np
-from spatialpandas.spatialindex import HilbertRtree
 import pickle
+
+import hypothesis.strategies as st
+import numpy as np
+import pytest
+from hypothesis import given, settings
+from hypothesis.extra.numpy import arrays
+
+from spatialpandas.spatialindex import HilbertRtree
 
 # ### hypothesis settings ###
 hyp_settings = settings(deadline=None)
@@ -169,6 +171,7 @@ def test_rtree_intersects_none(bounds_array, page_size):
     assert intersected == set()
 
 
+@pytest.mark.slow
 @given(st_bounds_array(), st_page_size)
 @hyp_settings
 def test_rtree_covers_overlaps_input_bounds(bounds_array, page_size):
