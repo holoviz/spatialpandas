@@ -29,8 +29,8 @@ install_requires = [
     'pandas>=0.25',
     'param',
     'pyarrow>=0.15',
+    'python-snappy',
     'retrying',
-    'snappy',
 ]
 
 # Checking for platform explicitly because
