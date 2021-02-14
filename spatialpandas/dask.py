@@ -78,11 +78,11 @@ class DaskGeoSeries(dd.Series):
     def cx_partitions(self):
         return _DaskPartitionCoordinateIndexer(self, self.partition_sindex)
 
-    def build_sindex(self):
-        def build_sindex(series):
-            series.build_sindex()
+    def build_sindex(self, **kwargs):
+        def build_sindex(series, **kwargs):
+            series.build_sindex(**kwargs)
             return series
-        return self.map_partitions(build_sindex, meta=self._meta)
+        return self.map_partitions(build_sindex, **kwargs, meta=self._meta)
 
     def intersects_bounds(self, bounds):
         return self.map_partitions(lambda s: s.intersects_bounds(bounds))
@@ -195,8 +195,14 @@ class DaskGeoDataFrame(dd.DataFrame):
         return ddf
 
     def pack_partitions_to_parquet(
-            self, path, filesystem=None, npartitions=None, p=15, compression="snappy",
-            tempdir_format=None, _retry_args=None
+        self,
+        path,
+        filesystem=None,
+        npartitions=None,
+        p=15,
+        compression="snappy",
+        tempdir_format=None,
+        _retry_args=None,
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -523,11 +529,11 @@ class DaskGeoDataFrame(dd.DataFrame):
             new_series._partition_sindex = self._partition_sindex[new_series.name]
         return new_series
 
-    def build_sindex(self):
-        def build_sindex(df):
-            df.build_sindex()
+    def build_sindex(self, **kwargs):
+        def build_sindex(df, **kwargs):
+            df.build_sindex(**kwargs)
             return df
-        return self.map_partitions(build_sindex, meta=self._meta)
+        return self.map_partitions(build_sindex, **kwargs, meta=self._meta)
 
     def persist(self, **kwargs):
         return self._propagate_props_to_dataframe(
