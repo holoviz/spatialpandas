@@ -13,6 +13,9 @@ extras_require = {
         'pytest',
         'scipy',
         'shapely',
+        'twine',
+        'rfc3986',
+        'keyring'
     ],
     'examples': [
         'datashader',
