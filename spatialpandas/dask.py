@@ -14,8 +14,9 @@ import dask
 import dask.dataframe as dd
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
+from dask.dataframe.dispatch import make_meta, meta_nonempty
+from dask.dataframe.extensions import make_array_nonempty
 from dask.dataframe.partitionquantiles import partition_quantiles
-from dask.dataframe.utils import make_array_nonempty, make_meta, meta_nonempty
 
 from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
