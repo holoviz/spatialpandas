@@ -31,7 +31,7 @@ install_requires = [
     'numba',
     'pandas >=0.25',
     'param',
-    'pyarrow >=2.0',
+    'pyarrow >=1.0',
     'python-snappy',
     'retrying',
 ]
