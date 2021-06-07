@@ -44,6 +44,7 @@ jobs:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
           channel-priority: strict
+          activate-environment: test-environment
       - name: Fetch
         run: git fetch --prune --tags
       - name: conda setup
