@@ -29,9 +29,9 @@ extras_require = {
 install_requires = [
     'fsspec',
     'numba',
-    'pandas>=0.25',
+    'pandas >=0.25',
     'param',
-    'pyarrow>=0.15',
+    'pyarrow >=2.0',
     'python-snappy',
     'retrying',
 ]
