@@ -42,6 +42,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
+          channel-priority: strict
       - name: Fetch
         run: git fetch --prune --tags
       - name: conda setup
