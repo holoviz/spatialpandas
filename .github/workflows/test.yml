@@ -59,7 +59,7 @@ jobs:
           conda activate test-environment
           conda list
           doit develop_install ${{ env.CHANS_DEV }} -o tests
-          pip install hilbertcurve
+          conda install -c conda-forge hilbertcurve
       - name: doit env_capture
         run: |
           eval "$(conda shell.bash hook)"
