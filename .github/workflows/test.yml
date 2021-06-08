@@ -32,8 +32,7 @@ jobs:
         shell: bash -l {0}
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
-      CHANS_DEV: "-c pyviz/label/dev -c conda-forge"
-      CHANS_OSX: "-c pyviz/label/dev -c conda-forge"
+      CHANS_DEV: "-c conda-forge -c pyviz/label/dev"
       CHANS: "-c pyviz"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
