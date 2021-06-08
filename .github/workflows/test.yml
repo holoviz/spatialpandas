@@ -22,6 +22,10 @@ jobs:
             python-version: 3.6
           - os: macos-latest
             python-version: 3.8
+            # Fiona for Python 3.6 on Windows has build issues
+            # See https://github.com/conda-forge/fiona-feedstock/issues/171 for more details
+          - os: windows-latest
+            python-version: 3.6
     timeout-minutes: 60
     defaults:
       run:
