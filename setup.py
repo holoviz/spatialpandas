@@ -6,6 +6,7 @@ extras_require = {
     'tests': [
         'codecov',
         'flake8',
+        'hilbertcurve',
         'geopandas-base',
         'hypothesis',
         'pytest-cov',

@@ -46,8 +46,6 @@ jobs:
         with:
           miniconda-version: "latest"
           python-version: ${{ matrix.python-version }}
-          channel-priority: strict
-          activate-environment: test-environment
       - name: Fetch
         run: git fetch --prune --tags
       - name: conda setup
@@ -62,7 +60,6 @@ jobs:
           conda activate test-environment
           conda list
           doit develop_install ${{ env.CHANS_DEV }} -o tests
-          conda install -c conda-forge hilbertcurve
       - name: doit env_capture
         run: |
           eval "$(conda shell.bash hook)"
