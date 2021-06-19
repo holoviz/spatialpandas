@@ -15,7 +15,12 @@ import dask.dataframe as dd
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.partitionquantiles import partition_quantiles
-from dask.dataframe.utils import make_array_nonempty, make_meta, meta_nonempty
+from dask.dataframe.extensions import make_array_nonempty
+try:
+    from dask.dataframe.dispatch import make_meta_dispatch
+    from dask.dataframe.backends import meta_nonempty
+except ImportError:
+    from dask.dataframe.utils import make_meta as make_meta_dispatch, meta_nonempty
 
 from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
@@ -99,7 +104,7 @@ class DaskGeoSeries(dd.Series):
         )
 
 
-@make_meta.register(GeoSeries)
+@make_meta_dispatch.register(GeoSeries)
 def make_meta_series(s, index=None):
     result = s.head(0)
     if index is not None:
@@ -552,7 +557,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         return result
 
 
-@make_meta.register(GeoDataFrame)
+@make_meta_dispatch.register(GeoDataFrame)
 def make_meta_dataframe(df, index=None):
     result = df.head(0)
     if index is not None:

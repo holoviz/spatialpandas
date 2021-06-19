@@ -1,18 +1,21 @@
-import sys
-
 import param
+
 from setuptools import find_packages, setup
 
 extras_require = {
     'tests': [
         'codecov',
         'flake8',
-        'geopandas',
+        'hilbertcurve',
+        'geopandas-base',
         'hypothesis',
         'pytest-cov',
         'pytest',
         'scipy',
         'shapely',
+        'twine',
+        'rfc3986',
+        'keyring'
     ],
     'examples': [
         'datashader',
@@ -26,26 +29,14 @@ extras_require = {
 install_requires = [
     'fsspec',
     'numba',
-    'pandas>=0.25',
+    'pandas >=0.25',
     'param',
-    'pyarrow>=0.15',
+    'pyarrow >=1.0',
     'python-snappy',
     'retrying',
+    'numpy',
+    'dask[complete] >=2.0'
 ]
-
-# Checking for platform explicitly because
-# pyctdev does not handle dependency conditions
-# such as 'numpy<1.20;platform_system=="Darwin"'
-if sys.platform == 'darwin':
-    install_requires.extend([
-        'dask[complete]>=2.0,<2020.12',
-        'numpy<1.20',
-    ])
-else:
-    install_requires.extend([
-        'dask[complete]>=2.0',
-        'numpy',
-    ])
 
 setup_args = dict(
     name='spatialpandas',

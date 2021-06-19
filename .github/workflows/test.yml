@@ -22,14 +22,17 @@ jobs:
             python-version: 3.6
           - os: macos-latest
             python-version: 3.8
-    timeout-minutes: 40
+            # Fiona for Python 3.6 on Windows has build issues
+            # See https://github.com/conda-forge/fiona-feedstock/issues/171 for more details
+          - os: windows-latest
+            python-version: 3.6
+    timeout-minutes: 60
     defaults:
       run:
         shell: bash -l {0}
     env:
       PYTHON_VERSION: ${{ matrix.python-version }}
-      CHANS_DEV: "-c pyviz/label/dev"
-      CHANS_OSX: "-c pyviz/label/dev -c conda-forge"
+      CHANS_DEV: "-c conda-forge -c pyviz/label/dev"
       CHANS: "-c pyviz"
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -42,6 +45,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
+          python-version: ${{ matrix.python-version }}
       - name: Fetch
         run: git fetch --prune --tags
       - name: conda setup
@@ -50,21 +54,12 @@ jobs:
           conda install -c pyviz "pyctdev>=0.5"
           doit ecosystem_setup
           doit env_create ${{ env.CHANS_DEV}} --python=${{ matrix.python-version }}
-      - name: doit develop_install osx
-        if: contains(matrix.os, 'macos')
-        run: |
-          eval "$(conda shell.bash hook)"
-          conda activate test-environment
-          doit develop_install ${{ env.CHANS_OSX }} -o tests
-          pip install hilbertcurve
       - name: doit develop_install
-        if: (!contains(matrix.os, 'macos'))
         run: |
           eval "$(conda shell.bash hook)"
           conda activate test-environment
           conda list
           doit develop_install ${{ env.CHANS_DEV }} -o tests
-          pip install hilbertcurve
       - name: doit env_capture
         run: |
           eval "$(conda shell.bash hook)"
