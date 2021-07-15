@@ -355,6 +355,8 @@ Cannot check equality of {typ} of length {a_len} with:
     def __getitem__(self, item):
         err_msg = ("Only integers, slices and integer or boolean"
                    "arrays are valid indices.")
+        if isinstance(item, tuple) and len(item) == 2 and item[0] is Ellipsis:
+            item = item[1]
         if isinstance(item, Integral):
             item = int(item)
             if item < -len(self) or item >= len(self):
