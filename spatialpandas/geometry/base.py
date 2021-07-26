@@ -396,7 +396,7 @@ Cannot check equality of {typ} of length {a_len} with:
                 # Check mask length is compatible
                 if len(item) != len(self):
                     raise IndexError(
-                        "boolean mask length ({}) doesn't match array length ({})"
+                        "Boolean index has wrong length: {} instead of {}"
                         .format(len(item), len(self))
                     )
 
@@ -429,7 +429,7 @@ Cannot check equality of {typ} of length {a_len} with:
         # Validate self non-empty (Pandas expects this error when array is empty)
         if (len(self) == 0 and len(indices) > 0 and
                 (not allow_fill or any(indices >= 0))):
-            raise IndexError("cannot do a non-empty take on {typ}".format(
+            raise IndexError("cannot do a non-empty take from an empty axes|out of bounds on {typ}".format(
                 typ=self.__class__.__name__,
             ))
 
