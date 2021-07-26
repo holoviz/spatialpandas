@@ -531,7 +531,7 @@ Cannot check equality of {typ} of length {a_len} with:
         if mask.any():
             if method is not None:
                 func = get_fill_func(method)
-                new_values = func(self.astype(object), limit=limit, mask=mask)
+                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
                 new_values = self._from_sequence(new_values, self._dtype)
             else:
                 # fill with value
