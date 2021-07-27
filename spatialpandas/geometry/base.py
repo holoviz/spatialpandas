@@ -531,7 +531,9 @@ Cannot check equality of {typ} of length {a_len} with:
         if mask.any():
             if method is not None:
                 func = get_fill_func(method)
-                new_values, _ = func(self.astype(object), limit=limit, mask=mask)
+                new_values = func(self.astype(object), limit=limit, mask=mask)
+                # From pandas 1.3, get_fill_func also return mask
+                new_values = new_values[0] if isinstance(new_values, tuple) else new_values
                 new_values = self._from_sequence(new_values, self._dtype)
             else:
                 # fill with value
