@@ -355,6 +355,12 @@ Cannot check equality of {typ} of length {a_len} with:
     def __getitem__(self, item):
         err_msg = ("Only integers, slices and integer or boolean"
                    "arrays are valid indices.")
+        if isinstance(item, tuple) and len(item) == 2:
+            if item[0] is Ellipsis:
+                item = item[1]
+            elif item[1] is Ellipsis:
+                item = item[0]
+
         if isinstance(item, Integral):
             item = int(item)
             if item < -len(self) or item >= len(self):
@@ -390,7 +396,7 @@ Cannot check equality of {typ} of length {a_len} with:
                 # Check mask length is compatible
                 if len(item) != len(self):
                     raise IndexError(
-                        "boolean mask length ({}) doesn't match array length ({})"
+                        "Boolean index has wrong length: {} instead of {}"
                         .format(len(item), len(self))
                     )
 
@@ -423,7 +429,7 @@ Cannot check equality of {typ} of length {a_len} with:
         # Validate self non-empty (Pandas expects this error when array is empty)
         if (len(self) == 0 and len(indices) > 0 and
                 (not allow_fill or any(indices >= 0))):
-            raise IndexError("cannot do a non-empty take on {typ}".format(
+            raise IndexError("cannot do a non-empty take from an empty axes|out of bounds on {typ}".format(
                 typ=self.__class__.__name__,
             ))
 
@@ -526,6 +532,8 @@ Cannot check equality of {typ} of length {a_len} with:
             if method is not None:
                 func = get_fill_func(method)
                 new_values = func(self.astype(object), limit=limit, mask=mask)
+                # From pandas 1.3, get_fill_func also return mask
+                new_values = new_values[0] if isinstance(new_values, tuple) else new_values
                 new_values = self._from_sequence(new_values, self._dtype)
             else:
                 # fill with value
