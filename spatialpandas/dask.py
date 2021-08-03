@@ -203,12 +203,12 @@ class DaskGeoDataFrame(dd.DataFrame):
         self,
         path,
         filesystem=None,
-        storage_options=None,
         npartitions=None,
         p=15,
         compression="snappy",
         tempdir_format=None,
         _retry_args=None,
+        storage_options=None,
         engine_kwargs=None,
     ):
         """
