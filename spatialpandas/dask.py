@@ -203,11 +203,13 @@ class DaskGeoDataFrame(dd.DataFrame):
         self,
         path,
         filesystem=None,
+        storage_options=None,
         npartitions=None,
         p=15,
         compression="snappy",
         tempdir_format=None,
         _retry_args=None,
+        engine_kwargs=None,
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -241,7 +243,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         from .io.utils import validate_coerce_filesystem
 
         # Get fsspec filesystem object
-        filesystem = validate_coerce_filesystem(path, filesystem)
+        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
         # Decorator for operations that should be retried
         if _retry_args is None:
@@ -338,7 +340,12 @@ class DaskGeoDataFrame(dd.DataFrame):
         @retryit
         def write_partition(df_part, part_path):
             with filesystem.open(part_path, "wb") as f:
-                df_part.to_parquet(f, compression=compression, index=True)
+                df_part.to_parquet(
+                    f,
+                    compression=compression,
+                    index=True,
+                    **(engine_kwargs or {}),
+                )
 
         def process_partition(df, i):
             subpart_paths = {}

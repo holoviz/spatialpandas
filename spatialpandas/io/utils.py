@@ -1,9 +1,18 @@
-import pathlib
+from os import PathLike
+from pathlib import Path
+from typing import Any, Dict, Iterable, Optional, Union
 
 import fsspec
 
+PathType = Union[PathLike, str, Path]
 
-def validate_coerce_filesystem(path, filesystem=None):
+
+def validate_coerce_filesystem(
+    path: PathType,
+    filesystem: Optional[Union[str, fsspec.AbstractFileSystem]] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
+) -> fsspec.AbstractFileSystem:
     """
     Validate filesystem argument and return an fsspec file system object
 
@@ -15,16 +24,31 @@ def validate_coerce_filesystem(path, filesystem=None):
     Returns:
         fsspec file system
     """
+    if isinstance(filesystem, fsspec.AbstractFileSystem):
+        return filesystem
+    fsspec_opts = kwargs.copy()
+    if storage_options:
+        fsspec_opts.update(storage_options)
     if filesystem is None:
-        return fsspec.open(path).fs
+        return fsspec.open(path, **fsspec_opts).fs
     else:
-        if isinstance(filesystem, (str, pathlib.Path)):
-            return fsspec.filesystem(str(filesystem))
-        elif isinstance(filesystem, fsspec.AbstractFileSystem):
-            return filesystem
-        else:
+        try:
+            return fsspec.filesystem(filesystem, **fsspec_opts)
+        except ValueError:
             raise ValueError(
                 "Received invalid filesystem value with type: {typ}".format(
                     typ=type(filesystem)
                 )
             )
+
+
+def _maybe_prepend_protocol(
+    paths: Iterable[PathType],
+    filesystem: fsspec.AbstractFileSystem,
+) -> Iterable[PathType]:
+    protocol = filesystem.protocol if isinstance(
+        filesystem.protocol, str) else filesystem.protocol[0]
+    if protocol not in ("file", "abstract"):
+        # Add back prefix (e.g. s3://)
+        paths = ["{proto}://{p}".format(proto=protocol, p=p) for p in paths]
+    return paths
