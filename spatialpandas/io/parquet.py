@@ -47,6 +47,7 @@ def _load_parquet_pandas_metadata(
     path,
     filesystem=None,
     storage_options=None,
+    engine_kwargs=None,
 ):
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
     if not filesystem.exists(path):
@@ -54,7 +55,10 @@ def _load_parquet_pandas_metadata(
 
     if filesystem.isdir(path):
         pqds = pq.ParquetDataset(
-            path, filesystem=filesystem, validate_schema=False
+            path,
+            filesystem=filesystem,
+            validate_schema=False,
+            **(engine_kwargs or {}),
         )
         common_metadata = pqds.common_metadata
         if common_metadata is None:
@@ -110,7 +114,7 @@ def to_parquet(
 
 
 def read_parquet(
-    path: str,
+    path: PathType,
     columns: Optional[Iterable[str]] = None,
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
     storage_options: Optional[Dict[str, Any]] = None,
@@ -120,7 +124,12 @@ def read_parquet(
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
     # Load pandas parquet metadata
-    metadata = _load_parquet_pandas_metadata(path, filesystem, storage_options)
+    metadata = _load_parquet_pandas_metadata(
+        path,
+        filesystem=filesystem,
+        storage_options=storage_options,
+        engine_kwargs=engine_kwargs,
+    )
 
     # If columns specified, prepend index columns to it
     if columns is not None:
@@ -396,6 +405,7 @@ def _perform_read_parquet_dask(
         paths[0],
         filesystem=filesystem,
         storage_options=storage_options,
+        engine_kwargs=engine_kwargs,
     )
     geom_cols = _get_geometry_columns(metadata)
     if geom_cols:
