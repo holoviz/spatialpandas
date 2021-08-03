@@ -1,6 +1,5 @@
 import dask.dataframe as dd
 import geopandas as gp
-import hypothesis.strategies as hs
 import numpy as np
 import pandas as pd
 import pytest
