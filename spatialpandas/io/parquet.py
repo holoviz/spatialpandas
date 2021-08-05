@@ -2,6 +2,7 @@ import copy
 import json
 import pathlib
 from functools import reduce
+from glob import has_magic
 from numbers import Number
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -178,7 +179,9 @@ def to_parquet_dask(
     if not isinstance(ddf, DaskGeoDataFrame):
         raise TypeError(f"Expected DaskGeoDataFrame not {type(ddf)}")
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
-    if "append" not in kwargs and path and filesystem.isdir(path):
+    if kwargs.get("overwrite", False) and \
+        not kwargs.get("append", False) and \
+            path and filesystem.isdir(path):
         filesystem.rm(path, recursive=True)
 
     dd_to_parquet(
@@ -273,27 +276,27 @@ def read_parquet_dask(
     """
     # Normalize path to a list
     if isinstance(path, (str, pathlib.Path)):
-        path = [str(path)]
+        paths = [str(path)]
     else:
-        path = list(path)
-        if not path:
+        paths = list(path)
+        if not paths:
             raise ValueError('Empty path specification')
 
     # Infer filesystem
     filesystem = validate_coerce_filesystem(
-        path[0],
+        paths[0],
         filesystem,
         storage_options,
     )
 
     # Expand glob
-    if len(path) == 1 and ('*' in path[0] or '?' in path[0] or '[' in path[0]):
-        path = filesystem.glob(path[0])
-        path = _maybe_prepend_protocol(path, filesystem)
+    if len(paths) == 1 and has_magic(paths[0]):
+        paths = filesystem.glob(paths[0])
+        paths = _maybe_prepend_protocol(paths, filesystem)
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
-        path,
+        paths,
         columns,
         filesystem,
         load_divisions=load_divisions,
