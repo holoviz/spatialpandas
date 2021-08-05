@@ -266,6 +266,8 @@ def read_parquet_dask(
             data written by dask/fastparquet, not otherwise.
         build_sindex : boolean
             Whether to build partition level spatial indexes to speed up indexing.
+        storage_options: Key/value pairs to be passed on to the file-system backend, if any.
+        engine_kwargs: pyarrow.parquet engine-related keyword arguments. 
     Returns:
     DaskGeoDataFrame
     """
