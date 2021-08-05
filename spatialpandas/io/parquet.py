@@ -177,7 +177,8 @@ def to_parquet_dask(
                     path,
                     columns=[series_name],
                     filesystem=filesystem,
-                    load_divisions=False
+                    load_divisions=False,
+                    storage_options=storage_options,
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
@@ -232,6 +233,8 @@ def read_parquet_dask(
             data written by dask/fastparquet, not otherwise.
         build_sindex : boolean
             Whether to build partition level spatial indexes to speed up indexing.
+        storage_options: Key/value pairs to be passed on to the file-system backend, if any.
+        engine_kwargs: pyarrow.parquet engine-related keyword arguments.
     Returns:
     DaskGeoDataFrame
     """
