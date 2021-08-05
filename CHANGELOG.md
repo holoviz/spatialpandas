@@ -1,3 +1,13 @@
+## Version 0.4.3
+
+Date: 2021-08-05
+
+This release primarily expands the optional arguments that can be passed to `to_parquet_dask`/`read_parquet_dask` ensuring that `storage_options` is successfully passed where needed. 
+
+Bug fixes:
+- Reimplements `validate_coerce_filesystem`. Old implementation which would create a new filesystem object (even though one was already passed in), resulting in `key`/`secret` attributes being cleared.  
+
+
 ## Version 0.4.2
 
 This release primarily achieves compatibility with recent releases of Pandas. Many thanks to @Hoxbro for contributing the fixes and @philippjfr for ongoing maintenance of the project.
