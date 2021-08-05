@@ -203,7 +203,8 @@ def to_parquet_dask(
                     path,
                     columns=[series_name],
                     filesystem=filesystem,
-                    load_divisions=False
+                    load_divisions=False,
+                    storage_options=storage_options,
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
