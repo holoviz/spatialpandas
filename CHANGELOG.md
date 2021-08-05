@@ -5,7 +5,7 @@ Date: 2021-08-05
 This release primarily expands the optional arguments that can be passed to `to_parquet_dask`/`read_parquet_dask` ensuring that `storage_options` is successfully passed where needed. 
 
 Bug fixes:
-- Reimplements `validate_coerce_filesystem`. Old implementation which would create a new filesystem object (even though one was already passed in), resulting in `key`/`secret` attributes being cleared.  
+- Update `validate_coerce_filesystem` to pass `storage_options` throught. ([#78](https://github.com/holoviz/spatialpandas/pull/78))
 
 
 ## Version 0.4.2
