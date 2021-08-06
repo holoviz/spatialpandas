@@ -354,10 +354,12 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    'part.%d.parquet' % i
+                    'part.%d.parquet' % i,
                 )
-                df_part = df_part.drop('_partition', axis=1).set_index(
-                    'hilbert_distance', drop=True
+                df_part = (
+                    df_part
+                    .drop('_partition', axis=1)
+                    .set_index('hilbert_distance', drop=True)
                 )
                 write_partition(df_part, part_path)
                 subpart_paths[out_partition] = part_path
