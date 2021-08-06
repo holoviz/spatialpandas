@@ -238,7 +238,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                 These directories are deleted as soon as possible during the execution
                 of the function.
             storage_options: Key/value pairs to be passed on to the file-system backend, if any.
-            engine_kwargs: pyarrow.parquet engine-related keyword arguments. 
+            engine_kwargs: pyarrow.parquet engine-related keyword arguments.
         Returns:
             DaskGeoDataFrame backed by newly written parquet dataset
         """
