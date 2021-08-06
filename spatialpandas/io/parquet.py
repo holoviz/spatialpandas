@@ -101,23 +101,33 @@ def to_parquet(
     df: GeoDataFrame,
     path: PathType,
     compression: Optional[str] = "snappy",
+    filesystem: Optional[fsspec.AbstractFileSystem] = None,
     index: Optional[bool] = None,
     storage_options: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> None:
+    if filesystem is not None:
+        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+
     # Standard pandas to_parquet with pyarrow engine
     to_parquet_args = {
         "df": df,
         "path": path,
         "engine": "pyarrow",
         "compression": compression,
+        "filesystem": filesystem,
         "index": index,
+        **kwargs,
     }
 
     if PANDAS_GE_12:
         to_parquet_args.update({"storage_options":storage_options})
+    else:
+        if filesystem is None:
+            filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+        to_parquet_args.update({"filesystem":filesystem})
 
-    pd_to_parquet(**to_parquet_args, **kwargs)
+    pd_to_parquet(**to_parquet_args)
 
 
 def read_parquet(
