@@ -1,6 +1,7 @@
 import copy
 import json
 import pathlib
+from distutils.version import LooseVersion
 from functools import reduce
 from glob import has_magic
 from numbers import Number
@@ -28,7 +29,9 @@ from ..io.utils import (
     _maybe_prepend_protocol,
     validate_coerce_filesystem,
 )
-from .. import PANDAS_GE_12
+
+# improve pandas compatibility, based on geopandas _compat.py
+PANDAS_GE_12 = str(pd.__version__) >= LooseVersion("1.2.0")
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
