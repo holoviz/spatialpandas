@@ -26,7 +26,7 @@ from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
 from .geoseries import GeoSeries
 from .spatialindex import HilbertRtree
-from .io.parquet import _pd_to_parquet
+from .io.parquet import pd_to_parquet
 
 
 class DaskGeoSeries(dd.Series):
@@ -345,7 +345,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         @retryit
         def write_partition(df_part, part_path):
             with filesystem.open(part_path, "wb") as f:
-                _pd_to_parquet(
+                pd_to_parquet(
                     df_part,
                     f,
                     compression=compression,

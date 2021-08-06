@@ -105,7 +105,7 @@ def to_parquet(
     **kwargs: Any,
 ) -> None:
     # Standard pandas to_parquet with pyarrow engine
-    _pd_to_parquet(
+    pd_to_parquet(
         df,
         path,
         engine="pyarrow",
@@ -543,7 +543,7 @@ def _load_divisions(pqds):
     return list(mins), list(maxes)
 
 
-def _pd_to_parquet(
+def pd_to_parquet(
     df: GeoDataFrame,
     path: PathType,
     engine: str = "pyarrow",
