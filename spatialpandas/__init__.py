@@ -3,13 +3,14 @@ from distutils.version import LooseVersion
 import param as _param
 import pandas as _pd
 
-from . import geometry, spatialindex, tools  # noqa
-from .geodataframe import GeoDataFrame  # noqa
-from .geoseries import GeoSeries  # noqa
-from .tools.sjoin import sjoin  # noqa
+from . import geometry, spatialindex, tools
+from .geodataframe import GeoDataFrame
+from .geoseries import GeoSeries
+from .tools.sjoin import sjoin
 
 try:
     import dask.dataframe  # noqa
+
     # Import to trigger registration of types with Dask
     import spatialpandas.dask  # noqa
 except ImportError:
@@ -25,3 +26,11 @@ __version__ = str(
 
 # improve pandas compatibility, based on geopandas _compat.py
 PANDAS_GE_12 = str(_pd.__version__) >= LooseVersion("1.2.0")
+__all__ = [
+    "GeoDataFrame",
+    "GeoSeries",
+    "geometry",
+    "sjoin",
+    "spatialindex",
+    "tools",
+]
