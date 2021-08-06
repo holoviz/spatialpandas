@@ -14,7 +14,6 @@ from dask.dataframe import from_delayed, from_pandas
 from dask.dataframe import read_parquet as dd_read_parquet
 from dask.dataframe import to_parquet as dd_to_parquet  # noqa
 from dask.utils import natural_sort_key
-from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow import parquet as pq
 
 from .. import GeoDataFrame
@@ -28,6 +27,7 @@ from ..io.utils import (
     _maybe_prepend_protocol,
     validate_coerce_filesystem,
 )
+from .. import PANDAS_GE_12
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
@@ -98,18 +98,20 @@ def _get_geometry_columns(pandas_metadata):
 
 def to_parquet(
     df: GeoDataFrame,
-    fname: PathType,
+    path: PathType,
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> None:
     # Standard pandas to_parquet with pyarrow engine
-    pd_to_parquet(
+    _pd_to_parquet(
         df,
-        fname,
+        path,
         engine="pyarrow",
         compression=compression,
         index=index,
+        storage_options=storage_options,
         **kwargs,
     )
 
@@ -539,3 +541,36 @@ def _load_divisions(pqds):
     ])
 
     return list(mins), list(maxes)
+
+
+def _pd_to_parquet(
+    df: GeoDataFrame,
+    path: PathType,
+    engine: str = "pyarrow",
+    compression: Optional[str] = "snappy",
+    index: Optional[bool] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
+    partition_cols: Optional[List[str, None]] = None,
+    engine_kwargs={},
+):
+    if PANDAS_GE_12:
+        pd.to_parquet(
+            df,
+            path,
+            engine=engine,
+            compression=compression,
+            index=index,
+            storage_options=storage_options,
+            partition_cols=partition_cols,
+            **(engine_kwargs or {}),
+        )
+    else:
+        pd.to_parquet(
+            df,
+            path,
+            engine=engine,
+            compression=compression,
+            index=index,
+            partition_cols=partition_cols,
+            **(engine_kwargs or {}),
+        )

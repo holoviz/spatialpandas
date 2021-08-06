@@ -1,4 +1,7 @@
+from distutils.version import LooseVersion
+
 import param as _param
+import pandas as _pd
 
 from . import geometry, spatialindex, tools  # noqa
 from .geodataframe import GeoDataFrame  # noqa
@@ -19,3 +22,6 @@ __version__ = str(
         archive_commit="$Format:%h$",
         reponame="spatialpandas",
     ))
+
+# improve pandas compatibility, based on geopandas _compat.py
+PANDAS_GE_12 = str(_pd.__version__) >= LooseVersion("1.2.0")
