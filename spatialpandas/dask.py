@@ -26,7 +26,7 @@ from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
 from .geoseries import GeoSeries
 from .spatialindex import HilbertRtree
-from .io.parquet import pd_to_parquet
+from .io import pd_to_parquet
 
 
 class DaskGeoSeries(dd.Series):
