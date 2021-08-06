@@ -26,7 +26,6 @@ from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
 from .geoseries import GeoSeries
 from .spatialindex import HilbertRtree
-from .io import pd_to_parquet
 
 
 class DaskGeoSeries(dd.Series):
@@ -344,6 +343,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         # Shuffle and write a parquet dataset for each output partition
         @retryit
         def write_partition(df_part, part_path):
+            from .io import pd_to_parquet
             with filesystem.open(part_path, "wb") as f:
                 pd_to_parquet(
                     df_part,
