@@ -350,7 +350,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                     f,
                     compression=compression,
                     index=True,
-                    **(engine_kwargs or {}),
+                    **engine_kwargs,
                 )
 
 
