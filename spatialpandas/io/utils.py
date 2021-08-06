@@ -20,6 +20,7 @@ def validate_coerce_filesystem(
         path: Path as a string
         filesystem: Optional fsspec filesystem object to use to open the file. If not
             provided, filesystem type is inferred from path
+        storage_options: Key/value pairs to be passed on to the file-system backend, if any.
 
     Returns:
         fsspec file system

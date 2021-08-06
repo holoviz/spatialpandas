@@ -1,6 +1,7 @@
 import copy
 import json
 import pathlib
+from distutils.version import LooseVersion
 from functools import reduce
 from glob import has_magic
 from numbers import Number
@@ -29,6 +30,9 @@ from ..io.utils import (
     validate_coerce_filesystem,
 )
 
+# improve pandas compatibility, based on geopandas _compat.py
+PANDAS_GE_12 = str(pd.__version__) >= LooseVersion("1.2.0")
+
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
     MultiLineDtype, PolygonDtype, MultiPolygonDtype
@@ -50,6 +54,7 @@ def _load_parquet_pandas_metadata(
     storage_options=None,
     engine_kwargs=None,
 ):
+    engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
     if not filesystem.exists(path):
         raise ValueError("Path not found: " + path)
@@ -59,7 +64,7 @@ def _load_parquet_pandas_metadata(
             path,
             filesystem=filesystem,
             validate_schema=False,
-            **(engine_kwargs or {}),
+            **engine_kwargs,
         )
         common_metadata = pqds.common_metadata
         if common_metadata is None:
@@ -98,20 +103,35 @@ def _get_geometry_columns(pandas_metadata):
 
 def to_parquet(
     df: GeoDataFrame,
-    fname: PathType,
+    path: PathType,
     compression: Optional[str] = "snappy",
+    filesystem: Optional[fsspec.AbstractFileSystem] = None,
     index: Optional[bool] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> None:
+    if filesystem is not None:
+        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+
     # Standard pandas to_parquet with pyarrow engine
-    pd_to_parquet(
-        df,
-        fname,
-        engine="pyarrow",
-        compression=compression,
-        index=index,
+    to_parquet_args = {
+        "df": df,
+        "path": path,
+        "engine": "pyarrow",
+        "compression": compression,
+        "filesystem": filesystem,
+        "index": index,
         **kwargs,
-    )
+    }
+
+    if PANDAS_GE_12:
+        to_parquet_args.update({"storage_options": storage_options})
+    else:
+        if filesystem is None:
+            filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+            to_parquet_args.update({"filesystem": filesystem})
+
+    pd_to_parquet(**to_parquet_args)
 
 
 def read_parquet(
@@ -122,6 +142,7 @@ def read_parquet(
     engine_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> GeoDataFrame:
+    engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
     # Load pandas parquet metadata
@@ -154,7 +175,7 @@ def read_parquet(
         path,
         filesystem=filesystem,
         validate_schema=False,
-        **(engine_kwargs or {}),
+        **engine_kwargs,
         **kwargs,
     ).read(columns=columns).to_pandas()
 
@@ -176,6 +197,8 @@ def to_parquet_dask(
     engine_kwargs: Optional[Dict[str, Any]] = None,
     **kwargs: Any,
 ) -> None:
+    engine_kwargs = engine_kwargs or {}
+    
     if not isinstance(ddf, DaskGeoDataFrame):
         raise TypeError(f"Expected DaskGeoDataFrame not {type(ddf)}")
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
@@ -207,6 +230,7 @@ def to_parquet_dask(
                     columns=[series_name],
                     filesystem=filesystem,
                     load_divisions=False,
+                    storage_options=storage_options,
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
@@ -217,7 +241,7 @@ def to_parquet_dask(
         path,
         filesystem=filesystem,
         validate_schema=False,
-        **(engine_kwargs or {}),
+        **engine_kwargs,
     )
     all_metadata = copy.copy(pqds.common_metadata.metadata)
     all_metadata[b'spatialpandas'] = b_spatial_metadata
@@ -268,6 +292,8 @@ def read_parquet_dask(
             data written by dask/fastparquet, not otherwise.
         build_sindex : boolean
             Whether to build partition level spatial indexes to speed up indexing.
+        storage_options: Key/value pairs to be passed on to the file-system backend, if any.
+        engine_kwargs: pyarrow.parquet engine-related keyword arguments. 
     Returns:
     DaskGeoDataFrame
     """
@@ -321,12 +347,12 @@ def _perform_read_parquet_dask(
     storage_options=None,
     engine_kwargs=None,
 ):
+    engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(
         paths[0],
         filesystem,
         storage_options,
     )
-    engine_kwargs = engine_kwargs or {}
     datasets = [
         pa.parquet.ParquetDataset(
             path,
