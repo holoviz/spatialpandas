@@ -398,7 +398,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                 # Handle rare case where the task was resubmitted and the work has
                 # already been done.  This shouldn't happen with pure=False, but it
                 # seems like it does very rarely.
-                return read_parquet(part_output_path, filesystem=filesystem)
+                return read_parquet(part_output_path, filesystem=filesystem, storage_options=storage_options)
 
             ls_res = sorted(filesystem.ls(parts_tmp_path, **ls_kwargs))
             subpart_paths_stripped = sorted([filesystem._strip_protocol(_) for _ in subpart_paths])
@@ -418,7 +418,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                         extras=list(extras)
                     )
                 )
-            return read_parquet(parts_tmp_path, filesystem=filesystem)
+            return read_parquet(parts_tmp_path, filesystem=filesystem, storage_options=storage_options)
 
         def concat_parts(parts_tmp_path, subpart_paths, part_output_path):
             filesystem.invalidate_cache()
