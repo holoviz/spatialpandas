@@ -515,7 +515,12 @@ class DaskGeoDataFrame(dd.DataFrame):
                 pq.write_metadata(new_schema, f)
         write_commonmetadata_file()
 
-        return read_parquet_dask(path, filesystem=filesystem, storage_options=storage_options)
+        return read_parquet_dask(
+            path,
+            filesystem=filesystem,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     def _compute_packing_npartitions(self, npartitions):
         if npartitions is None:
