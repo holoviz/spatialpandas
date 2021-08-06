@@ -210,6 +210,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         _retry_args=None,
         storage_options=None,
         engine_kwargs=None,
+        overwrite=False,
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -250,7 +251,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             _retry_args = dict(
                 wait_exponential_multiplier=100,
                 wait_exponential_max=120000,
-                stop_max_attempt_number=24
+                stop_max_attempt_number=24,
             )
         retryit = retry(**_retry_args)
 
@@ -328,7 +329,8 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Initialize output partition directory structure
         filesystem.invalidate_cache()
-        rm_retry(path)
+        if overwrite:
+            rm_retry(path)
 
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
@@ -352,10 +354,12 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    'part.%d.parquet' % i
+                    'part.%d.parquet' % i,
                 )
-                df_part = df_part.drop('_partition', axis=1).set_index(
-                    'hilbert_distance', drop=True
+                df_part = (
+                    df_part
+                    .drop('_partition', axis=1)
+                    .set_index('hilbert_distance', drop=True)
                 )
                 write_partition(df_part, part_path)
                 subpart_paths[out_partition] = part_path
