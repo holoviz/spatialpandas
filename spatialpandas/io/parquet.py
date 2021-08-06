@@ -14,6 +14,7 @@ from dask.dataframe import from_delayed, from_pandas
 from dask.dataframe import read_parquet as dd_read_parquet
 from dask.dataframe import to_parquet as dd_to_parquet  # noqa
 from dask.utils import natural_sort_key
+from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow import parquet as pq
 
 from .. import GeoDataFrame
@@ -105,15 +106,18 @@ def to_parquet(
     **kwargs: Any,
 ) -> None:
     # Standard pandas to_parquet with pyarrow engine
-    pd_to_parquet(
-        df,
-        path,
-        engine="pyarrow",
-        compression=compression,
-        index=index,
-        storage_options=storage_options,
-        **kwargs,
-    )
+    to_parquet_args = {
+        "df": df,
+        "path": path,
+        "engine": "pyarrow",
+        "compression": compression,
+        "index": index,
+    }
+
+    if PANDAS_GE_12:
+        to_parquet_args.update({"storage_options":storage_options})
+
+    pd_to_parquet(**to_parquet_args, **kwargs)
 
 
 def read_parquet(
@@ -541,36 +545,3 @@ def _load_divisions(pqds):
     ])
 
     return list(mins), list(maxes)
-
-
-def pd_to_parquet(
-    df: GeoDataFrame,
-    path: PathType,
-    engine: str = "pyarrow",
-    compression: Optional[str] = "snappy",
-    index: Optional[bool] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
-    partition_cols: Optional[Union[List[str], None]] = None,
-    engine_kwargs={},
-):
-    if PANDAS_GE_12:
-        pd.to_parquet(
-            df,
-            path,
-            engine=engine,
-            compression=compression,
-            index=index,
-            storage_options=storage_options,
-            partition_cols=partition_cols,
-            **(engine_kwargs or {}),
-        )
-    else:
-        pd.to_parquet(
-            df,
-            path,
-            engine=engine,
-            compression=compression,
-            index=index,
-            partition_cols=partition_cols,
-            **(engine_kwargs or {}),
-        )

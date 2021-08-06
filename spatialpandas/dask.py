@@ -343,16 +343,8 @@ class DaskGeoDataFrame(dd.DataFrame):
         # Shuffle and write a parquet dataset for each output partition
         @retryit
         def write_partition(df_part, part_path):
-            from .io import pd_to_parquet
             with filesystem.open(part_path, "wb") as f:
-                pd_to_parquet(
-                    df_part,
-                    f,
-                    compression=compression,
-                    index=True,
-                    storage_options=storage_options,
-                    **(engine_kwargs or {}),
-                )
+                df_part.to_parquet(f, compression=compression, index=True)
 
 
         def process_partition(df, i):
