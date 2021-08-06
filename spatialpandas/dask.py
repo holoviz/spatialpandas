@@ -83,11 +83,11 @@ class DaskGeoSeries(dd.Series):
     def cx_partitions(self):
         return _DaskPartitionCoordinateIndexer(self, self.partition_sindex)
 
-    def build_sindex(self):
-        def build_sindex(series):
-            series.build_sindex()
+    def build_sindex(self, **kwargs):
+        def build_sindex(series, **kwargs):
+            series.build_sindex(**kwargs)
             return series
-        return self.map_partitions(build_sindex, meta=self._meta)
+        return self.map_partitions(build_sindex, **kwargs, meta=self._meta)
 
     def intersects_bounds(self, bounds):
         return self.map_partitions(lambda s: s.intersects_bounds(bounds))
@@ -200,8 +200,17 @@ class DaskGeoDataFrame(dd.DataFrame):
         return ddf
 
     def pack_partitions_to_parquet(
-            self, path, filesystem=None, npartitions=None, p=15, compression="snappy",
-            tempdir_format=None, _retry_args=None
+        self,
+        path,
+        filesystem=None,
+        npartitions=None,
+        p=15,
+        compression="snappy",
+        tempdir_format=None,
+        _retry_args=None,
+        storage_options=None,
+        engine_kwargs=None,
+        overwrite=False,
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -235,14 +244,14 @@ class DaskGeoDataFrame(dd.DataFrame):
         from .io.utils import validate_coerce_filesystem
 
         # Get fsspec filesystem object
-        filesystem = validate_coerce_filesystem(path, filesystem)
+        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
         # Decorator for operations that should be retried
         if _retry_args is None:
             _retry_args = dict(
                 wait_exponential_multiplier=100,
                 wait_exponential_max=120000,
-                stop_max_attempt_number=24
+                stop_max_attempt_number=24,
             )
         retryit = retry(**_retry_args)
 
@@ -320,7 +329,8 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Initialize output partition directory structure
         filesystem.invalidate_cache()
-        rm_retry(path)
+        if overwrite:
+            rm_retry(path)
 
         for out_partition in out_partitions:
             part_dir = os.path.join(path, "part.%d.parquet" % out_partition)
@@ -332,17 +342,24 @@ class DaskGeoDataFrame(dd.DataFrame):
         @retryit
         def write_partition(df_part, part_path):
             with filesystem.open(part_path, "wb") as f:
-                df_part.to_parquet(f, compression=compression, index=True)
+                df_part.to_parquet(
+                    f,
+                    compression=compression,
+                    index=True,
+                    **(engine_kwargs or {}),
+                )
 
         def process_partition(df, i):
             subpart_paths = {}
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    'part.%d.parquet' % i
+                    'part.%d.parquet' % i,
                 )
-                df_part = df_part.drop('_partition', axis=1).set_index(
-                    'hilbert_distance', drop=True
+                df_part = (
+                    df_part
+                    .drop('_partition', axis=1)
+                    .set_index('hilbert_distance', drop=True)
                 )
                 write_partition(df_part, part_path)
                 subpart_paths[out_partition] = part_path
@@ -528,11 +545,11 @@ class DaskGeoDataFrame(dd.DataFrame):
             new_series._partition_sindex = self._partition_sindex[new_series.name]
         return new_series
 
-    def build_sindex(self):
-        def build_sindex(df):
-            df.build_sindex()
+    def build_sindex(self, **kwargs):
+        def build_sindex(df, **kwargs):
+            df.build_sindex(**kwargs)
             return df
-        return self.map_partitions(build_sindex, meta=self._meta)
+        return self.map_partitions(build_sindex, **kwargs, meta=self._meta)
 
     def persist(self, **kwargs):
         return self._propagate_props_to_dataframe(

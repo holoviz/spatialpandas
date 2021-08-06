@@ -555,9 +555,10 @@ Cannot check equality of {typ} of length {a_len} with:
             self.build_sindex()
         return self._sindex
 
-    def build_sindex(self):
+    def build_sindex(self, **kwargs):
         if self._sindex is None:
-            self._sindex = HilbertRtree(self.bounds)
+            self._sindex = HilbertRtree(self.bounds, **kwargs)
+        return self
 
     @property
     def cx(self):

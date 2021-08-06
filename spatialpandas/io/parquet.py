@@ -2,6 +2,7 @@ import copy
 import json
 import pathlib
 from functools import reduce
+from glob import has_magic
 from numbers import Number
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -22,7 +23,11 @@ from ..geometry import (GeometryDtype, LineDtype, MultiLineDtype,
                                     MultiPointDtype, MultiPolygonDtype,
                                     PointDtype, PolygonDtype, RingDtype)
 from ..geometry.base import to_geometry_array
-from ..io.utils import validate_coerce_filesystem
+from ..io.utils import (
+    PathType,
+    _maybe_prepend_protocol,
+    validate_coerce_filesystem,
+)
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
@@ -39,14 +44,22 @@ def _import_geometry_columns(df, geom_cols):
     return df.assign(**new_cols)
 
 
-def _load_parquet_pandas_metadata(path, filesystem=None):
-    filesystem = validate_coerce_filesystem(path, filesystem)
+def _load_parquet_pandas_metadata(
+    path,
+    filesystem=None,
+    storage_options=None,
+    engine_kwargs=None,
+):
+    filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
     if not filesystem.exists(path):
         raise ValueError("Path not found: " + path)
 
     if filesystem.isdir(path):
         pqds = pq.ParquetDataset(
-            path, filesystem=filesystem, validate_schema=False
+            path,
+            filesystem=filesystem,
+            validate_schema=False,
+            **(engine_kwargs or {}),
         )
         common_metadata = pqds.common_metadata
         if common_metadata is None:
@@ -85,10 +98,10 @@ def _get_geometry_columns(pandas_metadata):
 
 def to_parquet(
     df: GeoDataFrame,
-    fname,
+    fname: PathType,
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     # Standard pandas to_parquet with pyarrow engine
     pd_to_parquet(
@@ -102,14 +115,22 @@ def to_parquet(
 
 
 def read_parquet(
-    path: str,
+    path: PathType,
     columns: Optional[Iterable[str]] = None,
-    filesystem: Optional[fsspec.spec.AbstractFileSystem] = None,
+    filesystem: Optional[fsspec.AbstractFileSystem] = None,
+    storage_options: Optional[Dict[str, Any]] = None,
+    engine_kwargs: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
 ) -> GeoDataFrame:
-    filesystem = validate_coerce_filesystem(path, filesystem)
+    filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
     # Load pandas parquet metadata
-    metadata = _load_parquet_pandas_metadata(path, filesystem=filesystem)
+    metadata = _load_parquet_pandas_metadata(
+        path,
+        filesystem=filesystem,
+        storage_options=storage_options,
+        engine_kwargs=engine_kwargs,
+    )
 
     # If columns specified, prepend index columns to it
     if columns is not None:
@@ -130,7 +151,11 @@ def read_parquet(
 
     # Load using pyarrow to handle parquet files and directories across filesystems
     df = pq.ParquetDataset(
-        path, filesystem=filesystem, validate_schema=False
+        path,
+        filesystem=filesystem,
+        validate_schema=False,
+        **(engine_kwargs or {}),
+        **kwargs,
     ).read(columns=columns).to_pandas()
 
     # Import geometry columns, not needed for pyarrow >= 0.16
@@ -144,15 +169,19 @@ def read_parquet(
 
 def to_parquet_dask(
     ddf: DaskGeoDataFrame,
-    path,
+    path: PathType,
     compression: Optional[str] = "snappy",
-    filesystem: Optional[fsspec.spec.AbstractFileSystem] = None,
+    filesystem: Optional[fsspec.AbstractFileSystem] = None,
     storage_options: Optional[Dict[str, Any]] = None,
-    **kwargs,
+    engine_kwargs: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
 ) -> None:
-    assert isinstance(ddf, DaskGeoDataFrame)
-    filesystem = validate_coerce_filesystem(path, filesystem)
-    if path and filesystem.isdir(path):
+    if not isinstance(ddf, DaskGeoDataFrame):
+        raise TypeError(f"Expected DaskGeoDataFrame not {type(ddf)}")
+    filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+    if kwargs.get("overwrite", False) and \
+        not kwargs.get("append", False) and \
+            path and filesystem.isdir(path):
         filesystem.rm(path, recursive=True)
 
     dd_to_parquet(
@@ -177,14 +206,19 @@ def to_parquet_dask(
                     path,
                     columns=[series_name],
                     filesystem=filesystem,
-                    load_divisions=False
+                    load_divisions=False,
                 )[series_name]
             partition_bounds[series_name] = series.partition_bounds.to_dict()
 
     spatial_metadata = {'partition_bounds': partition_bounds}
     b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
-    pqds = pq.ParquetDataset(path, filesystem=filesystem, validate_schema=False)
+    pqds = pq.ParquetDataset(
+        path,
+        filesystem=filesystem,
+        validate_schema=False,
+        **(engine_kwargs or {}),
+    )
     all_metadata = copy.copy(pqds.common_metadata.metadata)
     all_metadata[b'spatialpandas'] = b_spatial_metadata
     schema = pqds.common_metadata.schema.to_arrow_schema()
@@ -194,14 +228,16 @@ def to_parquet_dask(
 
 
 def read_parquet_dask(
-    path: str,
+    path: PathType,
     columns: Optional[Iterable[str]] = None,
-    filesystem: Optional[fsspec.spec.AbstractFileSystem] = None,
+    filesystem: Optional[fsspec.AbstractFileSystem] = None,
     load_divisions: Optional[bool] = False,
     geometry: Optional[str] = None,
     bounds: Optional[Tuple[Number, Number, Number, Number]] = None,
     categories: Optional[Union[List[str], Dict[str, str]]] = None,
     build_sindex: Optional[bool] = False,
+    storage_options: Optional[Dict[str, Any]] = None,
+    engine_kwargs: Optional[Dict[str, Any]] = None,
 ) -> DaskGeoDataFrame:
     """Read spatialpandas parquet dataset(s) as DaskGeoDataFrame.
 
@@ -237,25 +273,35 @@ def read_parquet_dask(
     """
     # Normalize path to a list
     if isinstance(path, (str, pathlib.Path)):
-        path = [str(path)]
+        paths = [str(path)]
     else:
-        path = list(path)
-        if not path:
+        paths = list(path)
+        if not paths:
             raise ValueError('Empty path specification')
 
     # Infer filesystem
-    filesystem = validate_coerce_filesystem(path[0], filesystem)
+    filesystem = validate_coerce_filesystem(
+        paths[0],
+        filesystem,
+        storage_options,
+    )
 
     # Expand glob
-    if len(path) == 1 and ('*' in path[0] or '?' in path[0] or '[' in path[0]):
-        path = filesystem.glob(path[0])
-        path = _maybe_prepend_protocol(path, filesystem)
+    if len(paths) == 1 and has_magic(paths[0]):
+        paths = filesystem.glob(paths[0])
+        paths = _maybe_prepend_protocol(paths, filesystem)
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
-        path, columns, filesystem,
-        load_divisions=load_divisions, geometry=geometry, bounds=bounds,
-        categories=categories
+        paths,
+        columns,
+        filesystem,
+        load_divisions=load_divisions,
+        geometry=geometry,
+        bounds=bounds,
+        categories=categories,
+        storage_options=storage_options,
+        engine_kwargs=engine_kwargs,
     )
 
     if build_sindex:
@@ -264,25 +310,31 @@ def read_parquet_dask(
     return result
 
 
-def _maybe_prepend_protocol(paths, filesystem):
-    protocol = filesystem.protocol if isinstance(
-        filesystem.protocol, str) else filesystem.protocol[0]
-    if protocol not in ("file", "abstract"):
-        # Add back prefix (e.g. s3://)
-        paths = [
-            "{proto}://{p}".format(proto=protocol, p=p) for p in paths
-        ]
-    return paths
-
-
 def _perform_read_parquet_dask(
-        paths, columns, filesystem, load_divisions, geometry=None, bounds=None,
-        categories=None,
+    paths,
+    columns,
+    filesystem,
+    load_divisions,
+    geometry=None,
+    bounds=None,
+    categories=None,
+    storage_options=None,
+    engine_kwargs=None,
 ):
-    filesystem = validate_coerce_filesystem(paths[0], filesystem)
-    datasets = [pa.parquet.ParquetDataset(
-        path, filesystem=filesystem, validate_schema=False
-    ) for path in paths]
+    filesystem = validate_coerce_filesystem(
+        paths[0],
+        filesystem,
+        storage_options,
+    )
+    engine_kwargs = engine_kwargs or {}
+    datasets = [
+        pa.parquet.ParquetDataset(
+            path,
+            filesystem=filesystem,
+            validate_schema=False,
+            **engine_kwargs,
+        ) for path in paths
+    ]
 
     # Create delayed partition for each piece
     pieces = []
@@ -293,7 +345,11 @@ def _perform_read_parquet_dask(
 
     delayed_partitions = [
         delayed(read_parquet)(
-            piece.path, columns=columns, filesystem=filesystem
+            piece.path,
+            columns=columns,
+            filesystem=filesystem,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
         )
         for piece in pieces
     ]
@@ -343,10 +399,17 @@ def _perform_read_parquet_dask(
         engine='pyarrow',
         categories=categories,
         gather_statistics=False,
+        storage_options=storage_options,
+        **engine_kwargs,
     )._meta
 
     # Import geometry columns in meta, not needed for pyarrow >= 0.16
-    metadata = _load_parquet_pandas_metadata(paths[0], filesystem=filesystem)
+    metadata = _load_parquet_pandas_metadata(
+        paths[0],
+        filesystem=filesystem,
+        storage_options=storage_options,
+        engine_kwargs=engine_kwargs,
+    )
     geom_cols = _get_geometry_columns(metadata)
     if geom_cols:
         meta = _import_geometry_columns(meta, geom_cols)

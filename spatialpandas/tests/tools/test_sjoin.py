@@ -1,6 +1,5 @@
 import dask.dataframe as dd
 import geopandas as gp
-import hypothesis.strategies as hs
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,7 +14,7 @@ from spatialpandas.dask import DaskGeoDataFrame
 try:
     from geopandas._compat import HAS_RTREE, USE_PYGEOS
     gpd_spatialindex = USE_PYGEOS or HAS_RTREE
-except:
+except ImportError:
     try:
         import rtree  # noqa
         gpd_spatialindex = rtree
@@ -27,13 +26,14 @@ if not gpd_spatialindex:
                 allow_module_level=True)
 
 
+@pytest.mark.slow
+@pytest.mark.parametrize("how", ["inner", "left", "right"])
 @given(
     st_point_array(min_size=1, geoseries=True),
     st_polygon_array(min_size=1, geoseries=True),
-    hs.sampled_from(["inner", "left", "right"])
 )
 @hyp_settings
-def test_sjoin(gp_points, gp_polygons, how):
+def test_sjoin(how, gp_points, gp_polygons):
     # join witgh geopandas
     left_gpdf = gp.GeoDataFrame({
         'geometry': gp_points,

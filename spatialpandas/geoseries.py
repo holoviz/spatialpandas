@@ -76,8 +76,9 @@ class GeoSeries(pd.Series):
         from .geometry.base import _CoordinateIndexer
         return _CoordinateIndexer(self.array, parent=self)
 
-    def build_sindex(self):
-        self.array.build_sindex()
+    def build_sindex(self, **kwargs):
+        self.array.build_sindex(**kwargs)
+        return self
 
     def intersects_bounds(self, bounds):
         return pd.Series(
