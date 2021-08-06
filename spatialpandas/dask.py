@@ -346,7 +346,12 @@ class DaskGeoDataFrame(dd.DataFrame):
         @retryit
         def write_partition(df_part, part_path):
             with filesystem.open(part_path, "wb") as f:
-                df_part.to_parquet(f, compression=compression, index=True)
+                df_part.to_parquet(
+                    f,
+                    compression=compression,
+                    index=True,
+                    **(engine_kwargs or {}),
+                )
 
 
         def process_partition(df, i):
@@ -394,7 +399,12 @@ class DaskGeoDataFrame(dd.DataFrame):
                 # Handle rare case where the task was resubmitted and the work has
                 # already been done.  This shouldn't happen with pure=False, but it
                 # seems like it does very rarely.
-                return read_parquet(part_output_path, filesystem=filesystem, storage_options=storage_options)
+                return read_parquet(
+                    part_output_path,
+                    filesystem=filesystem,
+                    storage_options=storage_options,
+                    **engine_kwargs,
+                )
 
             ls_res = sorted(filesystem.ls(parts_tmp_path, **ls_kwargs))
             subpart_paths_stripped = sorted([filesystem._strip_protocol(_) for _ in subpart_paths])
@@ -414,7 +424,12 @@ class DaskGeoDataFrame(dd.DataFrame):
                         extras=list(extras)
                     )
                 )
-            return read_parquet(parts_tmp_path, filesystem=filesystem, storage_options=storage_options)
+                return read_parquet(
+                    parts_tmp_path,
+                    filesystem=filesystem,
+                    storage_options=storage_options,
+                    **engine_kwargs,
+                )
 
         def concat_parts(parts_tmp_path, subpart_paths, part_output_path):
             filesystem.invalidate_cache()
@@ -512,7 +527,12 @@ class DaskGeoDataFrame(dd.DataFrame):
                 pq.write_metadata(new_schema, f)
         write_commonmetadata_file()
 
-        return read_parquet_dask(path, filesystem=filesystem, storage_options=storage_options)
+        return read_parquet_dask(
+            path,
+            filesystem=filesystem,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     def _compute_packing_npartitions(self, npartitions):
         if npartitions is None:
