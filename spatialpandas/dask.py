@@ -344,7 +344,12 @@ class DaskGeoDataFrame(dd.DataFrame):
         @retryit
         def write_partition(df_part, part_path):
             with filesystem.open(part_path, "wb") as f:
-                df_part.to_parquet(f, compression=compression, index=True)
+                df_part.to_parquet(
+                    f,
+                    compression=compression,
+                    index=True,
+                    **(engine_kwargs or {}),
+                )
 
 
         def process_partition(df, i):
