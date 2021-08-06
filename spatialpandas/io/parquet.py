@@ -281,11 +281,7 @@ def read_parquet_dask(
 
     # Infer filesystem
     filesystem = validate_coerce_filesystem(
-<<<<<<< HEAD
-        path[0],
-=======
         paths[0],
->>>>>>> b50239ac02ac30cc8f4f0046732167b8a28b08a8
         filesystem,
         storage_options,
     )
@@ -297,11 +293,7 @@ def read_parquet_dask(
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
-<<<<<<< HEAD
-        path,
-=======
         paths,
->>>>>>> b50239ac02ac30cc8f4f0046732167b8a28b08a8
         columns,
         filesystem,
         load_divisions=load_divisions,
