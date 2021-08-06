@@ -550,7 +550,7 @@ def pd_to_parquet(
     compression: Optional[str] = "snappy",
     index: Optional[bool] = None,
     storage_options: Optional[Dict[str, Any]] = None,
-    partition_cols: Optional[List[str, None]] = None,
+    partition_cols: Optional[Union[List[str], None]] = None,
     engine_kwargs={},
 ):
     if PANDAS_GE_12:
