@@ -417,7 +417,12 @@ class DaskGeoDataFrame(dd.DataFrame):
                         extras=list(extras)
                     )
                 )
-            return read_parquet(parts_tmp_path, filesystem=filesystem, storage_options=storage_options)
+                return read_parquet(
+                    parts_tmp_path,
+                    filesystem=filesystem,
+                    storage_options=storage_options,
+                    **engine_kwargs,
+                )
 
         def concat_parts(parts_tmp_path, subpart_paths, part_output_path):
             filesystem.invalidate_cache()
