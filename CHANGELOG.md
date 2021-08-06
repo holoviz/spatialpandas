@@ -2,7 +2,7 @@
 
 Date: 2021-08-05
 
-This release primarily expands the optional arguments that can be passed to `to_parquet_dask`/`read_parquet_dask` ensuring that `storage_options` is successfully passed where needed. 
+This release primarily expands the optional arguments that can be passed to `to_parquet_dask`/`read_parquet_dask` ensuring that `storage_options` is successfully passed where needed. This release also adds the ability to pass `storage_options` to `pandas.to_parquet` function (only for pandas > 1.2).
 
 Bug fixes:
 - Update `validate_coerce_filesystem` to pass `storage_options` throught. ([#78](https://github.com/holoviz/spatialpandas/pull/78))
