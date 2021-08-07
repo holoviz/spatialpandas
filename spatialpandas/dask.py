@@ -258,8 +258,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         )
 
         # Decorator for operations that should be retried
-        if retryit is None:
-            retryit = _make_retry_decorator(**(_retry_args or {}))
+        retryit = retryit or _make_retry_decorator(**(_retry_args or {}))
 
         fs_retry = _make_fs_retry(filesystem, retryit)
         rm_retry = fs_retry.rm_retry
