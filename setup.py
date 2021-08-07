@@ -15,7 +15,7 @@ extras_require = {
         'shapely',
         'twine',
         'rfc3986',
-        'keyring'
+        'keyring',
     ],
     'examples': [
         'datashader',
@@ -33,7 +33,7 @@ install_requires = [
     'param',
     'pyarrow >=1.0',
     'python-snappy',
-    'retrying',
+    'tenacity',
     'numpy',
     'dask[complete] >=2.0'
 ]

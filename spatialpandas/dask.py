@@ -2,13 +2,11 @@ import copy
 import json
 import os
 import uuid
-from inspect import signature
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from retrying import retry
 
 import dask
 import dask.dataframe as dd
@@ -190,7 +188,11 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
-        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle=shuffle)
+        ddf = ddf.set_index(
+            'hilbert_distance',
+            npartitions=npartitions,
+            shuffle=shuffle,
+        )
 
         if ddf.npartitions != npartitions:
             # set_index doesn't change the number of partitions if the partitions
@@ -211,6 +213,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         storage_options=None,
         engine_kwargs=None,
         overwrite=False,
+        retryit=None,
     ):
         """
         Repartition and reorder dataframe spatially along a Hilbert space filling curve
@@ -241,50 +244,28 @@ class DaskGeoDataFrame(dd.DataFrame):
             DaskGeoDataFrame backed by newly written parquet dataset
         """
         from .io import read_parquet, read_parquet_dask
-        from .io.utils import validate_coerce_filesystem
+        from .io.utils import (
+            _make_fs_retry,
+            _make_retry_decorator,
+            validate_coerce_filesystem,
+        )
 
         # Get fsspec filesystem object
-        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+        filesystem = validate_coerce_filesystem(
+            path,
+            filesystem,
+            storage_options,
+        )
 
         # Decorator for operations that should be retried
-        if _retry_args is None:
-            _retry_args = dict(
-                wait_exponential_multiplier=100,
-                wait_exponential_max=120000,
-                stop_max_attempt_number=24,
-            )
-        retryit = retry(**_retry_args)
+        if retryit is None:
+            retryit = _make_retry_decorator(**(_retry_args or {}))
 
-        @retryit
-        def rm_retry(file_path):
-            filesystem.invalidate_cache()
-            if filesystem.exists(file_path):
-                filesystem.rm(file_path, recursive=True)
-                if filesystem.exists(file_path):
-                    # Make sure we keep retrying until file does not exist
-                    raise ValueError("Deletion of {path} not yet complete".format(
-                        path=file_path
-                    ))
-
-        @retryit
-        def mkdirs_retry(dir_path):
-            filesystem.makedirs(dir_path, exist_ok=True)
-
-        # For filesystems that provide a "refresh" argument, set it to True
-        if 'refresh' in signature(filesystem.ls).parameters:
-            ls_kwargs = {'refresh': True}
-        else:
-            ls_kwargs = {}
-
-        @retryit
-        def ls_retry(dir_path):
-            filesystem.invalidate_cache()
-            return filesystem.ls(dir_path, **ls_kwargs)
-
-        @retryit
-        def move_retry(p1, p2):
-            if filesystem.exists(p1):
-                filesystem.move(p1, p2)
+        fs_retry = _make_fs_retry(filesystem, retryit)
+        rm_retry = fs_retry.rm_retry
+        mkdirs_retry = fs_retry.mkdirs_retry
+        ls_retry = fs_retry.ls_retry
+        move_retry = fs_retry.move_retry
 
         # Compute tempdir_format string
         dataset_uuid = str(uuid.uuid4())
@@ -396,7 +377,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                 # seems like it does very rarely.
                 return read_parquet(part_output_path, filesystem=filesystem)
 
-            ls_res = sorted(filesystem.ls(parts_tmp_path, **ls_kwargs))
+            ls_res = sorted(ls_retry(parts_tmp_path))
             subpart_paths_stripped = sorted([filesystem._strip_protocol(_) for _ in subpart_paths])
 
             if subpart_paths_stripped != ls_res:
