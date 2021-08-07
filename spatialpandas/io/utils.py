@@ -14,13 +14,13 @@ try:
         stop_after_attempt,
         wait_exponential,
     )
-    retrying_retry = None
 except ImportError:
     tenacity_retry = stop_after_attempt = wait_exponential = None
-    try:
-        from retrying import retry as retrying_retry
-    except ImportError:
-        retrying_retry = None
+
+try:
+    from retrying import retry as retrying_retry
+except ImportError:
+    retrying_retry = None
 
 PathType = Union[PathLike, str, Path]
 
