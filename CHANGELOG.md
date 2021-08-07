@@ -1,6 +1,6 @@
 ## Version 0.4.3
 
-Date: 2021-08-06
+Date: 2021-08-07
 
 Enhancements:
 
@@ -20,6 +20,8 @@ Compatibility:
 
 
 ## Version 0.4.2
+
+Date: 2021-07-28
 
 This release primarily achieves compatibility with recent releases of Pandas. Many thanks to @Hoxbro for contributing the fixes and @philippjfr for ongoing maintenance of the project.
 
@@ -92,6 +94,8 @@ Bug fixes:
 
 ## Version 0.3.4
 
+Date: 2020-02-21
+
 Bug fixes:
 
  - Support importing GeoPandas geometry series that contain `None` values.
@@ -109,12 +113,16 @@ Compatibility:
 
 ## Version 0.3.2 / 0.3.3
 
+Date: 2020-01-24
+
 Bug fixes:
 
  - Various reliability improvements for `pack_partitions_to_parquet`
 
 
 ## Version 0.3.1
+
+Date: 2020-01-12
 
 Bug fixes:
 
@@ -123,6 +131,8 @@ Bug fixes:
 
 
 ## Version 0.3.0
+
+Date: 2020-01-11
 
 Enhancements:
 
@@ -136,6 +146,8 @@ Enhancements:
 
 ## Version 0.2.0
 
+Date: 2019-12-28
+
 Enhancements:
 
  - Added `pack_partitions_to_parquet` method to `DaskGeoDataFrame` ([#19](https://github.com/holoviz/spatialpandas/pull/19))
@@ -143,6 +155,8 @@ Enhancements:
 
 
 ## Version 0.1.1
+
+Date: 2019-12-18
 
 Enhancements:
 
@@ -154,5 +168,7 @@ Bug fixes:
 
 
 ## Version 0.1.0
+
+Date: 2019-12-02
 
 First public release available on PyPI and the pyviz anaconda channel.
