@@ -1,14 +1,27 @@
 ## Version 0.4.3
 
-Date: 2021-08-05
+Date: 2021-08-07
 
-This release primarily expands the optional arguments that can be passed to `to_parquet_dask`/`read_parquet_dask` ensuring that `storage_options` is successfully passed where needed. It also adds the ability to pass `storage_options` to the `pandas.to_parquet` function (only for pandas > 1.2) and renames any reference to `fname` with `path` to align with the pandas convention.
+Enhancements:
+
+- Expands the optional arguments that can be passed to `to_parquet`, `to_parquet_dask`, `read_parquet`, `read_parquet_dask` ensuring that `storage_options` is appropriately passed where needed.  ([#79](https://github.com/holoviz/spatialpandas/pull/79))
+- Add typing information to some functions.
+- Update `build_sindex` to pass through `kwargs` to underlying `HilbertRtree` implementation.
+- Change `build_sindex` methods to consistently return reference to object to allow for method chaining.
 
 Bug fixes:
-- Update `validate_coerce_filesystem` to pass `storage_options` through. ([#78](https://github.com/holoviz/spatialpandas/pull/78))
+
+- Update internal `validate_coerce_filesystem` to pass `storage_options` through. ([#78](https://github.com/holoviz/spatialpandas/pull/78))
+
+Compatibility:
+
+- Adds the ability to pass `storage_options` to the `to_parquet` function for `pandas > 1.2`, otherwise instantiates an `fsspec` filesystem with `storage_options` and passes that.
+- Renames `fname` parameter to `path` to align with the pandas convention.
 
 
 ## Version 0.4.2
+
+Date: 2021-07-28
 
 This release primarily achieves compatibility with recent releases of Pandas. Many thanks to @Hoxbro for contributing the fixes and @philippjfr for ongoing maintenance of the project.
 
@@ -81,6 +94,8 @@ Bug fixes:
 
 ## Version 0.3.4
 
+Date: 2020-02-21
+
 Bug fixes:
 
  - Support importing GeoPandas geometry series that contain `None` values.
@@ -98,12 +113,16 @@ Compatibility:
 
 ## Version 0.3.2 / 0.3.3
 
+Date: 2020-01-24
+
 Bug fixes:
 
  - Various reliability improvements for `pack_partitions_to_parquet`
 
 
 ## Version 0.3.1
+
+Date: 2020-01-12
 
 Bug fixes:
 
@@ -112,6 +131,8 @@ Bug fixes:
 
 
 ## Version 0.3.0
+
+Date: 2020-01-11
 
 Enhancements:
 
@@ -125,6 +146,8 @@ Enhancements:
 
 ## Version 0.2.0
 
+Date: 2019-12-28
+
 Enhancements:
 
  - Added `pack_partitions_to_parquet` method to `DaskGeoDataFrame` ([#19](https://github.com/holoviz/spatialpandas/pull/19))
@@ -132,6 +155,8 @@ Enhancements:
 
 
 ## Version 0.1.1
+
+Date: 2019-12-18
 
 Enhancements:
 
@@ -143,5 +168,7 @@ Bug fixes:
 
 
 ## Version 0.1.0
+
+Date: 2019-12-02
 
 First public release available on PyPI and the pyviz anaconda channel.

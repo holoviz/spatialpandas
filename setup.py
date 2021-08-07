@@ -15,7 +15,7 @@ extras_require = {
         'shapely',
         'twine',
         'rfc3986',
-        'keyring'
+        'keyring',
     ],
     'examples': [
         'datashader',
