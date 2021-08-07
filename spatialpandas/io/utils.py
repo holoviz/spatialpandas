@@ -82,11 +82,14 @@ def retry(tries, delay=3, backoff=2, max_delay=120, exceptions=Exception):
     Parameters
     ----------
     delay:
-        sets the initial delay in seconds, and backoff sets the factor by which
+        Sets the initial delay in seconds, and backoff sets the factor by which
         the delay should lengthen after each failure.
     backoff:
-        must be greater than 1, or else it isn't really a backoff.
-    tries: must be at least 0, and delay greater than 0.
+        Must be greater than 1, or else it isn't really a backoff.
+    tries:
+        Must be at least 0, and delay greater than 0.
+    max_delay:
+        Maximum delay to wait between tries.
     exceptions:
         Single or multiple exceptions to allow.
     """
