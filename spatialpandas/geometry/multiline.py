@@ -31,17 +31,17 @@ class MultiLine(GeometryList):
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
         if isinstance(shape, sg.MultiLineString):
-            shape = list(shape)
+            shape = shape.geoms
             line_parts = []
             if len(shape) == 0:
                 # Add single empty line so we have the right number of nested levels
                 line_parts.append([])
             else:
                 for line in shape:
-                    line_parts.append(np.asarray(line.ctypes))
+                    line_parts.append(np.asarray(line.coords).ravel())
             return line_parts
         elif isinstance(shape, (sg.LineString, sg.LinearRing)):
-            return [np.asarray(shape.ctypes)]
+            return [np.asarray(shape.coords).ravel()]
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of MultiLineString

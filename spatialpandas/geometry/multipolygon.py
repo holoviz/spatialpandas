@@ -39,7 +39,7 @@ class MultiPolygon(GeometryList):
         import shapely.geometry as sg
         if isinstance(shape, sg.MultiPolygon):
             multipolygon = []
-            for polygon in shape:
+            for polygon in shape.geoms:
                 polygon_coords = Polygon._shapely_to_coordinates(polygon)
                 multipolygon.append(polygon_coords)
 
@@ -93,7 +93,7 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
             if isinstance(shape, sg.Polygon):
                 shape = sg.polygon.orient(shape)
             elif isinstance(shape, sg.MultiPolygon):
-                shape = sg.MultiPolygon([sg.polygon.orient(poly) for poly in shape])
+                shape = sg.MultiPolygon([sg.polygon.orient(poly) for poly in shape.geoms])
 
         shape_parts = cls._shapely_to_coordinates(shape)
         return cls(shape_parts)

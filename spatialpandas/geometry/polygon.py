@@ -38,12 +38,12 @@ class Polygon(GeometryList):
         import shapely.geometry as sg
         if isinstance(shape, sg.Polygon):
             if shape.exterior is not None:
-                exterior = np.asarray(shape.exterior.ctypes)
+                exterior = np.asarray(shape.exterior.coords).ravel()
                 polygon_coords = [exterior]
             else:
                 polygon_coords = [np.array([])]
             for ring in shape.interiors:
-                interior = np.asarray(ring.ctypes)
+                interior = np.asarray(ring.coords).ravel()
                 polygon_coords.append(interior)
 
             return polygon_coords

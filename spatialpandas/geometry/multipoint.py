@@ -27,9 +27,10 @@ class MultiPoint(GeometryList):
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         import shapely.geometry as sg
-        if isinstance(shape, (sg.Point, sg.MultiPoint)):
-            # Single line
-            return np.asarray(shape.ctypes)
+        if isinstance(shape, sg.Point):
+            return np.asarray(shape.coords).ravel()
+        elif isinstance(shape, sg.MultiPoint):
+            return np.hstack([g.coords for g in shape.geoms]).ravel()
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of Point,
