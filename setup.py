@@ -7,7 +7,7 @@ extras_require = {
         'codecov',
         'flake8',
         'hilbertcurve',
-        'geopandas-base',
+        'geopandas',
         'hypothesis',
         'pytest-cov',
         'pytest',
