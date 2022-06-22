@@ -1,8 +1,4 @@
-# things not included
-# language
-# notifications - no email notifications set up
-
-name: pytest
+name: tests
 on:
   pull_request:
     branches:
