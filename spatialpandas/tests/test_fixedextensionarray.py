@@ -163,6 +163,10 @@ class TestGeometryGetitem(eb.BaseGetitemTests):
     def test_getitem_boolean_na_treated_as_false(self, data):
         pass
 
+    @pytest.mark.skip("Passing an invalid index type is not supported")
+    def test_getitem_invalid(self, data):
+        pass
+
 
 class TestGeometryGroupby(eb.BaseGroupbyTests):
     @pytest.mark.skip(
@@ -206,6 +210,10 @@ class TestGeometryMethods(eb.BaseMethodsTests):
     def test_combine_first(self):
         pass
 
+    @pytest.mark.skip(reason="ragged does not support insert with an invalid scalar")
+    def test_insert_invalid(self, data, invalid_scalar):
+        pass
+
     @pytest.mark.skip(
         reason="Searchsorted seems not implemented for custom extension arrays"
     )
@@ -222,6 +230,10 @@ class TestGeometryMethods(eb.BaseMethodsTests):
         reason="value_counts not yet supported"
     )
     def test_value_counts_with_normalize(self, data):
+        pass
+
+    @pytest.mark.skip(reason="ragged does not support where on elements")
+    def test_where_series(self):
         pass
 
 
