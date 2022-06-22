@@ -1,12 +1,14 @@
-# things not included
-# language
-# notifications - no email notifications set up
-
-name: pytest
+name: tests
 on:
+  push:
+    branches:
+      - master
   pull_request:
     branches:
     - '*'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 01 * * SUN'
 
 jobs:
   test_suite:
