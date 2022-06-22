@@ -16,6 +16,8 @@ on:
         - dryrun
         required: true
         default: dryrun
+  schedule:
+    - cron: '0 01 * * SUN'
 
 jobs:
   conda_build:
