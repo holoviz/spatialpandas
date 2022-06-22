@@ -30,7 +30,7 @@ class Line(GeometryList):
         import shapely.geometry as sg
         if isinstance(shape, (sg.LineString, sg.LinearRing)):
             # Single line
-            return np.asarray(shape.ctypes)
+            return np.asarray(shape.coords).ravel()
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of LineString

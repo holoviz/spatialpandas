@@ -146,8 +146,10 @@ class GeometryFixedArray(GeometryArray):
                         pass
                     elif isinstance(el, GeometryFixed):
                         array[i] = el.flat_values.tobytes()
-                    else:
+                    elif isinstance(el, list) or isinstance(el, np.ndarray):
                         array[i] = np.asarray(el, dtype=numpy_dtype).tobytes()
+                    else:
+                        array[i] = np.asarray(el.coords, dtype=numpy_dtype).tobytes()
             else:
                 if dtype:
                     array = array.astype(dtype)

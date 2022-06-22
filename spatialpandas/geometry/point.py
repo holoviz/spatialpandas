@@ -28,7 +28,7 @@ class Point(GeometryFixed):
         import shapely.geometry as sg
         if isinstance(shape, sg.Point):
             # Single point
-            return np.asarray(shape.ctypes)
+            return np.asarray(shape.coords).ravel()
         else:
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of Point,

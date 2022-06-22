@@ -101,7 +101,7 @@ def test_points_intersects_multipoint(gp_points, gp_multipoint):
     sg_multipoint = gp_multipoint[0]
     if len(gp_points) > 0:
         # Add gp_point to gp_multipoints so we know something will intersect
-        gp_points = from_shapely(list(gp_points) + [gp_multipoint[0][-1]])
+        gp_points = from_shapely(list(gp_points) + [gp_multipoint[0].geoms[-1]])
 
     # Compute expected intersection
     expected = gp_points.intersects(sg_multipoint)
