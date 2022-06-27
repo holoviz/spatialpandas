@@ -16,8 +16,8 @@ hyp_settings = settings(
 )
 
 coord = st.floats(
-    allow_infinity=False, allow_nan=False, max_value=1000, min_value=-1000
-)
+    allow_infinity=False, allow_nan=False, max_value=1000, min_value=-1000,
+).map(lambda x: round(x, 15))
 
 st_points = arrays(
     elements=st.floats(
