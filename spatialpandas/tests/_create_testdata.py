@@ -16,7 +16,7 @@ directory = "test_data"
 
 
 def _generate_test_geodata():
-    n = 10
+    n = 5
     warnings.filterwarnings("ignore", category=NonInteractiveExampleWarning)
     lines = st_multiline_array(min_size=n, max_size=n, geoseries=True).example()
     return lines
@@ -34,7 +34,7 @@ def _write(use_dask=False):
     path = os.path.join(directory, filename)
 
     if use_dask:
-        ddf = dd.from_pandas(df, npartitions=3)
+        ddf = dd.from_pandas(df, npartitions=2)
         ddf.to_parquet(path)
     else:
         to_parquet(df, path)
@@ -45,11 +45,11 @@ def _write_repartitioned():
 
     lines = _generate_test_geodata()
     df = GeoDataFrame({'multiline': lines, 'a': list(range(len(lines)))})
-    ddf = dd.from_pandas(df, npartitions=3)
+    ddf = dd.from_pandas(df, npartitions=2)
 
     path = os.path.join(directory, filename)
 
-    ddf.pack_partitions_to_parquet(path, npartitions=3, overwrite=True)
+    ddf.pack_partitions_to_parquet(path, npartitions=2, overwrite=True)
 
 
 if __name__ == '__main__':

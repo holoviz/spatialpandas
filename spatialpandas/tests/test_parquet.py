@@ -408,7 +408,7 @@ def test_read_parquet(filename):
 
     assert isinstance(df, GeoDataFrame)
     assert all(df.columns == ["multiline", "a"])
-    assert all(df.a == np.arange(10))
+    assert all(df.a == np.arange(5))
     assert df.geometry.name == "multiline"
 
 
@@ -423,13 +423,13 @@ def test_read_parquet_dask(directory, repartitioned):
     assert isinstance(ddf, DaskGeoDataFrame)
     assert all(ddf.columns == ["multiline", "a"])
     assert ddf.geometry.name == "multiline"
-    assert ddf.npartitions == 3
+    assert ddf.npartitions == 2
 
     if repartitioned:
-        assert all(sorted(ddf.a.compute().values) == np.arange(10))
+        assert all(sorted(ddf.a.compute().values) == np.arange(5))
         assert ddf.index.name == "hilbert_distance"
     else:
-        assert all(ddf.a.compute() == np.arange(10))
+        assert all(ddf.a.compute() == np.arange(5))
 
     # Check metadata partition bounds equal the individual partition bounds.
     partition_bounds = ddf._partition_bounds
