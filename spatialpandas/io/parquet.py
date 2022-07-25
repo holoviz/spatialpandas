@@ -422,7 +422,7 @@ def _perform_read_parquet_dask(
         cols_no_index = None
 
     meta = dd_read_parquet(
-        paths[0],
+        datasets[0].files[0],
         columns=cols_no_index,
         filesystem=filesystem,
         engine='pyarrow',
