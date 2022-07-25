@@ -1,4 +1,3 @@
-import copy
 import json
 import pathlib
 from distutils.version import LooseVersion
