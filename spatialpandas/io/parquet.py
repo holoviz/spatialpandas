@@ -198,7 +198,7 @@ def to_parquet_dask(
     **kwargs: Any,
 ) -> None:
     engine_kwargs = engine_kwargs or {}
-    
+
     if not isinstance(ddf, DaskGeoDataFrame):
         raise TypeError(f"Expected DaskGeoDataFrame not {type(ddf)}")
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
@@ -293,7 +293,7 @@ def read_parquet_dask(
         build_sindex : boolean
             Whether to build partition level spatial indexes to speed up indexing.
         storage_options: Key/value pairs to be passed on to the file-system backend, if any.
-        engine_kwargs: pyarrow.parquet engine-related keyword arguments. 
+        engine_kwargs: pyarrow.parquet engine-related keyword arguments.
     Returns:
     DaskGeoDataFrame
     """
@@ -357,7 +357,8 @@ def _perform_read_parquet_dask(
         pa.parquet.ParquetDataset(
             path,
             filesystem=filesystem,
-            validate_schema=False,
+            #validate_schema=False,
+            use_legacy_dataset=False,
             **engine_kwargs,
         ) for path in paths
     ]
@@ -366,7 +367,7 @@ def _perform_read_parquet_dask(
     pieces = []
     for dataset in datasets:
         # Perform natural sort on pieces so that "part.10" comes after "part.2"
-        dataset_pieces = sorted(dataset.pieces, key=lambda piece: natural_sort_key(piece.path))
+        dataset_pieces = sorted(dataset.fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
     delayed_partitions = [
@@ -514,10 +515,11 @@ def _perform_read_parquet_dask(
 
 def _load_partition_bounds(pqds):
     partition_bounds = None
-    if (pqds.common_metadata is not None and
-            b'spatialpandas' in pqds.common_metadata.metadata):
+    filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+    common_metadata = pq.read_metadata(filename)
+    if common_metadata is not None and b'spatialpandas' in common_metadata.metadata:
         spatial_metadata = json.loads(
-            pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')
+            common_metadata.metadata[b'spatialpandas'].decode('utf')
         )
         if "partition_bounds" in spatial_metadata:
             partition_bounds = {}
