@@ -401,7 +401,7 @@ def test_pack_partitions_to_parquet_list_bounds(
         assert ddf_read.geometry.name == 'points'
 
 
-@pytest.mark.parametrize("filename", ["serial_5.0.0.parq"])
+@pytest.mark.parametrize("filename", ["serial_5.0.0.parq", "serial_8.0.0.parq"])
 def test_read_parquet(filename):
     path = Path(__file__).parent.joinpath("test_data", filename)
     df = read_parquet(str(path))
@@ -413,7 +413,9 @@ def test_read_parquet(filename):
 
 
 @pytest.mark.parametrize(
-    "directory, repartitioned", [("dask_5.0.0.parq", False), ("dask_repart_5.0.0.parq", True)])
+    "directory, repartitioned",
+    [("dask_5.0.0.parq", False), ("dask_repart_5.0.0.parq", True),
+     ("dask_8.0.0.parq", False), ("dask_repart_8.0.0.parq", True)])
 def test_read_parquet_dask(directory, repartitioned):
     path = Path(__file__).parent.joinpath("test_data", directory)
     ddf = read_parquet_dask(str(path))
