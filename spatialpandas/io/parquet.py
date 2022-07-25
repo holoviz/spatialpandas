@@ -209,48 +209,26 @@ def to_parquet_dask(
             path and filesystem.isdir(path):
         filesystem.rm(path, recursive=True)
 
+    # Determine partition bounding boxes to save to _metadata file
+    partition_bounds = {}
+    for series_name in ddf.columns:
+        series = ddf[series_name]
+        if isinstance(series.dtype, GeometryDtype):
+            partition_bounds[series_name] = series.partition_bounds.to_dict()
+
+    spatial_metadata = {'partition_bounds': partition_bounds}
+    b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
+
     dd_to_parquet(
         ddf,
         path,
         engine="pyarrow",
         compression=compression,
         storage_options=storage_options,
+        custom_metadata={b'spatialpandas': b_spatial_metadata},
+        write_metadata_file=True,
         **kwargs,
     )
-
-    # Write partition bounding boxes to the _metadata file
-    partition_bounds = {}
-    for series_name in ddf.columns:
-        series = ddf[series_name]
-        if isinstance(series.dtype, GeometryDtype):
-            if series._partition_bounds is None:
-                # Bounds are not already computed. Compute bounds from the parquet file
-                # that was just written.
-                filesystem.invalidate_cache(path)
-                series = read_parquet_dask(
-                    path,
-                    columns=[series_name],
-                    filesystem=filesystem,
-                    load_divisions=False,
-                    storage_options=storage_options,
-                )[series_name]
-            partition_bounds[series_name] = series.partition_bounds.to_dict()
-
-    spatial_metadata = {'partition_bounds': partition_bounds}
-    b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
-
-    pqds = pq.ParquetDataset(
-        path,
-        filesystem=filesystem,
-        validate_schema=False,
-        **engine_kwargs,
-    )
-    all_metadata = copy.copy(pqds.common_metadata.metadata)
-    all_metadata[b'spatialpandas'] = b_spatial_metadata
-    schema = pqds.common_metadata.schema.to_arrow_schema()
-    new_schema = schema.with_metadata(all_metadata)
-    with filesystem.open(pqds.common_metadata_path, 'wb') as f:
-        pq.write_metadata(new_schema, f)
 
 
 def read_parquet_dask(
@@ -518,7 +496,11 @@ def _perform_read_parquet_dask(
 def _load_partition_bounds(pqds):
     partition_bounds = None
     filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
-    common_metadata = pq.read_metadata(filename)
+    try:
+        common_metadata = pq.read_metadata(filename)
+    except FileNotFoundError:
+        common_metadata = None
+
     if common_metadata is not None and b'spatialpandas' in common_metadata.metadata:
         spatial_metadata = json.loads(
             common_metadata.metadata[b'spatialpandas'].decode('utf')
