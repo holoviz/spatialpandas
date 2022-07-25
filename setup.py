@@ -34,7 +34,7 @@ install_requires = [
     'param',
     'pyarrow >=1.0',
     'python-snappy',
-    'retrying',
+    'tenacity',
     'numpy',
     'dask[complete] >=2.0'
 ]

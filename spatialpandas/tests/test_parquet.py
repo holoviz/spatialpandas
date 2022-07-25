@@ -201,9 +201,9 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline,
             tempdir_format = None
 
         _retry_args = dict(
-            wait_exponential_multiplier=10,
-            wait_exponential_max=20000,
-            stop_max_attempt_number=4
+            stop_max_attempt_number=2,
+            wait_exponential_max=4000,
+            wait_exponential_multiplier=2,
         )
 
         ddf_packed = ddf.pack_partitions_to_parquet(
