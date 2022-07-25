@@ -63,16 +63,18 @@ def _load_parquet_pandas_metadata(
         pqds = pq.ParquetDataset(
             path,
             filesystem=filesystem,
-            validate_schema=False,
+            #validate_schema=False,
+            use_legacy_dataset=False,
             **engine_kwargs,
         )
-        common_metadata = pqds.common_metadata
-        if common_metadata is None:
-            # Get metadata for first piece
-            piece = pqds.pieces[0]
-            metadata = piece.get_metadata().metadata
-        else:
-            metadata = pqds.common_metadata.metadata
+        filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+        try:
+            common_metadata = pq.read_metadata(filename)
+        except FileNotFoundError:
+            # Common metadata doesn't exist, so get metadata for first piece instead
+            filename = pathlib.Path(pqds.files[0])
+            common_metadata = pq.read_metadata(filename)
+        metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
             pf = pq.ParquetFile(f)
