@@ -1,9 +1,9 @@
 import json
 import pathlib
-from distutils.version import LooseVersion
 from functools import reduce
 from glob import has_magic
 from numbers import Number
+from packaging.version import Version
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
@@ -30,7 +30,7 @@ from ..io.utils import (
 )
 
 # improve pandas compatibility, based on geopandas _compat.py
-PANDAS_GE_12 = str(pd.__version__) >= LooseVersion("1.2.0")
+PANDAS_GE_12 = Version(pd.__version__) >= Version("1.2.0")
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
