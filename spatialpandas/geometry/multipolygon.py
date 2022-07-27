@@ -59,7 +59,7 @@ Received invalid value of type {typ}. Must be an instance of Polygon or MultiPol
             shapely MultiPolygon shape
         """
         import shapely.geometry as sg
-        polygon_arrays = np.asarray(self.data.as_py())
+        polygon_arrays = np.asarray(self.data.as_py(), dtype=object)
 
         polygons = []
         for polygon_array in polygon_arrays:

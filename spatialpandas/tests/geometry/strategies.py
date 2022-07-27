@@ -4,7 +4,7 @@ from geopandas.array import from_shapely
 from hypothesis import HealthCheck, settings
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays
-from scipy.spatial.qhull import Voronoi
+from scipy.spatial import Voronoi
 from shapely import geometry as sg
 from shapely.affinity import scale, translate
 from shapely.ops import unary_union, polygonize

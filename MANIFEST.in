@@ -3,6 +3,7 @@ include NOTICE
 include README.md
 include CHANGELOG.md
 include spatialpandas/.version
+graft spatialpandas/tests/test_data
 global-exclude *.py[co]
 global-exclude *~
 global-exclude *.ipynb_checkpoints/*

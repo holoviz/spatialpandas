@@ -3,6 +3,7 @@ import dask.dataframe as dd
 import hypothesis.strategies as hs
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import pytest
 from hypothesis import HealthCheck, Phase, Verbosity, given, settings
 
@@ -398,3 +399,41 @@ def test_pack_partitions_to_parquet_list_bounds(
 
         # Check active geometry column
         assert ddf_read.geometry.name == 'points'
+
+
+@pytest.mark.parametrize("filename", ["serial_5.0.0.parq", "serial_8.0.0.parq"])
+def test_read_parquet(filename):
+    path = Path(__file__).parent.joinpath("test_data", filename)
+    df = read_parquet(str(path))
+
+    assert isinstance(df, GeoDataFrame)
+    assert all(df.columns == ["multiline", "a"])
+    assert all(df.a == np.arange(5))
+    assert df.geometry.name == "multiline"
+
+
+@pytest.mark.parametrize(
+    "directory, repartitioned",
+    [("dask_5.0.0.parq", False), ("dask_repart_5.0.0.parq", True),
+     ("dask_8.0.0.parq", False), ("dask_repart_8.0.0.parq", True)])
+def test_read_parquet_dask(directory, repartitioned):
+    path = Path(__file__).parent.joinpath("test_data", directory)
+    ddf = read_parquet_dask(str(path))
+
+    assert isinstance(ddf, DaskGeoDataFrame)
+    assert all(ddf.columns == ["multiline", "a"])
+    assert ddf.geometry.name == "multiline"
+    assert ddf.npartitions == 2
+
+    if repartitioned:
+        assert all(sorted(ddf.a.compute().values) == np.arange(5))
+        assert ddf.index.name == "hilbert_distance"
+    else:
+        assert all(ddf.a.compute() == np.arange(5))
+
+    # Check metadata partition bounds equal the individual partition bounds.
+    partition_bounds = ddf._partition_bounds
+    assert list(partition_bounds) == ["multiline"]
+    assert partition_bounds["multiline"].index.name == "partition"
+    assert ddf["multiline"].partition_bounds.index.name == "partition"
+    assert all(partition_bounds["multiline"] == ddf["multiline"].partition_bounds)

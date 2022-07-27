@@ -7,16 +7,15 @@ extras_require = {
         'codecov',
         'flake8',
         'hilbertcurve',
-        'geopandas-base',
+        'geopandas',
         'hypothesis',
-        'libstdcxx-ng >=12',
+        'keyring',
         'pytest-cov',
         'pytest',
+        'rfc3986',
         'scipy',
         'shapely',
         'twine',
-        'rfc3986',
-        'keyring',
     ],
     'examples': [
         'datashader',
@@ -28,15 +27,14 @@ extras_require = {
 }
 
 install_requires = [
+    'dask[complete]',
     'fsspec',
     'numba',
-    'pandas >=0.25',
+    'pandas',
     'param',
     'pyarrow >=1.0',
     'python-snappy',
     'retrying',
-    'numpy',
-    'dask[complete] >=2.0'
 ]
 
 setup_args = dict(
@@ -52,7 +50,7 @@ setup_args = dict(
     url='https://github.com/holoviz/spatialpandas',
     maintainer='Datashader developers',
     maintainer_email='dev@datashader.org',
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=install_requires,
     extras_require=extras_require,
     tests_require=extras_require['tests'],

@@ -1,10 +1,9 @@
-import copy
 import json
 import pathlib
-from distutils.version import LooseVersion
 from functools import reduce
 from glob import has_magic
 from numbers import Number
+from packaging.version import Version
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
@@ -31,7 +30,7 @@ from ..io.utils import (
 )
 
 # improve pandas compatibility, based on geopandas _compat.py
-PANDAS_GE_12 = str(pd.__version__) >= LooseVersion("1.2.0")
+PANDAS_GE_12 = Version(pd.__version__) >= Version("1.2.0")
 
 _geometry_dtypes = [
     PointDtype, MultiPointDtype, RingDtype, LineDtype,
@@ -63,16 +62,18 @@ def _load_parquet_pandas_metadata(
         pqds = pq.ParquetDataset(
             path,
             filesystem=filesystem,
-            validate_schema=False,
+            #validate_schema=False,
+            use_legacy_dataset=False,
             **engine_kwargs,
         )
-        common_metadata = pqds.common_metadata
-        if common_metadata is None:
-            # Get metadata for first piece
-            piece = pqds.pieces[0]
-            metadata = piece.get_metadata().metadata
-        else:
-            metadata = pqds.common_metadata.metadata
+        filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+        try:
+            common_metadata = pq.read_metadata(filename)
+        except FileNotFoundError:
+            # Common metadata doesn't exist, so get metadata for first piece instead
+            filename = pathlib.Path(pqds.files[0])
+            common_metadata = pq.read_metadata(filename)
+        metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
             pf = pq.ParquetFile(f)
@@ -198,7 +199,7 @@ def to_parquet_dask(
     **kwargs: Any,
 ) -> None:
     engine_kwargs = engine_kwargs or {}
-    
+
     if not isinstance(ddf, DaskGeoDataFrame):
         raise TypeError(f"Expected DaskGeoDataFrame not {type(ddf)}")
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
@@ -207,48 +208,27 @@ def to_parquet_dask(
             path and filesystem.isdir(path):
         filesystem.rm(path, recursive=True)
 
+    # Determine partition bounding boxes to save to _metadata file
+    partition_bounds = {}
+    for series_name in ddf.columns:
+        series = ddf[series_name]
+        if isinstance(series.dtype, GeometryDtype):
+            partition_bounds[series_name] = series.partition_bounds.to_dict()
+
+    spatial_metadata = {'partition_bounds': partition_bounds}
+    b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
+
     dd_to_parquet(
         ddf,
         path,
         engine="pyarrow",
         compression=compression,
         storage_options=storage_options,
+        custom_metadata={b'spatialpandas': b_spatial_metadata},
+        write_metadata_file=True,
+        **engine_kwargs,
         **kwargs,
     )
-
-    # Write partition bounding boxes to the _metadata file
-    partition_bounds = {}
-    for series_name in ddf.columns:
-        series = ddf[series_name]
-        if isinstance(series.dtype, GeometryDtype):
-            if series._partition_bounds is None:
-                # Bounds are not already computed. Compute bounds from the parquet file
-                # that was just written.
-                filesystem.invalidate_cache(path)
-                series = read_parquet_dask(
-                    path,
-                    columns=[series_name],
-                    filesystem=filesystem,
-                    load_divisions=False,
-                    storage_options=storage_options,
-                )[series_name]
-            partition_bounds[series_name] = series.partition_bounds.to_dict()
-
-    spatial_metadata = {'partition_bounds': partition_bounds}
-    b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
-
-    pqds = pq.ParquetDataset(
-        path,
-        filesystem=filesystem,
-        validate_schema=False,
-        **engine_kwargs,
-    )
-    all_metadata = copy.copy(pqds.common_metadata.metadata)
-    all_metadata[b'spatialpandas'] = b_spatial_metadata
-    schema = pqds.common_metadata.schema.to_arrow_schema()
-    new_schema = schema.with_metadata(all_metadata)
-    with filesystem.open(pqds.common_metadata_path, 'wb') as f:
-        pq.write_metadata(new_schema, f)
 
 
 def read_parquet_dask(
@@ -293,7 +273,7 @@ def read_parquet_dask(
         build_sindex : boolean
             Whether to build partition level spatial indexes to speed up indexing.
         storage_options: Key/value pairs to be passed on to the file-system backend, if any.
-        engine_kwargs: pyarrow.parquet engine-related keyword arguments. 
+        engine_kwargs: pyarrow.parquet engine-related keyword arguments.
     Returns:
     DaskGeoDataFrame
     """
@@ -357,7 +337,8 @@ def _perform_read_parquet_dask(
         pa.parquet.ParquetDataset(
             path,
             filesystem=filesystem,
-            validate_schema=False,
+            #validate_schema=False,
+            use_legacy_dataset=False,
             **engine_kwargs,
         ) for path in paths
     ]
@@ -366,7 +347,7 @@ def _perform_read_parquet_dask(
     pieces = []
     for dataset in datasets:
         # Perform natural sort on pieces so that "part.10" comes after "part.2"
-        dataset_pieces = sorted(dataset.pieces, key=lambda piece: natural_sort_key(piece.path))
+        dataset_pieces = sorted(dataset.fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
     delayed_partitions = [
@@ -419,7 +400,7 @@ def _perform_read_parquet_dask(
         cols_no_index = None
 
     meta = dd_read_parquet(
-        paths[0],
+        datasets[0].files[0],
         columns=cols_no_index,
         filesystem=filesystem,
         engine='pyarrow',
@@ -514,10 +495,15 @@ def _perform_read_parquet_dask(
 
 def _load_partition_bounds(pqds):
     partition_bounds = None
-    if (pqds.common_metadata is not None and
-            b'spatialpandas' in pqds.common_metadata.metadata):
+    filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+    try:
+        common_metadata = pq.read_metadata(filename)
+    except FileNotFoundError:
+        common_metadata = None
+
+    if common_metadata is not None and b'spatialpandas' in common_metadata.metadata:
         spatial_metadata = json.loads(
-            pqds.common_metadata.metadata[b'spatialpandas'].decode('utf')
+            common_metadata.metadata[b'spatialpandas'].decode('utf')
         )
         if "partition_bounds" in spatial_metadata:
             partition_bounds = {}
