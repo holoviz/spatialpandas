@@ -226,6 +226,7 @@ def to_parquet_dask(
         storage_options=storage_options,
         custom_metadata={b'spatialpandas': b_spatial_metadata},
         write_metadata_file=True,
+        **engine_kwargs,
         **kwargs,
     )
 
