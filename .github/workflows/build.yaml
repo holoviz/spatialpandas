@@ -27,8 +27,10 @@ jobs:
       run:
         shell: bash -l {0}
     env:
+      CHANS_DEV: "-c pyviz/label/dev  -c conda-forge"
       PKG_TEST_PYTHON: "--test-python=py37"
       PYTHON_VERSION: "3.7"
+      CHANS: "-c pyviz"
       CONDA_UPLOAD_TOKEN: ${{ secrets.CONDA_UPLOAD_TOKEN }}
     steps:
       - uses: actions/checkout@v2
@@ -40,21 +42,17 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: $PYTHON_VERSION
+          python-version: 3.8
       - name: Set output
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
       - name: conda setup
         run: |
           conda config --set always_yes True
-          conda install -c pyviz pyctdev
+          conda install -c pyviz "pyctdev>=0.5"
           doit ecosystem_setup
-          conda create -n test-environment python=$PYTHON_VERSION
-          conda activate test-environment
-          conda config --env --append channels pyviz/label/dev --append channels conda-forge
-          conda install pyctdev
       - name: conda build
-        run: doit package_build $PKG_TEST_PYTHON --test-group=all
+        run: doit package_build $CHANS_DEV $PKG_TEST_PYTHON --test-group=all
       - name: conda dev upload
         if: (github.event_name == 'push' && (contains(steps.vars.outputs.tag, 'a') || contains(steps.vars.outputs.tag, 'b') || contains(steps.vars.outputs.tag, 'rc')))
         run: doit package_upload --token=$CONDA_UPLOAD_TOKEN --label=dev
@@ -68,8 +66,10 @@ jobs:
       run:
         shell: bash -l {0}
     env:
+      CHANS_DEV: "-c pyviz/label/dev -c conda-forge"
       PKG_TEST_PYTHON: "--test-python=py37"
       PYTHON_VERSION: "3.7"
+      CHANS: "-c pyviz"
       PPU: ${{ secrets.PPU }}
       PPP: ${{ secrets.PPP }}
       PYPI: "https://upload.pypi.org/legacy/"
@@ -83,21 +83,17 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: $PYTHON_VERSION
       - name: conda setup
         run: |
           conda config --set always_yes True
-          conda install -c pyviz pyctdev
+          conda install -c pyviz "pyctdev>=0.5"
           doit ecosystem_setup
-          conda create -n test-environment python=$PYTHON_VERSION
-          conda activate test-environment
-          conda config --env --append channels pyviz/label/dev --append channels conda-forge
-          conda install pyctdev
+          doit env_create $CHANS_DEV --python=$PYTHON_VERSION
       - name: env setup
         run: |
           eval "$(conda shell.bash hook)"
           conda activate test-environment
-          doit develop_install -o tests
+          doit develop_install $CHANS_DEV -o tests
           doit pip_on_conda
       - name: pip build
         run: |
