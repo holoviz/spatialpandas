@@ -6,9 +6,10 @@
 
 |    |    |
 | --- | --- |
-| Build Status | [![pytest](https://github.com/holoviz/spatialpandas/workflows/pytest/badge.svg)](https://github.com/holoviz/spatialpandas/actions?query=workflow%3Apytest) |
+| Build Status | [![pytest](https://github.com/holoviz/spatialpandas/workflows/tests/badge.svg)](https://github.com/holoviz/spatialpandas/actions?query=workflow%3Atests) |
 | Latest dev release | [![Github tag](https://img.shields.io/github/tag/holoviz/spatialpandas.svg?label=tag&colorB=11ccbb)](https://github.com/holoviz/spatialpandas/tags)|
 | Latest release | [![Github release](https://img.shields.io/github/release/holoviz/spatialpandas.svg?label=tag&colorB=11ccbb)](https://github.com/holoviz/spatialpandas/releases) [![PyPI version](https://img.shields.io/pypi/v/spatialpandas.svg?colorB=cc77dd)](https://pypi.python.org/pypi/spatialpandas) [![spatialpandas version](https://img.shields.io/conda/v/pyviz/spatialpandas.svg?colorB=4488ff&style=flat)](https://anaconda.org/pyviz/spatialpandas) [![conda-forge version](https://img.shields.io/conda/v/conda-forge/spatialpandas.svg?label=conda%7Cconda-forge&colorB=4488ff)](https://anaconda.org/conda-forge/spatialpandas) [![defaults version](https://img.shields.io/conda/v/anaconda/spatialpandas.svg?label=conda%7Cdefaults&style=flat&colorB=4488ff)](https://anaconda.org/anaconda/spatialpandas) |
+| Python | [![Python support](https://img.shields.io/pypi/pyversions/spatialpandas.svg)](https://pypi.org/project/spatialpandas/)
 | Support | [![Discourse](https://img.shields.io/discourse/status?server=https%3A%2F%2Fdiscourse.holoviz.org)](https://discourse.holoviz.org/) |
 
 -----------------

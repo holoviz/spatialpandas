@@ -28,8 +28,8 @@ jobs:
         shell: bash -l {0}
     env:
       CHANS_DEV: "-c pyviz/label/dev  -c conda-forge"
-      PKG_TEST_PYTHON: "--test-python=py39"
-      PYTHON_VERSION: "3.9"
+      PKG_TEST_PYTHON: "--test-python=py37"
+      PYTHON_VERSION: "3.7"
       CHANS: "-c pyviz"
       CONDA_UPLOAD_TOKEN: ${{ secrets.CONDA_UPLOAD_TOKEN }}
     steps:
@@ -42,7 +42,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
-          python-version: 3.9
+          python-version: 3.7
       - name: Set output
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
@@ -67,8 +67,8 @@ jobs:
         shell: bash -l {0}
     env:
       CHANS_DEV: "-c pyviz/label/dev -c conda-forge"
-      PKG_TEST_PYTHON: "--test-python=py39"
-      PYTHON_VERSION: "3.9"
+      PKG_TEST_PYTHON: "--test-python=py37"
+      PYTHON_VERSION: "3.7"
       CHANS: "-c pyviz"
       PPU: ${{ secrets.PPU }}
       PPP: ${{ secrets.PPP }}
