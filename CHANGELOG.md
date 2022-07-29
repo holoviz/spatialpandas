@@ -1,3 +1,19 @@
+## Version 0.4.4
+
+Date: 2022-07-29
+
+This release achieves compatibility with recent versions of Dask, Pandas, PyArrow and Shapely.
+
+Enhancements:
+
+- Avoid inappropriate geometry tests ([#90](https://github.com/holoviz/spatialpandas/pull/90))
+
+Compatibility:
+
+- Fix Shapely deprecation warnings ([#85](https://github.com/holoviz/spatialpandas/pull/85))
+- Pandas extension array fixes ([#88](https://github.com/holoviz/spatialpandas/pull/88))
+- PyArrow and Dask parquet issues ([#92](https://github.com/holoviz/spatialpandas/pull/92))
+
 ## Version 0.4.3
 
 Date: 2021-08-07
