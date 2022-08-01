@@ -1,6 +1,6 @@
 ## Version 0.4.4
 
-Date: 2022-07-29
+Date: 2022-08-01
 
 This release achieves compatibility with recent versions of Dask, Pandas, PyArrow and Shapely.
 

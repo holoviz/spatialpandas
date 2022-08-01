@@ -1,6 +1,6 @@
 import param
 
-from setuptools import find_packages, setup
+from setuptools import find_namespace_packages, setup
 
 extras_require = {
     'tests': [
@@ -27,7 +27,7 @@ extras_require = {
 }
 
 install_requires = [
-    'dask[complete]',
+    'dask',
     'fsspec',
     'numba',
     'pandas',
@@ -55,7 +55,7 @@ setup_args = dict(
     extras_require=extras_require,
     tests_require=extras_require['tests'],
     license='BSD-2-Clause',
-    packages=find_packages(exclude=('tests', 'tests.*')),
+    packages=find_namespace_packages(),
     include_package_data=True,
     classifiers=[
         "License :: OSI Approved :: BSD License",
