@@ -241,7 +241,14 @@ class TestGeometryPrinting(eb.BasePrintingTests):
 
 
 class TestGeometryMissing(eb.BaseMissingTests):
-    pass
+    @pytest.mark.skip(reason="__setitem__ not supported")
+    def test_fillna_frame(self):
+        pass
+
+    @pytest.mark.skip(reason="__setitem__ not supported")
+    def test_fillna_series(self):
+        pass
+
 
 
 class TestGeometryReshaping(eb.BaseReshapingTests):
