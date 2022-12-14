@@ -61,7 +61,7 @@ Received invalid value of type {typ}. Must be an instance of Polygon
         """
         import shapely.geometry as sg
         ring_arrays = [np.asarray(line_coords).reshape(len(line_coords) // 2, 2)
-                       for line_coords in np.asarray(self.data.as_py(), dtype=object)]
+                       for line_coords in self.data.as_py()]
         rings = [sg.LinearRing(ring_array) for ring_array in ring_arrays]
         return sg.Polygon(shell=rings[0], holes=rings[1:])
 
