@@ -14,7 +14,7 @@ extras_require = {
         'pytest',
         'rfc3986',
         'scipy',
-        'shapely',
+        'shapely >=2.0',
         'twine',
     ],
     'examples': [
