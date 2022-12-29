@@ -1,4 +1,4 @@
-<img src="https://github.com/holoviz/spatialpandas/raw/master/doc/_static/logo_horizontal.png" data-canonical-src="https://github.com/holoviz/spatialpandas/raw/master/doc/_static/logo_horizontal.png" width="380"/><br>
+<img src="https://github.com/holoviz/spatialpandas/raw/main/doc/_static/logo_horizontal.png" data-canonical-src="https://github.com/holoviz/spatialpandas/raw/main/doc/_static/logo_horizontal.png" width="380"/><br>
 
 -----------------
 
@@ -14,4 +14,4 @@
 
 -----------------
 
-Spatialpandas provides Pandas and Dask extensions for vectorized spatial and geometric operations, such as fast, spatially indexed rendering of large collections of polygons, lines, or points. For more information, see the [overview notebook](https://nbviewer.jupyter.org/github/holoviz/spatialpandas/blob/master/examples/Overview.ipynb) and the [design document](https://github.com/holoviz/spatialpandas/issues/1#issue-513306469).
+Spatialpandas provides Pandas and Dask extensions for vectorized spatial and geometric operations, such as fast, spatially indexed rendering of large collections of polygons, lines, or points. For more information, see the [overview notebook](https://nbviewer.jupyter.org/github/holoviz/spatialpandas/blob/main/examples/Overview.ipynb) and the [design document](https://github.com/holoviz/spatialpandas/issues/1#issue-513306469).
