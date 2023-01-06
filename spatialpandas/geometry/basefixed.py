@@ -5,6 +5,7 @@ import pyarrow as pa
 
 from ..geometry.base import Geometry, GeometryArray, GeometryDtype
 from ..geometry.baselist import _lexographic_lt
+from ..utils import _asarray_maybe_ragged
 from ._algorithms.bounds import (bounds_interleaved, total_bounds_interleaved,
                                  total_bounds_interleaved_1d)
 
@@ -108,7 +109,7 @@ class GeometryFixedArray(GeometryArray):
             else:
                 invalid_array()
         else:
-            array = np.asarray(array)
+            array = _asarray_maybe_ragged(array)
             if array.dtype.kind == 'O':
                 if array.ndim != 1:
                     invalid_array()
