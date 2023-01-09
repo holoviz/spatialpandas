@@ -405,7 +405,6 @@ def _perform_read_parquet_dask(
         filesystem=filesystem,
         engine='pyarrow',
         categories=categories,
-        gather_statistics=False,
         storage_options=storage_options,
         **engine_kwargs,
     )._meta

@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from numba import jit
 
@@ -28,3 +30,34 @@ def _data2coord(vals, val_range, n):
     res[res < 0] = 0
     res[res > n - 1] = n - 1
     return res
+
+
+def _asarray_maybe_ragged(input):
+    """Convert input into a single numpy array, even if it is a ragged array.
+
+    Prior to numpy 1.24 just np.asarray(input) suffices as it emits a
+    np.VisibleDeprecationWarning if the input is ragged, i.e. can't be
+    converted to a single numpy array, but still completes the conversion by
+    creating a numpy array of multiple subarrays. From 1.24 onwards attempting
+    to do this raises a ValueError instead. This function therefore tries the
+    simple conversion and if this fails uses the ragged-supporting conversion
+    of np.asarray(input, type=object).
+
+    To demonstrate that this works with numpy < 1.24 it converts
+    VisibleDeprecationWarnings into errors so that they are handled the same
+    as for numpy >= 1.24.
+
+    Args:
+        input: ArrayLike | list[ArrayLike | None]
+
+    Returns:
+        NumPy array.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', np.VisibleDeprecationWarning)
+        try:
+            array = np.asarray(input)
+        except (ValueError, np.VisibleDeprecationWarning):
+            array = np.asarray(input, dtype=object)
+
+    return array
