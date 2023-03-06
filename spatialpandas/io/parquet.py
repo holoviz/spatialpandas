@@ -111,16 +111,21 @@ def read_parquet(
     engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
-    # Load pandas parquet metadata
-    metadata = _load_parquet_pandas_metadata(
+    # Load using pyarrow to handle parquet files and directories across filesystems
+    dataset = pq.ParquetDataset(
         path,
         filesystem=filesystem,
-        storage_options=storage_options,
-        engine_kwargs=engine_kwargs,
+        #validate_schema=False,
+        use_legacy_dataset=False,
+        **engine_kwargs,
+        **kwargs,
     )
+
+    metadata = dataset.schema.pandas_metadata
 
     # If columns specified, prepend index columns to it
     if columns is not None:
+        all_columns = set(column['name'] for column in metadata.get('columns', []))
         index_col_metadata = metadata.get('index_columns', [])
         extra_index_columns = []
         for idx_metadata in index_col_metadata:
@@ -130,20 +135,12 @@ def read_parquet(
                 name = idx_metadata.get('name', None)
             else:
                 name = None
-
-            if name is not None and name not in columns:
+            if name is not None and name not in columns and name in all_columns:
                 extra_index_columns.append(name)
 
         columns = extra_index_columns + list(columns)
 
-    # Load using pyarrow to handle parquet files and directories across filesystems
-    df = pq.ParquetDataset(
-        path,
-        filesystem=filesystem,
-        validate_schema=False,
-        **engine_kwargs,
-        **kwargs,
-    ).read(columns=columns).to_pandas()
+    df = dataset.read(columns=columns).to_pandas()
 
     # Return result
     return GeoDataFrame(df)
