@@ -29,6 +29,9 @@ from ..io.utils import (
 # improve pandas compatibility, based on geopandas _compat.py
 PANDAS_GE_12 = Version(pd.__version__) >= Version("1.2.0")
 
+# When we drop support for pyarrow < 5 all code related to this can be removed.
+LEGACY_PYARROW = Version(pa.__version__) < Version("5.0.0")
+
 
 def _load_parquet_pandas_metadata(
     path,
@@ -42,21 +45,34 @@ def _load_parquet_pandas_metadata(
         raise ValueError("Path not found: " + path)
 
     if filesystem.isdir(path):
+        if LEGACY_PYARROW:
+            basic_kwargs = dict(filesystem=filesystem, validate_schema=False)
+        else:
+            basic_kwargs = dict(filesystem=filesystem, use_legacy_dataset=False)
+
         pqds = pq.ParquetDataset(
             path,
-            filesystem=filesystem,
-            #validate_schema=False,
-            use_legacy_dataset=False,
+            **basic_kwargs,
             **engine_kwargs,
         )
-        filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
-        try:
-            common_metadata = pq.read_metadata(filename)
-        except FileNotFoundError:
-            # Common metadata doesn't exist, so get metadata for first piece instead
-            filename = pathlib.Path(pqds.files[0])
-            common_metadata = pq.read_metadata(filename)
-        metadata = common_metadata.metadata
+
+        if LEGACY_PYARROW:
+            common_metadata = pqds.common_metadata
+            if common_metadata is None:
+                # Get metadata for first piece
+                piece = pqds.pieces[0]
+                metadata = piece.get_metadata().metadata
+            else:
+                metadata = pqds.common_metadata.metadata
+        else:
+            filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+            try:
+                common_metadata = pq.read_metadata(filename)
+            except FileNotFoundError:
+                # Common metadata doesn't exist, so get metadata for first piece instead
+                filename = pathlib.Path(pqds.files[0])
+                common_metadata = pq.read_metadata(filename)
+            metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
             pf = pq.ParquetFile(f)
@@ -111,17 +127,28 @@ def read_parquet(
     engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
+    if LEGACY_PYARROW:
+        basic_kwargs = dict(filesystem=filesystem, validate_schema=False)
+    else:
+        basic_kwargs = dict(filesystem=filesystem, use_legacy_dataset=False)
+
     # Load using pyarrow to handle parquet files and directories across filesystems
     dataset = pq.ParquetDataset(
         path,
-        filesystem=filesystem,
-        #validate_schema=False,
-        use_legacy_dataset=False,
+        **basic_kwargs,
         **engine_kwargs,
         **kwargs,
     )
 
-    metadata = dataset.schema.pandas_metadata
+    if LEGACY_PYARROW:
+        metadata = _load_parquet_pandas_metadata(
+            path,
+            filesystem=filesystem,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
+    else:
+        metadata = dataset.schema.pandas_metadata
 
     # If columns specified, prepend index columns to it
     if columns is not None:
@@ -290,12 +317,15 @@ def _perform_read_parquet_dask(
         filesystem,
         storage_options,
     )
+    if LEGACY_PYARROW:
+        basic_kwargs = dict(filesystem=filesystem, validate_schema=False)
+    else:
+        basic_kwargs = dict(filesystem=filesystem, use_legacy_dataset=False)
+
     datasets = [
         pa.parquet.ParquetDataset(
             path,
-            filesystem=filesystem,
-            #validate_schema=False,
-            use_legacy_dataset=False,
+            **basic_kwargs,
             **engine_kwargs,
         ) for path in paths
     ]
@@ -304,7 +334,10 @@ def _perform_read_parquet_dask(
     pieces = []
     for dataset in datasets:
         # Perform natural sort on pieces so that "part.10" comes after "part.2"
-        dataset_pieces = sorted(dataset.fragments, key=lambda piece: natural_sort_key(piece.path))
+        fragments = getattr(dataset, "fragments", None)
+        if fragments is None:
+            fragments = dataset.pieces
+        dataset_pieces = sorted(fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
     delayed_partitions = [
@@ -356,12 +389,18 @@ def _perform_read_parquet_dask(
     else:
         cols_no_index = None
 
+    if LEGACY_PYARROW:
+        files = paths
+    else:
+        files = getattr(datasets[0], "files", paths)
+
     meta = dd_read_parquet(
-        datasets[0].files[0],
+        files[0],
         columns=cols_no_index,
         filesystem=filesystem,
         engine='pyarrow',
         categories=categories,
+        ignore_metadata_file=True,
         storage_options=storage_options,
         **engine_kwargs,
     )._meta
@@ -441,11 +480,15 @@ def _perform_read_parquet_dask(
 
 def _load_partition_bounds(pqds):
     partition_bounds = None
-    filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
-    try:
-        common_metadata = pq.read_metadata(filename)
-    except FileNotFoundError:
-        common_metadata = None
+
+    if LEGACY_PYARROW:
+        common_metadata = pqds.common_metadata
+    else:
+        filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+        try:
+            common_metadata = pq.read_metadata(filename)
+        except FileNotFoundError:
+            common_metadata = None
 
     if common_metadata is not None and b'spatialpandas' in common_metadata.metadata:
         spatial_metadata = json.loads(
