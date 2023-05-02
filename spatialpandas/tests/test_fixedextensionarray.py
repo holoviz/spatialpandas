@@ -220,9 +220,15 @@ class TestGeometryMethods(eb.BaseMethodsTests):
     def test_searchsorted(self):
         pass
 
-    @pytest.mark.skip(
-        reason="__setitem__ not supported"
-    )
+    @pytest.mark.skip(reason="__setitem__ not supported")
+    def test_fillna_copy_frame(self, data):
+        pass
+
+    @pytest.mark.skip(reason="__setitem__ not supported")
+    def test_fillna_copy_series(self, data):
+        pass
+
+    @pytest.mark.skip(reason="__setitem__ not supported")
     def test_shift_0_periods(self, data):
         pass
 
