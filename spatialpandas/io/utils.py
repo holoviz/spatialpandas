@@ -51,5 +51,6 @@ def _maybe_prepend_protocol(
         filesystem.protocol, str) else filesystem.protocol[0]
     if protocol not in ("file", "abstract"):
         # Add back prefix (e.g. s3://)
-        paths = ["{proto}://{p}".format(proto=protocol, p=p) for p in paths]
+        p = f"{protocol}://"
+        paths = [f"{p}{_}" if not _.startswith(p) else _ for _ in paths]
     return paths
