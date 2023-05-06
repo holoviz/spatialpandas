@@ -9,10 +9,13 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 01 * * SUN'
-    
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+env:
+  COLUMNS: 120
 
 jobs:
   test_suite:

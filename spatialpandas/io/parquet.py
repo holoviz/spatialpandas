@@ -16,7 +16,7 @@ from dask.dataframe import to_parquet as dd_to_parquet  # noqa
 from dask.utils import natural_sort_key
 from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow import parquet as pq
-from pyarrow.parquet import ParquetDataset
+from pyarrow.parquet import ParquetDataset, read_metadata
 
 from .. import GeoDataFrame
 from ..dask import DaskGeoDataFrame
@@ -69,11 +69,11 @@ def _load_parquet_pandas_metadata(
         else:
             filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
             try:
-                common_metadata = pq.read_metadata(filename, filesystem=filesystem)
+                common_metadata = _read_metadata(filename, filesystem=filesystem)
             except FileNotFoundError:
                 # Common metadata doesn't exist, so get metadata for first piece instead
                 filename = pqds.files[0]
-                common_metadata = pq.read_metadata(filename, filesystem=filesystem)
+                common_metadata = _read_metadata(filename, filesystem=filesystem)
             metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
@@ -515,6 +515,12 @@ def _get_parent_path(path):
     return parent if parent else "/"
 
 
+def _read_metadata(filename, filesystem):
+    with filesystem.open(filename, "rb") as f:
+        common_metadata = read_metadata(f)
+    return common_metadata
+
+
 def _load_partition_bounds(pqds, filesystem=None):
     partition_bounds = None
 
@@ -523,7 +529,7 @@ def _load_partition_bounds(pqds, filesystem=None):
     else:
         filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
         try:
-            common_metadata = pq.read_metadata(filename, filesystem=filesystem)
+            common_metadata = _read_metadata(filename, filesystem=filesystem)
         except FileNotFoundError:
             common_metadata = None
 
