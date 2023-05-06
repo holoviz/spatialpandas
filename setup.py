@@ -10,6 +10,7 @@ extras_require = {
         'geopandas',
         'hypothesis',
         'keyring',
+        'moto[s3,server]',
         'pytest-cov',
         'pytest',
         'rfc3986',
