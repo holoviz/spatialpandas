@@ -326,11 +326,11 @@ def _perform_read_parquet_dask(
 
     datasets = [
         pq.ParquetDataset(
-            paths,
+            path,
             filesystem=filesystem,
             **basic_kwargs,
             **engine_kwargs,
-        )
+        ) for path in paths
     ]
 
     # Create delayed partition for each piece
