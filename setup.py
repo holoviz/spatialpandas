@@ -5,7 +5,6 @@ from setuptools import find_namespace_packages, setup
 extras_require = {
     'tests': [
         'codecov',
-        'fiona',
         'flake8',
         'hilbertcurve',
         'geopandas',

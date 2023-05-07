@@ -5,8 +5,11 @@ import subprocess
 import time
 
 import dask.dataframe as dd
+import numpy as np
 import pytest
-from spatialpandas import GeoDataFrame
+
+from spatialpandas import GeoDataFrame, GeoSeries
+from spatialpandas.geometry import PointArray
 from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet, to_parquet_dask
 
 
@@ -71,10 +74,9 @@ def s3_fixture():
 
 @pytest.fixture()
 def sdf():
-    world_gp = geopandas.read_file(
-        geopandas.datasets.get_path('naturalearth_lowres')
-    )
-    return GeoDataFrame(world_gp)
+    src_array = np.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=np.float32)
+    points = PointArray(src_array)
+    return GeoDataFrame({"point": GeoSeries(points)})
 
 
 @pytest.fixture()
