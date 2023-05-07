@@ -14,6 +14,7 @@ extras_require = {
         'pytest-cov',
         'pytest',
         'rfc3986',
+        's3fs',
         'scipy',
         'shapely',
         'twine',
