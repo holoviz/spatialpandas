@@ -2,6 +2,7 @@ import logging
 import os
 import shlex
 import subprocess
+import sys
 import time
 
 import dask.dataframe as dd
@@ -18,11 +19,13 @@ geopandas = pytest.importorskip("geopandas")
 s3fs = pytest.importorskip("s3fs")
 requests = pytest.importorskip("requests")
 
+if sys.version_info < (3, 7):
+    pytest.skip("requires python3.7 or higher", allow_module_level=True)
 
 logging.getLogger("botocore").setLevel(logging.INFO)
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="module", autouse=True)
 def s3_fixture():
     """Writable local S3 system."""
     if "BOTO_CONFIG" not in os.environ:  # pragma: no cover
@@ -71,14 +74,14 @@ def s3_fixture():
         proc.wait()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def sdf():
     src_array = np.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=np.float32)
     points = PointArray(src_array)
     return GeoDataFrame({"point": GeoSeries(points)})
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def s3_parquet_dask(s3_fixture, sdf):
     path, s3so = s3_fixture
     path = f"{path}/test_dask"
@@ -89,7 +92,7 @@ def s3_parquet_dask(s3_fixture, sdf):
     yield path, s3so, sdf
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def s3_parquet_pandas(s3_fixture, sdf):
     path, s3so = s3_fixture
     path = f"{path}/test_pandas.parquet"
