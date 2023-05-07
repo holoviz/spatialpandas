@@ -58,11 +58,10 @@ def s3_fixture():
             timeout -= 0.1  # pragma: no cover
             time.sleep(0.1)  # pragma: no cover
         anon = False
-        s3so = dict(
-            anon=anon,
-            client_kwargs={"endpoint_url": endpoint_url},
-            # use_listings_cache=True,
-        )
+        s3so = {
+            "anon": anon,
+            "endpoint_url": endpoint_url,
+        }
         fs = s3fs.S3FileSystem(**s3so)
         fs.mkdir(bucket_name)
         assert fs.exists(bucket_name)
