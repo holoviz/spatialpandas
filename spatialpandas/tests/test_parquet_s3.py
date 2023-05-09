@@ -19,9 +19,6 @@ geopandas = pytest.importorskip("geopandas")
 s3fs = pytest.importorskip("s3fs")
 requests = pytest.importorskip("requests")
 
-if sys.version_info < (3, 8):
-    pytest.skip("requires python3.8 or higher", allow_module_level=True)
-
 logging.getLogger("botocore").setLevel(logging.INFO)
 
 
