@@ -1,9 +1,9 @@
 import json
-import pathlib
 from functools import reduce
 from glob import has_magic
 from numbers import Number
 from packaging.version import Version
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
@@ -15,7 +15,7 @@ from dask.dataframe import read_parquet as dd_read_parquet
 from dask.dataframe import to_parquet as dd_to_parquet  # noqa
 from dask.utils import natural_sort_key
 from pandas.io.parquet import to_parquet as pd_to_parquet
-from pyarrow import parquet as pq
+from pyarrow.parquet import ParquetDataset, ParquetFile, read_metadata
 
 from .. import GeoDataFrame
 from ..dask import DaskGeoDataFrame
@@ -46,12 +46,13 @@ def _load_parquet_pandas_metadata(
 
     if filesystem.isdir(path):
         if LEGACY_PYARROW:
-            basic_kwargs = dict(filesystem=filesystem, validate_schema=False)
+            basic_kwargs = dict(validate_schema=False)
         else:
-            basic_kwargs = dict(filesystem=filesystem, use_legacy_dataset=False)
+            basic_kwargs = dict(use_legacy_dataset=False)
 
-        pqds = pq.ParquetDataset(
+        pqds = ParquetDataset(
             path,
+            filesystem=filesystem,
             **basic_kwargs,
             **engine_kwargs,
         )
@@ -65,17 +66,17 @@ def _load_parquet_pandas_metadata(
             else:
                 metadata = pqds.common_metadata.metadata
         else:
-            filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+            filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
             try:
-                common_metadata = pq.read_metadata(filename)
+                common_metadata = _read_metadata(filename, filesystem=filesystem)
             except FileNotFoundError:
                 # Common metadata doesn't exist, so get metadata for first piece instead
-                filename = pathlib.Path(pqds.files[0])
-                common_metadata = pq.read_metadata(filename)
+                filename = pqds.files[0]
+                common_metadata = _read_metadata(filename, filesystem=filesystem)
             metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
-            pf = pq.ParquetFile(f)
+            pf = ParquetFile(f)
         metadata = pf.metadata.metadata
 
     return json.loads(
@@ -128,13 +129,14 @@ def read_parquet(
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
     if LEGACY_PYARROW:
-        basic_kwargs = dict(filesystem=filesystem, validate_schema=False)
+        basic_kwargs = dict(validate_schema=False)
     else:
-        basic_kwargs = dict(filesystem=filesystem, use_legacy_dataset=False)
+        basic_kwargs = dict(use_legacy_dataset=False)
 
     # Load using pyarrow to handle parquet files and directories across filesystems
-    dataset = pq.ParquetDataset(
+    dataset = ParquetDataset(
         path,
+        filesystem=filesystem,
         **basic_kwargs,
         **engine_kwargs,
         **kwargs,
@@ -262,8 +264,8 @@ def read_parquet_dask(
     DaskGeoDataFrame
     """
     # Normalize path to a list
-    if isinstance(path, (str, pathlib.Path)):
-        paths = [str(path)]
+    if isinstance(path, (str, Path)):
+        paths = [path]
     else:
         paths = list(path)
         if not paths:
@@ -276,16 +278,24 @@ def read_parquet_dask(
         storage_options,
     )
 
-    # Expand glob
-    if len(paths) == 1 and has_magic(paths[0]):
-        paths = filesystem.glob(paths[0])
-        paths = _maybe_prepend_protocol(paths, filesystem)
+    files = []
+    for p in paths:
+        if hasattr(p, "as_posix"):
+            p = p.as_posix()
+        if has_magic(p):
+            # Expand glob paths
+            _files = _expand_path(p, filesystem)
+            files.extend(_files)
+        elif not filesystem.exists(p):
+            raise FileNotFoundError(p)
+        else:
+            files.append(p)
 
     # Perform read parquet
     result = _perform_read_parquet_dask(
-        paths,
-        columns,
-        filesystem,
+        files,
+        columns=columns,
+        filesystem=filesystem,
         load_divisions=load_divisions,
         geometry=geometry,
         bounds=bounds,
@@ -298,6 +308,17 @@ def read_parquet_dask(
         result = result.build_sindex()
 
     return result
+
+
+def _expand_path(paths, filesystem):
+    # Expand glob paths
+    files = filesystem.expand_path(paths)
+    if isinstance(files, str):
+        files = [files]
+    # Filter out metadata files
+    files = [_ for _ in files if "_metadata" not in _.split("/")[-1]]
+    files = _maybe_prepend_protocol(files, filesystem)
+    return files
 
 
 def _perform_read_parquet_dask(
@@ -318,17 +339,23 @@ def _perform_read_parquet_dask(
         storage_options,
     )
     if LEGACY_PYARROW:
-        basic_kwargs = dict(filesystem=filesystem, validate_schema=False)
+        basic_kwargs = dict(validate_schema=False)
     else:
-        basic_kwargs = dict(filesystem=filesystem, use_legacy_dataset=False)
+        basic_kwargs = dict(use_legacy_dataset=False)
 
-    datasets = [
-        pa.parquet.ParquetDataset(
+    datasets = []
+    for path in paths:
+        if filesystem.isdir(path):
+            path = f"{path}/**.parquet"
+        if has_magic(path):
+            path = _expand_path(path, filesystem)
+        d = ParquetDataset(
             path,
+            filesystem=filesystem,
             **basic_kwargs,
             **engine_kwargs,
-        ) for path in paths
-    ]
+        )
+        datasets.append(d)
 
     # Create delayed partition for each piece
     pieces = []
@@ -364,7 +391,10 @@ def _perform_read_parquet_dask(
         div_maxes = None
 
     # load partition bounds
-    partition_bounds_list = [_load_partition_bounds(dataset) for dataset in datasets]
+    partition_bounds_list = [
+        _load_partition_bounds(dataset, filesystem=filesystem)
+        for dataset in datasets
+    ]
     if not any([b is None for b in partition_bounds_list]):
         partition_bounds = {}
         # We have partition bounds for all datasets
@@ -401,7 +431,6 @@ def _perform_read_parquet_dask(
         engine='pyarrow',
         categories=categories,
         ignore_metadata_file=True,
-        storage_options=storage_options,
         **engine_kwargs,
     )._meta
 
@@ -478,15 +507,28 @@ def _perform_read_parquet_dask(
     return result
 
 
-def _load_partition_bounds(pqds):
+def _get_parent_path(path):
+    if isinstance(path, Iterable) and not isinstance(path, str):
+        path = path[0]
+    parent = str(path).rsplit("/", 1)[0]
+    return parent if parent else "/"
+
+
+def _read_metadata(filename, filesystem):
+    with filesystem.open(filename, "rb") as f:
+        common_metadata = read_metadata(f)
+    return common_metadata
+
+
+def _load_partition_bounds(pqds, filesystem=None):
     partition_bounds = None
 
     if LEGACY_PYARROW:
         common_metadata = pqds.common_metadata
     else:
-        filename = pathlib.Path(pqds.files[0]).parent.joinpath("_common_metadata")
+        filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
         try:
-            common_metadata = pq.read_metadata(filename)
+            common_metadata = _read_metadata(filename, filesystem=filesystem)
         except FileNotFoundError:
             common_metadata = None
 
