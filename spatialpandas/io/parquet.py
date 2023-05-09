@@ -15,8 +15,7 @@ from dask.dataframe import read_parquet as dd_read_parquet
 from dask.dataframe import to_parquet as dd_to_parquet  # noqa
 from dask.utils import natural_sort_key
 from pandas.io.parquet import to_parquet as pd_to_parquet
-from pyarrow import parquet as pq
-from pyarrow.parquet import ParquetDataset, read_metadata
+from pyarrow.parquet import ParquetDataset, ParquetFile, read_metadata
 
 from .. import GeoDataFrame
 from ..dask import DaskGeoDataFrame
@@ -51,7 +50,7 @@ def _load_parquet_pandas_metadata(
         else:
             basic_kwargs = dict(use_legacy_dataset=False)
 
-        pqds = pq.ParquetDataset(
+        pqds = ParquetDataset(
             path,
             filesystem=filesystem,
             **basic_kwargs,
@@ -77,7 +76,7 @@ def _load_parquet_pandas_metadata(
             metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
-            pf = pq.ParquetFile(f)
+            pf = ParquetFile(f)
         metadata = pf.metadata.metadata
 
     return json.loads(
@@ -135,7 +134,7 @@ def read_parquet(
         basic_kwargs = dict(use_legacy_dataset=False)
 
     # Load using pyarrow to handle parquet files and directories across filesystems
-    dataset = pq.ParquetDataset(
+    dataset = ParquetDataset(
         path,
         filesystem=filesystem,
         **basic_kwargs,

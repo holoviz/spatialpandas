@@ -27,7 +27,10 @@ logging.getLogger("botocore").setLevel(logging.INFO)
 
 @pytest.fixture(scope="module", autouse=True)
 def s3_fixture():
-    """Writable local S3 system."""
+    """Writable local S3 system.
+
+    Taken from `universal_pathlib/upath/tests` and `s3fs/tests/test_s3fs.py`.
+    """
     if "BOTO_CONFIG" not in os.environ:  # pragma: no cover
         os.environ["BOTO_CONFIG"] = "/dev/null"
     if "AWS_ACCESS_KEY_ID" not in os.environ:  # pragma: no cover
