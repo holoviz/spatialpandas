@@ -2,7 +2,6 @@ import logging
 import os
 import shlex
 import subprocess
-import sys
 import time
 
 import dask.dataframe as dd
