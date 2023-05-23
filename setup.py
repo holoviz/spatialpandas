@@ -13,6 +13,7 @@ extras_require = {
         'moto[s3,server]',
         'pytest-cov',
         'pytest',
+        'python-snappy',
         'rfc3986',
         's3fs',
         'scipy',
@@ -35,7 +36,6 @@ install_requires = [
     'pandas',
     'param',
     'pyarrow >=1.0',
-    'python-snappy',
     'retrying',
 ]
 
