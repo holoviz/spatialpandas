@@ -22,6 +22,7 @@ extras_require = {
     ],
     'examples': [
         'datashader',
+        'distributed',
         'descartes',
         'geopandas',
         'holoviews',
