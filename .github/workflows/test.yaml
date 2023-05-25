@@ -53,7 +53,7 @@ jobs:
           doit ecosystem_setup
           conda create -n test-environment python=${{ matrix.python-version }}
           conda activate test-environment
-          conda config --env --append channels pyviz/label/dev --append channels numba --append channels conda-forge
+          conda config --env --append channels pyviz/label/dev --append channels conda-forge
           conda install pyctdev
       - name: doit develop_install
         run: |
