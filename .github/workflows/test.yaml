@@ -19,7 +19,7 @@ env:
 
 jobs:
   test_suite:
-    name: Pytest on ${{ matrix.python-version }}, ${{ matrix.os }}
+    name: Tests on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -31,53 +31,24 @@ jobs:
       run:
         shell: bash -l {0}
     env:
-      PYTHON_VERSION: ${{ matrix.python-version }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: holoviz-dev/holoviz_tasks/install@v0.1a15
         with:
-          fetch-depth: "100"
-      - uses: actions/setup-python@v4
-        with:
+          name: unit_test_suite
           python-version: ${{ matrix.python-version }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          miniconda-version: "latest"
-          python-version: ${{ matrix.python-version }}
-      - name: Fetch
-        run: git fetch --prune --tags
-      - name: conda setup
-        run: |
-          conda config --set always_yes True
-          conda install -c pyviz pyctdev
-          doit ecosystem_setup
-          conda create -n test-environment python=${{ matrix.python-version }}
-          conda activate test-environment
-          conda config --env --append channels pyviz/label/dev --append channels conda-forge
-          conda install pyctdev
-      - name: doit develop_install
-        run: |
-          eval "$(conda shell.bash hook)"
-          conda activate test-environment
-          conda list
-          doit develop_install -o tests
-      - name: doit env_capture
-        run: |
-          eval "$(conda shell.bash hook)"
-          conda activate test-environment
-          doit env_capture
+          channel-priority: strict
+          channels: pyviz/label/dev,conda-forge,nodefaults
+          envs: "-o tests"
+          cache: true
+          conda-update: true
+        id: install
       - name: doit test_lint
+        if: runner.os != 'Windows'
         run: |
-          eval "$(conda shell.bash hook)"
           conda activate test-environment
           doit test_lint
-      - name: doit test_unit
+      - name: doit test_unit_deploy
         run: |
-          eval "$(conda shell.bash hook)"
           conda activate test-environment
           doit test_unit_deploy
-      - name: codecov
-        run: |
-          eval "$(conda shell.bash hook)"
-          conda activate test-environment
-          codecov
