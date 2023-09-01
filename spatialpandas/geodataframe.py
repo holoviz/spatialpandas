@@ -18,6 +18,11 @@ class GeoDataFrame(pd.DataFrame):
     # properties to propagate
     _metadata = ['_geometry']
 
+    # In Pandas 2.1 will raise AttributeError.
+    # AttributeError: 'GeoDataFrame' object has no attribute '_geometry'
+    # Ref: https://github.com/pandas-dev/pandas/issues/51280
+    _geometry = None
+
     def __init__(self, data=None, index=None, geometry=None, **kwargs):
         # Call pandas constructor, always copy
         kwargs.pop("copy", None)
