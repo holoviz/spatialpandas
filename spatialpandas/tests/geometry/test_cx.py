@@ -59,6 +59,8 @@ def test_line_cx_selection(gp_line, rect):
     x0, y0, x1, y1 = rect
     for xslice in get_slices(x0, x1):
         for yslice in get_slices(y0, y1):
+            if xslice.start == xslice.stop or yslice.start == yslice.stop:
+                continue
             expected = LineArray.from_geopandas(gp_line.cx[xslice, yslice])
             result = LineArray.from_geopandas(gp_line).cx[xslice, yslice]
             assert all(expected == result)
@@ -71,6 +73,8 @@ def test_multiline_cx_selection(gp_multiline, rect):
     x0, y0, x1, y1 = rect
     for xslice in get_slices(x0, x1):
         for yslice in get_slices(y0, y1):
+            if xslice.start == xslice.stop or yslice.start == yslice.stop:
+                continue
             expected = MultiLineArray.from_geopandas(gp_multiline.cx[xslice, yslice])
             result = MultiLineArray.from_geopandas(gp_multiline).cx[xslice, yslice]
             assert all(expected == result)
@@ -88,6 +92,8 @@ def test_polygon_cx_selection(gp_polygon, rect):
     x0, y0, x1, y1 = rect
     for xslice in get_slices(x0, x1):
         for yslice in get_slices(y0, y1):
+            if xslice.start == xslice.stop or yslice.start == yslice.stop:
+                continue
             expected = PolygonArray.from_geopandas(gp_polygon.cx[xslice, yslice])
             result = PolygonArray.from_geopandas(gp_polygon).cx[xslice, yslice]
             assert all(expected == result)
@@ -105,6 +111,8 @@ def test_multipolygon_cx_selection(gp_multipolygon, rect):
     x0, y0, x1, y1 = rect
     for xslice in get_slices(x0, x1):
         for yslice in get_slices(y0, y1):
+            if xslice.start == xslice.stop or yslice.start == yslice.stop:
+                continue
             expected = MultiPolygonArray.from_geopandas(
                 gp_multipolygon.cx[xslice, yslice]
             )

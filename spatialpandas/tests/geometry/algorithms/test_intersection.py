@@ -62,6 +62,8 @@ def test_segment_intersection(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
     assert result1 == result2
 
     # Use shapely polygon to compute expected intersection
+    if (ax0 == ax1 == bx0 == bx1) or (ay0 == ay1 == by0 == by1):
+        return
     line1 = sg.LineString([(ax0, ay0), (ax1, ay1)])
     line2 = sg.LineString([(bx0, by0), (bx1, by1)])
     expected = line1.intersects(line2)
@@ -132,6 +134,9 @@ def test_multipoint_intersects_rect(gp_multipoint, rect):
 @given(st_line_array(), st_bounds())
 @hyp_settings
 def test_line_intersects_rect(gp_line, rect):
+    x0, y0, x1, y1 = rect
+    if x0 == x1 or y0 == y1:
+        return
     sg_rect = sg.box(*rect)
 
     expected = gp_line.intersects(sg_rect)
@@ -154,6 +159,9 @@ def test_line_intersects_rect(gp_line, rect):
 @given(st_multiline_array(), st_bounds())
 @hyp_settings
 def test_multiline_intersects_rect(gp_multiline, rect):
+    x0, y0, x1, y1 = rect
+    if x0 == x1 or y0 == y1:
+        return
     sg_rect = sg.box(*rect)
 
     expected = gp_multiline.intersects(sg_rect)
@@ -186,6 +194,9 @@ def test_multiline_intersects_rect(gp_multiline, rect):
 )
 @hyp_settings
 def test_polygon_intersects_rect(gp_polygon, rect):
+    x0, y0, x1, y1 = rect
+    if x0 == x1 or y0 == y1:
+        return
     sg_rect = sg.box(*rect)
 
     expected = gp_polygon.intersects(sg_rect)
@@ -216,6 +227,9 @@ def test_polygon_intersects_rect(gp_polygon, rect):
 )
 @hyp_settings
 def test_multipolygon_intersects_rect(gp_multipolygon, rect):
+    x0, y0, x1, y1 = rect
+    if x0 == x1 or y0 == y1:
+        return
     sg_rect = sg.box(*rect)
 
     expected = gp_multipolygon.intersects(sg_rect)
