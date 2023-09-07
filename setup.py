@@ -34,7 +34,7 @@ install_requires = [
     'dask',
     'fsspec',
     'numba',
-    'pandas <2.1',
+    'pandas',
     'param',
     'pyarrow >=1.0',
     'retrying',

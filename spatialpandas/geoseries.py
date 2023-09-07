@@ -1,4 +1,5 @@
 import pandas as pd
+from packaging.version import Version
 
 from .geometry import GeometryDtype, Geometry
 
@@ -33,6 +34,26 @@ class GeoSeries(pd.Series):
 
         data = to_geometry_array(data, dtype)
         super().__init__(data, index=index, name=name, **kwargs)
+
+    def _constructor_from_mgr(self, mgr, axes):
+        if Version(pd.__version__) < Version('2.1'):
+            return super()._constructor_from_mgr(mgr, axes)
+
+        # Copied from pandas.Series._constructor_from_mgr
+        # https://github.com/pandas-dev/pandas/blob/80a1a8bc3e07972376284ffce425a2abd1e58604/pandas/core/series.py#L582-L590
+        # Changed if statement to use GeoSeries instead of Series.
+        # REF: https://github.com/pandas-dev/pandas/pull/52132
+        # REF: https://github.com/pandas-dev/pandas/pull/53871
+
+        ser = self._from_mgr(mgr, axes=axes)
+        ser._name = None  # caller is responsible for setting real name
+
+        if type(self) is GeoSeries:  # Changed line
+            # fastpath avoiding constructor call
+            return ser
+        else:
+            assert axes is mgr.axes
+            return self._constructor(ser, copy=False)
 
     @property
     def _constructor(self):
