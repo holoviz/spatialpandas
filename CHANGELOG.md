@@ -1,3 +1,81 @@
+## Version 0.4.9
+
+Date: 2023-09-14
+
+This is a compatibility release to support Pandas 2.1.
+
+Compatibility:
+
+- Support Pandas 2.1 [#125](https://github.com/holoviz/spatialpandas/pull/125)
+- Don't compare empty geometry tests against geopandas [#127](https://github.com/holoviz/spatialpandas/pull/127)
+
+Enhancements:
+
+- Rename pyviz-dev as holoviz-dev [#120](https://github.com/holoviz/spatialpandas/pull/120)
+- Use holoviz_tasks/install action for CI [#123](https://github.com/holoviz/spatialpandas/pull/123)
+
+
+## Version 0.4.8
+
+Date: 2023-05-26
+
+This is a compatibility release to support numba 0.57 and Python 3.11, and fixes the reading of parquet files from remote filesystems.
+
+Compatibility:
+
+- Check compatibility with numba 0.57 and python 3.11 [#113](https://github.com/holoviz/spatialpandas/pull/113)
+- Fix read parquet from remote filesystems [#115](https://github.com/holoviz/spatialpandas/pull/115)
+- Set python-snappy as optional dependency [#117](https://github.com/holoviz/spatialpandas/pull/117)
+- Remove `pathlib.Path.enter` deprecation warnings [#118](https://github.com/holoviz/spatialpandas/pull/118)
+
+Enhancements:
+
+- Improvements to CI ([#112](https://github.com/holoviz/spatialpandas/pull/112) and [#114](https://github.com/holoviz/spatialpandas/pull/114))
+
+
+## Version 0.4.7
+
+Date: 2023-03-22
+
+This is a compatibility release to support numpy 1.24 and pyarrow from version 1.0.0 to 11.0.0.
+
+Compatibility:
+
+- Drop support for pyarrow<0.16 ([#108](https://github.com/holoviz/spatialpandas/pull/108))
+- Remove all use of parquet's `validate_schema` ([#110](https://github.com/holoviz/spatialpandas/pull/110))
+- Support pyarrow back to version 1.0.0 ([#111](https://github.com/holoviz/spatialpandas/pull/111))
+
+
+## Version 0.4.6
+
+Date: 2023-01-11
+
+This is a compatibility release to provide support for NumPy 1.24.
+
+Compatibility:
+
+- Support NumPy 1.24 ragged array conversion ([#107](https://github.com/holoviz/spatialpandas/pull/107))
+
+Enhancements:
+
+- Rename github default branch from `master` to `main` ([#105](https://github.com/holoviz/spatialpandas/pull/105))
+
+
+## Version 0.4.5
+
+Date: 2022-12-16
+
+This is a compatibility release to provide support for Shapely 2.0.
+
+Compatibility:
+
+- Don't use `dtype=object` when converting arrays to pass to shapely 2 ([#103](https://github.com/holoviz/spatialpandas/pull/103))
+
+Enhancements:
+
+- Improvements to CI ([#97](https://github.com/holoviz/spatialpandas/pull/97), [#98](https://github.com/holoviz/spatialpandas/pull/98), [#99](https://github.com/holoviz/spatialpandas/pull/99), [#100](https://github.com/holoviz/spatialpandas/pull/100))
+
+
 ## Version 0.4.4
 
 Date: 2022-08-01
@@ -13,6 +91,7 @@ Compatibility:
 - Fix Shapely deprecation warnings ([#85](https://github.com/holoviz/spatialpandas/pull/85))
 - Pandas extension array fixes ([#88](https://github.com/holoviz/spatialpandas/pull/88))
 - PyArrow and Dask parquet issues ([#92](https://github.com/holoviz/spatialpandas/pull/92))
+
 
 ## Version 0.4.3
 
