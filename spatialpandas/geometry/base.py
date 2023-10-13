@@ -639,6 +639,9 @@ Cannot check equality of {typ} of length {a_len} with:
             "intersects not yet implemented for %s objects" % type(self).__name__
         )
 
+    def _pad_or_backfill(self, method, **kwargs):
+        raise NotImplementedError()
+
 
 class _BaseCoordinateIndexer:
     def __init__(self, sindex):
