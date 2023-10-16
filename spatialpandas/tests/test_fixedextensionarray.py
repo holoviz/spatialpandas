@@ -167,6 +167,10 @@ class TestGeometryGetitem(eb.BaseGetitemTests):
     def test_getitem_invalid(self, data):
         pass
 
+    @pytest.mark.skip("__getitem__ with keys as positions is deprecated")
+    def test_getitem_series_integer_with_missing_raises(self, data, idx):
+        pass
+
 
 class TestGeometryGroupby(eb.BaseGroupbyTests):
     @pytest.mark.skip(
@@ -252,8 +256,24 @@ class TestGeometryMissing(eb.BaseMissingTests):
     def test_fillna_frame(self):
         pass
 
+    @pytest.mark.skip(reason="not implemented")
+    def test_fillna_limit_backfill(self):
+        pass
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_fillna_limit_pad(self):
+        pass
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_fillna_no_op_returns_copy(self):
+        pass
+
     @pytest.mark.skip(reason="__setitem__ not supported")
     def test_fillna_series(self):
+        pass
+
+    @pytest.mark.skip(reason="not implemented")
+    def test_fillna_series_method(self):
         pass
 
 
