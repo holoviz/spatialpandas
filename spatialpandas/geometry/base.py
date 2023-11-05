@@ -203,6 +203,13 @@ class GeometryArray(ExtensionArray):
             for shape in ga
         ])
 
+    @classmethod
+    def from_array(cls, exterior_arr):
+        """Docstring TODO"""
+
+        # currently only supports polygons with no holes
+        return cls([cls._element_type._exterior_array_to_coordinates(exterior) for exterior in exterior_arr])
+
     def to_geopandas(self):
         """
         Convert a spatialpandas geometry array into a geopandas GeometryArray

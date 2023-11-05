@@ -3,6 +3,8 @@ import pyarrow as pa
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
+import shapely.geometry as sg
+
 from ..geometry._algorithms.intersection import polygons_intersect_bounds
 from ..geometry._algorithms.measures import compute_area, compute_line_length
 from ..geometry._algorithms.orientation import orient_polygons
@@ -35,7 +37,6 @@ class Polygon(GeometryList):
 
     @classmethod
     def _shapely_to_coordinates(cls, shape):
-        import shapely.geometry as sg
         if isinstance(shape, sg.Polygon):
             if shape.exterior is not None:
                 exterior = np.asarray(shape.exterior.coords).ravel()
@@ -51,6 +52,11 @@ class Polygon(GeometryList):
             raise ValueError("""
 Received invalid value of type {typ}. Must be an instance of Polygon
 """.format(typ=type(shape).__name__))
+
+    @classmethod
+    def _exterior_array_to_coordinates(cls, arr):
+        return [arr.ravel()]
+
 
     def to_shapely(self):
         """
@@ -146,6 +152,11 @@ class PolygonArray(GeometryListArray):
             return polygons.oriented()
         else:
             return polygons
+
+    @classmethod
+    def from_exterior_array(cls, exterior_arr):
+        polygons = super().from_array(exterior_arr)
+        return polygons
 
     def oriented(self):
         missing = np.concatenate([self.isna(), [False]])
