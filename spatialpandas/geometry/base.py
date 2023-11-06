@@ -13,7 +13,6 @@ from ..spatialindex import HilbertRtree
 from ..spatialindex.rtree import _distances_from_bounds
 from ..utils import ngjit
 
-
 def _unwrap_geometry(a, element_dtype):
     try:
         if np.isscalar(a) and np.isnan(a):
@@ -214,7 +213,8 @@ class GeometryArray(ExtensionArray):
         Returns:
             spatialpandas geometry array with type of the calling class
         """
-        print(cls._element_type)
+
+        # TODO: generalize this
         return cls([cls._element_type._exterior_coords_to_coordinates(exterior) for exterior in arr])
 
     @classmethod
@@ -228,7 +228,7 @@ class GeometryArray(ExtensionArray):
         Returns:
             spatialpandas geometry array with type of the calling class
         """
-
+        # TODO: generalize this
         return cls([cls._element_type._exterior_coords_to_coordinates(exterior) for exterior in element_list])
 
 

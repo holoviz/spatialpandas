@@ -170,7 +170,12 @@ class PolygonArray(GeometryListArray):
             less than the maximum number of vertices should have its exterior coordinates padded using the first entry.
 
         """
-        polygons = super().from_array(exterior_coords)
+        if isinstance(exterior_coords, list):
+            polygons = super().from_list(exterior_coords)
+        elif isinstance(exterior_coords, np.ndarray):
+            polygons = super().from_array(exterior_coords)
+        else:
+            raise ValueError("TODO")
         return polygons
 
     def oriented(self):
