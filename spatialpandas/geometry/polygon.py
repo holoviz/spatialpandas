@@ -35,8 +35,8 @@ class Polygon(GeometryList):
 
     @classmethod
     def _shapely_to_coordinates(cls, shape):
+        import shapely.geometry as sg
         if isinstance(shape, sg.Polygon):
-            import shapely.geometry as sg
             if shape.exterior is not None:
                 exterior = np.asarray(shape.exterior.coords).ravel()
                 polygon_coords = [exterior]
