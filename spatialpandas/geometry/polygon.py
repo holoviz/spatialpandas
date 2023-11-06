@@ -3,8 +3,6 @@ import pyarrow as pa
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-import shapely.geometry as sg
-
 from ..geometry._algorithms.intersection import polygons_intersect_bounds
 from ..geometry._algorithms.measures import compute_area, compute_line_length
 from ..geometry._algorithms.orientation import orient_polygons
@@ -38,6 +36,7 @@ class Polygon(GeometryList):
     @classmethod
     def _shapely_to_coordinates(cls, shape):
         if isinstance(shape, sg.Polygon):
+            import shapely.geometry as sg
             if shape.exterior is not None:
                 exterior = np.asarray(shape.exterior.coords).ravel()
                 polygon_coords = [exterior]
