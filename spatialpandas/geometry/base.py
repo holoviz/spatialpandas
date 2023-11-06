@@ -204,11 +204,33 @@ class GeometryArray(ExtensionArray):
         ])
 
     @classmethod
-    def from_array(cls, exterior_arr):
-        """Docstring TODO"""
+    def from_array(cls, arr):
+        """
+        Build a spatialpandas geometry array from a Numpy Array
 
-        # currently only supports polygons with no holes
-        return cls([cls._element_type._exterior_array_to_coordinates(exterior) for exterior in exterior_arr])
+        Args:
+            arr: Numpy Array values to import
+
+        Returns:
+            spatialpandas geometry array with type of the calling class
+        """
+        print(cls._element_type)
+        return cls([cls._element_type._exterior_coords_to_coordinates(exterior) for exterior in arr])
+
+    @classmethod
+    def from_list(cls, element_list):
+        """
+        Build a spatialpandas geometry array from a Python List
+
+        Args:
+            element_list: List values to import
+
+        Returns:
+            spatialpandas geometry array with type of the calling class
+        """
+
+        return cls([cls._element_type._exterior_coords_to_coordinates(exterior) for exterior in element_list])
+
 
     def to_geopandas(self):
         """

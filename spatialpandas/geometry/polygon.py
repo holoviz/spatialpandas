@@ -54,9 +54,8 @@ Received invalid value of type {typ}. Must be an instance of Polygon
 """.format(typ=type(shape).__name__))
 
     @classmethod
-    def _exterior_array_to_coordinates(cls, arr):
+    def _exterior_coords_to_coordinates(cls, arr):
         return [arr.ravel()]
-
 
     def to_shapely(self):
         """
@@ -153,9 +152,26 @@ class PolygonArray(GeometryListArray):
         else:
             return polygons
 
+
     @classmethod
-    def from_exterior_array(cls, exterior_arr):
-        polygons = super().from_array(exterior_arr)
+    def from_exterior_coords(cls, exterior_coords):
+        """
+        Build a spatialpandas PolygonArray from exterior coordinates represented as a Python List or Numpy Array.
+
+        Args:
+            exterior_coords: A Python List or Numpy Array containing the exterior coordinates of a series of Polygons.
+                             Each Polygon in a List may have an arbitrary number of vertices but require a fixed
+                             number for a Numpy array.
+
+        Returns:
+            PolygonArray
+
+        Note:
+            When using a Numpy Array, each Polygon is assumed to have the same number of vertices. A polygon with
+            less than the maximum number of vertices should have its exterior coordinates padded using the first entry.
+
+        """
+        polygons = super().from_array(exterior_coords)
         return polygons
 
     def oriented(self):
