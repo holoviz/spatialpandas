@@ -170,7 +170,8 @@ class PolygonArray(GeometryListArray):
         if isinstance(exterior_coords, (list, np.ndarray)):
             polygons = [[exterior.ravel()] for exterior in exterior_coords]
         else:
-            raise ValueError("TODO")
+            raise TypeError(f"Construction of PolygonArray only supports `list` or `np.ndarray` inputs. Received "
+                            f"{type(exterior_coords)}")
         return cls(polygons)
 
     def oriented(self):

@@ -180,10 +180,12 @@ class MultiPolygonArray(GeometryListArray):
         """
         if isinstance(exterior_coords, (list, np.ndarray)):
             if isinstance(exterior_coords, np.ndarray):
-                warnings.warn("TODO: Warning for when a numpy array is passed, ")
+                warnings.warn(f"Constructing a MultiPolygonArray using a Numpy Array with a fixed shape {exterior_coords.shape}."
+                              f"Each MultiPolygon will contain exactly {exterior_coords.shape[0]} Polygons")
             mpa = [[[arr.ravel()] for arr in exterior] for exterior in exterior_coords]
         else:
-            raise ValueError("TODO")
+            raise TypeError(f"Construction of MultiPolygonArray only supports `list` or `np.ndarray` inputs. Received "
+                            f"{type(exterior_coords)}")
 
         return cls(mpa)
 
