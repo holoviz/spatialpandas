@@ -177,11 +177,18 @@ class MultiPolygonArray(GeometryListArray):
             When using a Numpy Array is passed in, it is assumed that each entry is unfired, meaning that
             all resulting MultiPolygons will have the same number of Polygons.
 
+
+
         """
         if isinstance(exterior_coords, (list, np.ndarray)):
             if isinstance(exterior_coords, np.ndarray):
-                warnings.warn(f"Constructing a MultiPolygonArray using a Numpy Array with a fixed shape {exterior_coords.shape}."
-                              f"Each MultiPolygon will contain exactly {exterior_coords.shape[0]} Polygons")
+                if exterior_coords.ndim != 4:
+                    raise ValueError(f"Invalid number of dimensions encountered in `exterior_coords`. Expected 4 but "
+                                     f"received {exterior_coords.ndim}")
+                else:
+                    warnings.warn(f"Constructing a MultiPolygonArray using a Numpy Array with a fixed shape "
+                                  f"{exterior_coords.shape}."
+                                  f"Each MultiPolygon will contain exactly {exterior_coords.shape[0]} Polygons", stacklevel=2)
             mpa = [[[arr.ravel()] for arr in exterior] for exterior in exterior_coords]
         else:
             raise TypeError(f"Construction of MultiPolygonArray only supports `list` or `np.ndarray` inputs. Received "
