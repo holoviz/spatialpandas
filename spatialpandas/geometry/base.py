@@ -202,36 +202,6 @@ class GeometryArray(ExtensionArray):
             for shape in ga
         ])
 
-    @classmethod
-    def from_array(cls, arr):
-        """
-        Build a spatialpandas geometry array from a Numpy Array
-
-        Args:
-            arr: Numpy Array values to import
-
-        Returns:
-            spatialpandas geometry array with type of the calling class
-        """
-
-        # TODO: generalize this
-        return cls([cls._element_type._exterior_coords_to_coordinates(exterior) for exterior in arr])
-
-    @classmethod
-    def from_list(cls, element_list):
-        """
-        Build a spatialpandas geometry array from a Python List
-
-        Args:
-            element_list: List values to import
-
-        Returns:
-            spatialpandas geometry array with type of the calling class
-        """
-        # TODO: generalize this
-        return cls([cls._element_type._exterior_coords_to_coordinates(exterior) for exterior in element_list])
-
-
     def to_geopandas(self):
         """
         Convert a spatialpandas geometry array into a geopandas GeometryArray
