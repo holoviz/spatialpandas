@@ -188,7 +188,7 @@ class MultiPolygonArray(GeometryListArray):
                 else:
                     warnings.warn(f"Constructing a MultiPolygonArray using a Numpy Array with a fixed shape "
                                   f"{exterior_coords.shape}."
-                                  f"Each MultiPolygon will contain exactly {exterior_coords.shape[0]} Polygons", stacklevel=2)
+                                  f"Each MultiPolygon will contain exactly {exterior_coords.shape[1]} Polygons", stacklevel=2)
             mpa = [[[arr.ravel()] for arr in exterior] for exterior in exterior_coords]
         else:
             raise TypeError(f"Construction of MultiPolygonArray only supports `list` or `np.ndarray` inputs. Received "
