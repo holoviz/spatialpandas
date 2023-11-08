@@ -1,5 +1,6 @@
 import numpy as np
 import pyarrow as pa
+import warnings
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
@@ -157,6 +158,34 @@ class MultiPolygonArray(GeometryListArray):
             return mpa.oriented()
         else:
             return mpa
+
+    @classmethod
+    def from_exterior_coords(cls, exterior_coords):
+        """
+        Build a spatialpandas MultiPolygonArray from exterior coordinates represented as a Python List or Numpy Array.
+
+        Args:
+            exterior_coords: A Python List where each entry contains the exterior coordinates of one of more Polygons.
+                             Each of these entries may be either a Python List or Numpy Array containing the exterior
+                             coordinates for a series of Polygons. Each Polygon in a List may have an arbitrary number
+                             of vertices but require a fixed number for a Numpy array.
+
+        Returns:
+            MultiPolygonArray
+
+        Note:
+            When using a Numpy Array is passed in, it is assumed that each entry is unfired, meaning that
+            all resulting MultiPolygons will have the same number of Polygons.
+
+        """
+        if isinstance(exterior_coords, (list, np.ndarray)):
+            if isinstance(exterior_coords, np.ndarray):
+                warnings.warn("TODO: Warning for when a numpy array is passed, ")
+            mpa = [[[arr.ravel()] for arr in exterior] for exterior in exterior_coords]
+        else:
+            raise ValueError("TODO")
+
+        return cls(mpa)
 
     def oriented(self):
         missing = np.concatenate([self.isna(), [False]])

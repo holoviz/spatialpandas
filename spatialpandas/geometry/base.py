@@ -13,6 +13,7 @@ from ..spatialindex import HilbertRtree
 from ..spatialindex.rtree import _distances_from_bounds
 from ..utils import ngjit
 
+
 def _unwrap_geometry(a, element_dtype):
     try:
         if np.isscalar(a) and np.isnan(a):
