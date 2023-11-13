@@ -1,5 +1,6 @@
 import numpy as np
 import pyarrow as pa
+import warnings
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
@@ -157,6 +158,43 @@ class MultiPolygonArray(GeometryListArray):
             return mpa.oriented()
         else:
             return mpa
+
+    @classmethod
+    def from_exterior_coords(cls, exterior_coords):
+        """
+        Build a spatialpandas MultiPolygonArray from exterior coordinates represented as a Python List or Numpy Array.
+
+        Args:
+            exterior_coords: A Python List where each entry contains the exterior coordinates of one of more Polygons.
+                             Each of these entries may be either a Python List or Numpy Array containing the exterior
+                             coordinates for a series of Polygons. Each Polygon in a List may have an arbitrary number
+                             of vertices but require a fixed number for a Numpy array.
+
+        Returns:
+            MultiPolygonArray
+
+        Note:
+            When using a Numpy Array is passed in, it is assumed that each entry is unfired, meaning that
+            all resulting MultiPolygons will have the same number of Polygons.
+
+
+
+        """
+        if isinstance(exterior_coords, (list, np.ndarray)):
+            if isinstance(exterior_coords, np.ndarray):
+                if exterior_coords.ndim != 4:
+                    raise ValueError(f"Invalid number of dimensions encountered in `exterior_coords`. Expected 4 but "
+                                     f"received {exterior_coords.ndim}")
+                else:
+                    warnings.warn(f"Constructing a MultiPolygonArray using a Numpy Array with a fixed shape "
+                                  f"{exterior_coords.shape}."
+                                  f"Each MultiPolygon will contain exactly {exterior_coords.shape[1]} Polygons", stacklevel=2)
+            mpa = [[[arr.ravel()] for arr in exterior] for exterior in exterior_coords]
+        else:
+            raise TypeError(f"Construction of MultiPolygonArray only supports `list` or `np.ndarray` inputs. Received "
+                            f"{type(exterior_coords)}")
+
+        return cls(mpa)
 
     def oriented(self):
         missing = np.concatenate([self.isna(), [False]])

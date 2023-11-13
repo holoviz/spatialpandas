@@ -147,6 +147,33 @@ class PolygonArray(GeometryListArray):
         else:
             return polygons
 
+
+    @classmethod
+    def from_exterior_coords(cls, exterior_coords):
+        """
+        Build a spatialpandas MultiPolygonArray from exterior coordinates represented as a Python List or Numpy Array.
+
+
+        Args:
+            exterior_coords: A Python List or Numpy Array containing the exterior coordinates of a series of Polygons.
+                             Each Polygon in a List may have an arbitrary number of vertices but require a fixed
+                             number for a Numpy array.
+
+        Returns:
+            PolygonArray
+
+        Note:
+            When using a Numpy Array, each Polygon is assumed to have the same number of vertices. A polygon with
+            less than the maximum number of vertices should have its exterior coordinates padded using the first entry.
+
+        """
+        if isinstance(exterior_coords, (list, np.ndarray)):
+            polygons = [[exterior.ravel()] for exterior in exterior_coords]
+        else:
+            raise TypeError(f"Construction of PolygonArray only supports `list` or `np.ndarray` inputs. Received "
+                            f"{type(exterior_coords)}")
+        return cls(polygons)
+
     def oriented(self):
         missing = np.concatenate([self.isna(), [False]])
         buffer_values = self.buffer_values.copy()
