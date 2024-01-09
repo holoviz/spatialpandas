@@ -347,7 +347,6 @@ def _perform_read_parquet_dask(
     for path in paths:
         if filesystem.isdir(path):
             path = f"{path}/**/*.parquet"
-        import pdb; pdb.set_trace()
         if has_magic(path):
             path = _expand_path(path, filesystem)
         d = ParquetDataset(
