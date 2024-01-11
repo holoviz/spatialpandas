@@ -1,3 +1,19 @@
+## Version 0.4.10
+
+Date: 2024-01-10
+
+This release achieves compatibility with the recent versions of `fsspec` and `pandas`.
+
+Enhancements:
+- Construct `PolygonArray` or `MultiPolygonArray` from Exterior Coordinates ([#312](https://github.com/holoviz/spatialpandas/pull/132))
+- Improvements to CI ([#129](https://github.com/holoviz/spatialpandas/pull/129) and [#134](https://github.com/holoviz/spatialpandas/pull/134))
+
+Compatibility:
+- Adapt glob to be compatible with the latest fsspec version ([#133](https://github.com/holoviz/spatialpandas/pull/133))
+- Drop support for Python 3.8 ([#131](https://github.com/holoviz/spatialpandas/pull/131))
+- Remove some pandas 2.1 future warnings ([#130](https://github.com/holoviz/spatialpandas/pull/130))
+
+
 ## Version 0.4.9
 
 Date: 2023-09-14
