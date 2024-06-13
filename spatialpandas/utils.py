@@ -54,10 +54,10 @@ def _asarray_maybe_ragged(input):
         NumPy array.
     """
     with warnings.catch_warnings():
-        warnings.simplefilter('error', np.VisibleDeprecationWarning)
+        warnings.simplefilter('error', np.exceptions.VisibleDeprecationWarning)
         try:
             array = np.asarray(input)
-        except (ValueError, np.VisibleDeprecationWarning):
+        except (ValueError, np.exceptions.VisibleDeprecationWarning):
             array = np.asarray(input, dtype=object)
 
     return array
