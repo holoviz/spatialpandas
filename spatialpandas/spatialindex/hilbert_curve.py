@@ -26,7 +26,7 @@ def _binary_2_int(bin_vec):
     next_val = 1
     width = len(bin_vec)
     for i in range(width):
-        res += next_val*bin_vec[width - i - 1]
+        res += next_val*int(bin_vec[width - i - 1])
         next_val <<= 1
     return res
 
