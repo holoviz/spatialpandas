@@ -12,8 +12,8 @@ DASK_DATAFRAME__QUERY_PLANNING = "False" # TODO: Support query planning
 
 [environments]
 test-39 = ["py39", "test-core", "test", "test-task", "example", "test-example", "test-pygeos"]
-test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example"]
-test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example"]
+test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example", "test-pygeos"]
+test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example", "test-pygeos"]
 test-312 = ["py312", "test-core", "test", "test-task", "example", "test-example"]
 test-core = ["py312", "test-core", "test-core-task"]
 build = ["py311", "build"]
@@ -74,7 +74,7 @@ scipy = "*"
 shapely = "*"
 
 [feature.test-pygeos.dependencies]
-# Maybe related to edgecase with hypothesis in tests
+# Maybe related to failing tests with hypothesis
 # Only works with Python < 3.12
 # https://geopandas.org/en/stable/docs/user_guide/pygeos_to_shapely.html
 geopandas-base = "<1"
