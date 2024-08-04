@@ -111,3 +111,8 @@ spatialpandas/.version
 monkeytype.sqlite3
 
 .doit.db
+
+# pixi + hatch
+.pixi
+pixi.lock
+_version.py
