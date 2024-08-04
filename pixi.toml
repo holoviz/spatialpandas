@@ -27,7 +27,7 @@ numba = "*"
 pandas = "<2.2" # FIX: Temporary upper pin
 param = "*"
 pip = "*"
-pyarrow = ">=1.0,<15" # FIX: Temporary upper pin
+pyarrow = ">=10,<15" # FIX: Temporary upper pin
 retrying = "*"
 
 [feature.py39.dependencies]
@@ -70,7 +70,7 @@ geopandas-base = "*"
 hilbertcurve = "*"
 moto = "<5"  # FIX: Temporary upper pin. see MotoServer section https://github.com/getmoto/moto/issues/7198
 python-snappy = "*"
-s3fs = ">=2023"  # Weird solve on Linux + Python 3.9
+s3fs = ">=2022.8"  # Bad solve on Linux + Python 3.9
 scipy = "*"
 shapely = "*"
 
