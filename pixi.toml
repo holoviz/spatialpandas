@@ -69,7 +69,7 @@ geopandas-base = "*"
 hilbertcurve = "*"
 # "moto[s3,server]" = "*"  # FIX: Add Back
 python-snappy = "*"
-s3fs = "*"
+s3fs = ">=2023"  # Weird solve on Linux + Python 3.9
 scipy = "*"
 shapely = "*"
 
