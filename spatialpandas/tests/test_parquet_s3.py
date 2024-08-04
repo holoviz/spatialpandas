@@ -84,33 +84,18 @@ def s3_parquet_pandas(s3_fixture, sdf):
     yield path, s3so, sdf
 
 
-class TestS3ParquetDask:
-    @staticmethod
-    def test_read_parquet_dask_remote_glob_parquet(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(f"{path}/*.parquet", storage_options=s3so).compute()
-        assert result.equals(sdf)
-
-    @staticmethod
-    def test_read_parquet_dask_remote_glob_all(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(f"{path}/*", storage_options=s3so).compute()
-        assert result.equals(sdf)
-
-    @staticmethod
-    def test_read_parquet_dask_remote_dir(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(path, storage_options=s3so).compute()
-        assert result.equals(sdf)
-
-    @staticmethod
-    def test_read_parquet_dask_remote_dir_slash(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(f"{path}/", storage_options=s3so).compute()
-        assert result.equals(sdf)
+@pytest.mark.parametrize(
+    "fpath",
+    ["{path}/*.parquet", "{path}/*", "{path}", "{path}/"],
+    ids=["glob_parquet", "glob_all", "dir", "dir_slash"],
+)
+def test_read_parquet_dask_remote(s3_parquet_dask, fpath):
+    path, s3so, sdf = s3_parquet_dask
+    result = read_parquet_dask(fpath.format(path=path), storage_options=s3so).compute()
+    assert result.equals(sdf)
 
 
-def test_read_parquet_remote(s3_parquet_pandas):
+def test_read_parquet_pandas_remote(s3_parquet_pandas):
     path, s3so, sdf = s3_parquet_pandas
     result = read_parquet(path, storage_options=s3so)
     assert result.equals(sdf)
