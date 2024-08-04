@@ -9,11 +9,12 @@ install = 'python -m pip install --no-deps --disable-pip-version-check -e .'
 [activation.env]
 PYTHONIOENCODING = "utf-8"
 DASK_DATAFRAME__QUERY_PLANNING = "False" # TODO: Support query planning
+USE_PYGEOS = '0'
 
 [environments]
-test-39 = ["py39", "test-core", "test", "test-task", "example", "test-example", "test-pygeos"]
-test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example", "test-pygeos"]
-test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example", "test-pygeos"]
+test-39 = ["py39", "test-core", "test", "test-task", "example", "test-example"]
+test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example"]
+test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example"]
 test-312 = ["py312", "test-core", "test", "test-task", "example", "test-example"]
 test-core = ["py312", "test-core", "test-core-task"]
 build = ["py311", "build"]
@@ -72,16 +73,6 @@ python-snappy = "*"
 s3fs = ">=2023"  # Weird solve on Linux + Python 3.9
 scipy = "*"
 shapely = "*"
-
-[feature.test-pygeos.dependencies]
-# Maybe related to failing tests with hypothesis
-# Only works with Python < 3.12
-# https://geopandas.org/en/stable/docs/user_guide/pygeos_to_shapely.html
-geopandas-base = "<1"
-pygeos = "*"
-
-[feature.test-pygeos.activation.env]
-USE_PYGEOS = '1'
 
 [feature.test-task.tasks]
 test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'
