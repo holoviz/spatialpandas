@@ -1,15 +1,16 @@
 import dask.dataframe as dd
-import geopandas as gp
 import numpy as np
 import pandas as pd
 import pytest
 from hypothesis import given
 
 import spatialpandas as sp
-from ..geometry.strategies import st_point_array, st_polygon_array
 from ..test_parquet import hyp_settings
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
+
+gp = pytest.importorskip("geopandas")
+from ..geometry.strategies import st_point_array, st_polygon_array  # noqa: E402
 
 try:
     from geopandas._compat import HAS_RTREE, USE_PYGEOS

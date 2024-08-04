@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from spatialpandas.geometry import (
     Line,
@@ -109,6 +110,7 @@ def test_polygon_array():
     assert polygons.total_bounds == (0.0, 0.0, 3.0, 3.0)
 
 def test_polygon_array_from_exterior_coords():
+    pytest.importorskip("shapely")
     from shapely import Polygon
     p = Polygon(sample_polygon_exterior)
 
@@ -142,7 +144,9 @@ def test_multipolygon_array():
     np.testing.assert_equal(multipolygon.area, [17.0, 9.0])
     assert multipolygon.total_bounds == (0.0, 0.0, 11.0, 11.0)
 
+
 def test_multipolygon_array_from_exterior_coords():
+    pytest.importorskip("shapely")
     from shapely import Polygon, MultiPolygon
     p = Polygon(sample_polygon_exterior)
     mp = MultiPolygon([p, p])
