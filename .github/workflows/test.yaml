@@ -152,10 +152,6 @@ jobs:
         if: needs.setup.outputs.code_change == 'true'
         with:
           environments: ${{ matrix.environment }}
-      - name: Check packages latest version
-        if: needs.setup.outputs.code_change == 'true'
-        run: |
-          pixi run -e ${{ matrix.environment }} check-latest-packages numpy pandas bokeh panel param
       - name: Test Unit
         if: needs.setup.outputs.code_change == 'true'
         run: |
