@@ -8,13 +8,14 @@ install = 'python -m pip install --no-deps --disable-pip-version-check -e .'
 
 [activation.env]
 PYTHONIOENCODING = "utf-8"
+DASK_DATAFRAME__QUERY_PLANNING = "False"
 
 [environments]
-test-39 = ["py39", "test-core", "test"]
-test-310 = ["py310", "test-core", "test"]
-test-311 = ["py311", "test-core", "test"]
-test-312 = ["py312", "test-core", "test"]
-test-core = ["py312", "test-core"]
+test-39 = ["py39", "test-core", "test", "test-task"]
+test-310 = ["py310", "test-core", "test", "test-task"]
+test-311 = ["py311", "test-core", "test", "test-task"]
+test-312 = ["py312", "test-core", "test", "test-task"]
+test-core = ["py312", "test-core", "test-core-task"]
 # build = ["py311", "build"]
 # lint = ["py311", "lint"]
 
@@ -22,9 +23,9 @@ test-core = ["py312", "test-core"]
 dask-core = "*"
 fsspec = "*"
 numba = "*"
-pandas = "*"
+pandas = "<2.2"  # Temporary upper pin
 param = "*"
-pyarrow = ">=1.0"
+pyarrow = ">=1.0,<15" # Temporary upper pin
 retrying = "*"
 
 [feature.py39.dependencies]
@@ -59,8 +60,8 @@ pytest-github-actions-annotate-failures = "*"
 pytest-rerunfailures = "*"
 pytest-xdist = "*"
 
-[feature.test-core.tasks]
-test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'
+[feature.test-core-task.tasks]
+test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup --skip-slow'
 
 [feature.test.dependencies]
 geopandas-base = "*"
@@ -70,6 +71,9 @@ python-snappy = "*"
 s3fs = "*"
 scipy = "*"
 shapely = "*"
+
+[feature.test-task.tasks]
+test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'
 
 # =============================================
 # ================== BUILD ====================
