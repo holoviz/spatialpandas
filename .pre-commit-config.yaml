@@ -16,7 +16,7 @@ repos:
     rev: v0.5.6
     hooks:
       - id: ruff
-        files: datashader/
+        files: spatialpandas/
   - repo: https://github.com/hoxbro/clean_notebook
     rev: v0.1.15
     hooks:

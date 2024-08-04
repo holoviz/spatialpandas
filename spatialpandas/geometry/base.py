@@ -219,7 +219,7 @@ class GeometryArray(ExtensionArray):
         try:
             if len(array) == 0 and dtype is None:
                 dtype = 'float64'
-        except:
+        except Exception:
             # len failed
             pass
 
