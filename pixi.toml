@@ -23,7 +23,7 @@ test-core = ["py312", "test-core", "test-core-task"]
 dask-core = "*"
 fsspec = "*"
 numba = "*"
-pandas = "<2.2"  # Temporary upper pin
+pandas = "<2.2" # Temporary upper pin
 param = "*"
 pyarrow = ">=1.0,<15" # Temporary upper pin
 retrying = "*"
