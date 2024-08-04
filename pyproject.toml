@@ -26,7 +26,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-dependencies = ['dask', 'fsspec', 'numba', 'pandas', 'param', 'pyarrow >=1.0', 'retrying']
+dependencies = ['dask', 'fsspec >=2022.8', 'numba', 'pandas', 'pyarrow >=10', 'retrying']
 
 [project.urls]
 Homepage = "https://github.com/holoviz/spatialpandas"

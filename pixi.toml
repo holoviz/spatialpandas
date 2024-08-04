@@ -25,7 +25,6 @@ dask-core = "*"
 fsspec = "*"
 numba = "*"
 pandas = "<2.2" # FIX: Temporary upper pin
-param = "*"
 pip = "*"
 pyarrow = ">=10,<15" # FIX: Temporary upper pin
 retrying = "*"
