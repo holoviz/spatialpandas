@@ -59,7 +59,6 @@ psutil = "*"
 pytest = "*"
 pytest-cov = "*"
 pytest-github-actions-annotate-failures = "*"
-pytest-rerunfailures = "*"
 pytest-xdist = "*"
 
 [feature.test-core-task.tasks]
