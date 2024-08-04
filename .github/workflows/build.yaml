@@ -2,27 +2,27 @@ name: packages
 on:
   push:
     tags:
-    - 'v[0-9]+.[0-9]+.[0-9]+'
-    - 'v[0-9]+.[0-9]+.[0-9]+a[0-9]+'
-    - 'v[0-9]+.[0-9]+.[0-9]+b[0-9]+'
-    - 'v[0-9]+.[0-9]+.[0-9]+rc[0-9]+'
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+a[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+b[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+rc[0-9]+"
   # Dry-run only
   workflow_dispatch:
     inputs:
       target:
-        description: 'Build mode'
+        description: "Build mode"
         type: choice
         options:
-        - dryrun
+          - dryrun
         required: true
         default: dryrun
   schedule:
-    - cron: '0 01 * * SUN'
+    - cron: "0 01 * * SUN"
 
 jobs:
   conda_build:
     name: Build Conda Packages
-    runs-on: 'ubuntu-latest'
+    runs-on: "ubuntu-latest"
     defaults:
       run:
         shell: bash -l {0}
@@ -63,7 +63,7 @@ jobs:
         run: doit package_upload --token=$CONDA_UPLOAD_TOKEN --label=dev --label=main
   pip_build:
     name: Build PyPI Packages
-    runs-on: 'ubuntu-latest'
+    runs-on: "ubuntu-latest"
     defaults:
       run:
         shell: bash -l {0}
