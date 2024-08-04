@@ -116,3 +116,7 @@ monkeytype.sqlite3
 .pixi
 pixi.lock
 _version.py
+
+# Exampel files
+examples/world.parq
+examples/world_packed.parq/

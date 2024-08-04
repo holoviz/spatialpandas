@@ -8,13 +8,13 @@ install = 'python -m pip install --no-deps --disable-pip-version-check -e .'
 
 [activation.env]
 PYTHONIOENCODING = "utf-8"
-DASK_DATAFRAME__QUERY_PLANNING = "False"
+DASK_DATAFRAME__QUERY_PLANNING = "False"  # TODO: Support query planning
 
 [environments]
-test-39 = ["py39", "test-core", "test", "test-task"]
-test-310 = ["py310", "test-core", "test", "test-task"]
-test-311 = ["py311", "test-core", "test", "test-task"]
-test-312 = ["py312", "test-core", "test", "test-task"]
+test-39 = ["py39", "test-core", "test", "test-task", "example", "test-example"]
+test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example"]
+test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example"]
+test-312 = ["py312", "test-core", "test", "test-task", "example", "test-example"]
 test-core = ["py312", "test-core", "test-core-task"]
 # build = ["py311", "build"]
 # lint = ["py311", "lint"]
@@ -23,9 +23,10 @@ test-core = ["py312", "test-core", "test-core-task"]
 dask-core = "*"
 fsspec = "*"
 numba = "*"
-pandas = "<2.2" # Temporary upper pin
+pandas = "<2.2" # FIX: Temporary upper pin
 param = "*"
-pyarrow = ">=1.0,<15" # Temporary upper pin
+pip = "*"
+pyarrow = ">=1.0,<15" # FIX: Temporary upper pin
 retrying = "*"
 
 [feature.py39.dependencies]
@@ -40,13 +41,14 @@ python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
 
-# [feature.example.dependencies]
-# datashader = "*"
-# descartes = "*"
-# distributed = "*"
-# geopandas-base = "*"
-# holoviews = "*"
-# matplotlib-base = "*"
+[feature.example.dependencies]
+datashader = "*"
+descartes = "*"
+distributed = "*"
+geopandas-base = "<1"  # FIX: temporary upper pin
+pyogrio = "*"
+holoviews = "*"
+matplotlib-base = "*"
 
 # =============================================
 # =================== TESTS ===================
@@ -66,7 +68,7 @@ test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup --skip-slow'
 [feature.test.dependencies]
 geopandas-base = "*"
 hilbertcurve = "*"
-# "moto[s3,server]" = "*"
+# "moto[s3,server]" = "*"  # FIX: Add Back
 python-snappy = "*"
 s3fs = "*"
 scipy = "*"
@@ -74,6 +76,12 @@ shapely = "*"
 
 [feature.test-task.tasks]
 test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'
+
+[feature.test-example.dependencies]
+nbval = "*"
+
+[feature.test-example.tasks]
+test-example = 'pytest -n logical --dist loadscope --nbval-lax examples'
 
 # =============================================
 # ================== BUILD ====================
