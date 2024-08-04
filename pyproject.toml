@@ -15,6 +15,9 @@ xfail_strict = true
 log_cli_level = "INFO"
 filterwarnings = []
 
+[tool.ruff]
+line-length = 100
+
 [tool.isort]
 force_grid_wrap = 4
 multi_line_output = 5
