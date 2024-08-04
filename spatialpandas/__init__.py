@@ -1,6 +1,5 @@
-import param as _param
-
 from . import geometry, spatialindex, tools
+from .__version import __version__
 from .geodataframe import GeoDataFrame
 from .geoseries import GeoSeries
 from .tools.sjoin import sjoin
@@ -14,16 +13,11 @@ except ImportError:
     # Dask dataframe not available
     pass
 
-__version__ = str(
-    _param.version.Version(
-        fpath=__file__,
-        archive_commit="$Format:%h$",
-        reponame="spatialpandas",
-    ))
 
 __all__ = [
     "GeoDataFrame",
     "GeoSeries",
+    "__version__",
     "geometry",
     "sjoin",
     "spatialindex",
