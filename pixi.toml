@@ -68,7 +68,7 @@ test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup --skip-slow'
 [feature.test.dependencies]
 geopandas-base = "*"
 hilbertcurve = "*"
-# "moto[s3,server]" = "*"  # FIX: Add Back
+moto = "<5"  # FIX: Temporary upper pin. see MotoServer section https://github.com/getmoto/moto/issues/7198
 python-snappy = "*"
 s3fs = ">=2023"  # Weird solve on Linux + Python 3.9
 scipy = "*"

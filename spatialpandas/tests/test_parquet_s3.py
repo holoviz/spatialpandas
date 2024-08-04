@@ -20,6 +20,7 @@ requests = pytest.importorskip("requests")
 
 logging.getLogger("botocore").setLevel(logging.INFO)
 
+pytestmark = pytest.mark.xdist_group("s3")
 
 @pytest.fixture(scope="module", autouse=True)
 def s3_fixture():
@@ -43,6 +44,7 @@ def s3_fixture():
     port = 5555
     bucket_name = "test_bucket"
     endpoint_url = f"http://127.0.0.1:{port}/"
+    # moto_server s3 does not work with Moto>=5
     proc = subprocess.Popen(
         shlex.split(f"moto_server s3 -p {port}"),
         stderr=subprocess.DEVNULL,
