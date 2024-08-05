@@ -13,7 +13,6 @@ from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet, to_par
 pytest.importorskip("moto")
 geopandas = pytest.importorskip("geopandas")
 s3fs = pytest.importorskip("s3fs")
-requests = pytest.importorskip("requests")
 
 logging.getLogger("botocore").setLevel(logging.INFO)
 
