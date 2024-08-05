@@ -10,21 +10,8 @@ from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
 
 gp = pytest.importorskip("geopandas")
+rtree = pytest.importorskip("rtree")
 from ..geometry.strategies import st_point_array, st_polygon_array  # noqa: E402
-
-try:
-    from geopandas._compat import HAS_RTREE, USE_PYGEOS
-    gpd_spatialindex = USE_PYGEOS or HAS_RTREE
-except ImportError:
-    try:
-        import rtree  # noqa
-        gpd_spatialindex = rtree
-    except Exception:
-        gpd_spatialindex = False
-
-if not gpd_spatialindex:
-    pytest.skip('Geopandas spatialindex not available to compare against',
-                allow_module_level=True)
 
 
 @pytest.mark.slow

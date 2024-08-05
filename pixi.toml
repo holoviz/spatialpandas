@@ -69,7 +69,8 @@ geopandas-base = "*"
 hilbertcurve = "*"
 moto = "*"
 python-snappy = "*"
-s3fs = ">=2022.8"  # Bad solve on Linux + Python 3.9
+rtree = "*"
+s3fs = ">=2022.8"
 scipy = "*"
 shapely = "*"
 
