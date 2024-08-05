@@ -40,6 +40,6 @@ test:
     - pip
 
 about:
-  home: https://github.com/holoviz/spatialpandas
-  summary: Pandas extension arrays for spatial/geometric operations
-  license: BSD-2-Clause
+  home: {{ project['urls']['Homepage'] }}
+  summary: {{ project['description'] }}
+  license: {{ project['license']['text'] }}
