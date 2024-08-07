@@ -1,11 +1,12 @@
-import numpy as np
-
-from ..utils import ngjit
-
 """
 Initially based on https://github.com/galtay/hilbert_curve, but specialized
 for 2 dimensions with numba acceleration
 """
+
+import numpy as np
+
+from ..utils import ngjit
+
 
 
 @ngjit

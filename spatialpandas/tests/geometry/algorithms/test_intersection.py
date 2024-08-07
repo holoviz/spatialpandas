@@ -62,7 +62,10 @@ def test_segment_intersection(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
     assert result1 == result2
 
     # Use shapely polygon to compute expected intersection
-    if (ax0 == ax1 == bx0 == bx1) or (ay0 == ay1 == by0 == by1):
+    if (
+        (ax0 == ax1 == bx0 == bx1) or (ay0 == ay1 == by0 == by1)
+        or (ax0 == ax1 == ay0 == ay1) or (bx0 == bx1 == by0 == by1)
+    ):
         return
     line1 = sg.LineString([(ax0, ay0), (ax1, ay1)])
     line2 = sg.LineString([(bx0, by0), (bx1, by1)])

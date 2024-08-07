@@ -1,8 +1,5 @@
 import logging
 import os
-import shlex
-import subprocess
-import time
 
 import dask.dataframe as dd
 import numpy as np
@@ -16,9 +13,14 @@ from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet, to_par
 pytest.importorskip("moto")
 geopandas = pytest.importorskip("geopandas")
 s3fs = pytest.importorskip("s3fs")
-requests = pytest.importorskip("requests")
 
 logging.getLogger("botocore").setLevel(logging.INFO)
+
+pytestmark = pytest.mark.xdist_group("s3")
+
+PORT = 5555
+ENDPOINT_URL = f"http://127.0.0.1:{PORT}/"
+BUCKET_NAME = "test_bucket"
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -27,6 +29,11 @@ def s3_fixture():
 
     Taken from `universal_pathlib/upath/tests` and `s3fs/tests/test_s3fs.py`.
     """
+    from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+
+    server = ThreadedMotoServer(ip_address="127.0.0.1", port=PORT)
+    server.start()
+
     if "BOTO_CONFIG" not in os.environ:  # pragma: no cover
         os.environ["BOTO_CONFIG"] = "/dev/null"
     if "AWS_ACCESS_KEY_ID" not in os.environ:  # pragma: no cover
@@ -40,37 +47,12 @@ def s3_fixture():
     if "AWS_DEFAULT_REGION" not in os.environ:  # pragma: no cover
         os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
-    port = 5555
-    bucket_name = "test_bucket"
-    endpoint_url = f"http://127.0.0.1:{port}/"
-    proc = subprocess.Popen(
-        shlex.split(f"moto_server s3 -p {port}"),
-        stderr=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-    )
-    try:
-        timeout = 5
-        while timeout > 0:
-            try:
-                r = requests.get(endpoint_url, timeout=10)
-                if r.ok:
-                    break
-            except Exception:  # pragma: no cover
-                pass
-            timeout -= 0.1  # pragma: no cover
-            time.sleep(0.1)  # pragma: no cover
-        anon = False
-        s3so = {
-            "anon": anon,
-            "endpoint_url": endpoint_url,
-        }
-        fs = s3fs.S3FileSystem(**s3so)
-        fs.mkdir(bucket_name)
-        assert fs.exists(bucket_name)
-        yield f"s3://{bucket_name}", s3so
-    finally:
-        proc.terminate()
-        proc.wait()
+    s3so = {"anon": False, "endpoint_url": ENDPOINT_URL}
+    fs = s3fs.S3FileSystem(**s3so)
+    fs.mkdir(BUCKET_NAME)
+    assert fs.exists(BUCKET_NAME)
+    yield f"s3://{BUCKET_NAME}", s3so
+    server.stop()
 
 
 @pytest.fixture(scope="module")
@@ -101,33 +83,18 @@ def s3_parquet_pandas(s3_fixture, sdf):
     yield path, s3so, sdf
 
 
-class TestS3ParquetDask:
-    @staticmethod
-    def test_read_parquet_dask_remote_glob_parquet(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(f"{path}/*.parquet", storage_options=s3so).compute()
-        assert result.equals(sdf)
-
-    @staticmethod
-    def test_read_parquet_dask_remote_glob_all(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(f"{path}/*", storage_options=s3so).compute()
-        assert result.equals(sdf)
-
-    @staticmethod
-    def test_read_parquet_dask_remote_dir(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(path, storage_options=s3so).compute()
-        assert result.equals(sdf)
-
-    @staticmethod
-    def test_read_parquet_dask_remote_dir_slash(s3_parquet_dask):
-        path, s3so, sdf = s3_parquet_dask
-        result = read_parquet_dask(f"{path}/", storage_options=s3so).compute()
-        assert result.equals(sdf)
+@pytest.mark.parametrize(
+    "fpath",
+    ["{path}/*.parquet", "{path}/*", "{path}", "{path}/"],
+    ids=["glob_parquet", "glob_all", "dir", "dir_slash"],
+)
+def test_read_parquet_dask_remote(s3_parquet_dask, fpath):
+    path, s3so, sdf = s3_parquet_dask
+    result = read_parquet_dask(fpath.format(path=path), storage_options=s3so).compute()
+    assert result.equals(sdf)
 
 
-def test_read_parquet_remote(s3_parquet_pandas):
+def test_read_parquet_pandas_remote(s3_parquet_pandas):
     path, s3so, sdf = s3_parquet_pandas
     result = read_parquet(path, storage_options=s3so)
     assert result.equals(sdf)

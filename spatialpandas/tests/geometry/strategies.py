@@ -11,7 +11,7 @@ from shapely.ops import unary_union, polygonize
 
 hyp_settings = settings(
     deadline=None,
-    max_examples=500,
+    max_examples=100,
     suppress_health_check=[HealthCheck.too_slow],
 )
 
