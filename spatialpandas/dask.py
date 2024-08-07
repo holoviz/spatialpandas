@@ -9,6 +9,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from retrying import retry
+from packaging.version import Version
 
 import dask
 import dask.dataframe as dd
@@ -190,11 +191,11 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
-        try:
-            ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle_method=shuffle)
-        except TypeError:
-            # Changed to shuffle_method in 2024.1, https://github.com/dask/dask/pull/10738
-            ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle=shuffle)
+        if Version(dask.__version__) >= Version('2024.1'):
+            shuffle_kwargs = {'shuffle_method': shuffle}
+        else:
+            shuffle_kwargs = {'shuffle': shuffle}
+        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, **shuffle_kwargs)
 
         if ddf.npartitions != npartitions:
             # set_index doesn't change the number of partitions if the partitions
