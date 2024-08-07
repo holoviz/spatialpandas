@@ -276,6 +276,9 @@ class TestGeometryMissing(eb.BaseMissingTests):
     def test_fillna_series_method(self):
         pass
 
+    @pytest.mark.skip(reason="not implemented")
+    def test_ffill_limit_area(self):
+        pass
 
 class TestGeometryReshaping(eb.BaseReshapingTests):
     @pytest.mark.skip(reason="__setitem__ not supported")
