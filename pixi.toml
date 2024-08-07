@@ -24,6 +24,7 @@ lint = ["py311", "lint"]
 dask-core = "*"
 fsspec = "*"
 numba = "*"
+packaging = "*"
 pandas = "*"
 pip = "*"
 pyarrow = ">=10,<15" # FIX: Temporary upper pin
