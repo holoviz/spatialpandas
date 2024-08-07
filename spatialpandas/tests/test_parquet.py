@@ -1,3 +1,5 @@
+import os
+
 import dask
 import dask.dataframe as dd
 import hypothesis.strategies as hs
@@ -21,7 +23,7 @@ dask.config.set(scheduler="single-threaded")
 
 hyp_settings = settings(
     deadline=None,
-    max_examples=100,
+    max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 100)),
     suppress_health_check=[HealthCheck.too_slow],
 )
 
@@ -133,7 +135,7 @@ def test_parquet_dask(gp_multipoint, gp_multiline, tmp_path_factory):
     gp_multipoint=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline=st_multiline_array(min_size=10, max_size=40, geoseries=True),
 )
-@settings(deadline=None, max_examples=30)
+@settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 30)))
 def test_pack_partitions(gp_multipoint, gp_multiline):
     # Build dataframe
     n = min(len(gp_multipoint), len(gp_multiline))
@@ -172,7 +174,7 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
 )
 @settings(
     deadline=None,
-    max_examples=30,
+    max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 30)),
     suppress_health_check=[HealthCheck.too_slow],
     phases=[
         Phase.explicit,
@@ -246,7 +248,7 @@ def test_pack_partitions_to_parquet(gp_multipoint, gp_multiline,
     gp_multipoint2=st_multipoint_array(min_size=10, max_size=40, geoseries=True),
     gp_multiline2=st_multiline_array(min_size=10, max_size=40, geoseries=True),
 )
-@settings(deadline=None, max_examples=30, suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 30)), suppress_health_check=[HealthCheck.too_slow])
 def test_pack_partitions_to_parquet_glob(gp_multipoint1, gp_multiline1,
                                          gp_multipoint2, gp_multiline2,
                                          tmp_path_factory):
@@ -316,7 +318,7 @@ def test_pack_partitions_to_parquet_glob(gp_multipoint1, gp_multiline1,
     gp_multiline2=st_multiline_array(min_size=10, max_size=40, geoseries=True),
     bounds=st_bounds(),
 )
-@settings(deadline=None, max_examples=30, suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 30)), suppress_health_check=[HealthCheck.too_slow])
 def test_pack_partitions_to_parquet_list_bounds(
         gp_multipoint1, gp_multiline1,
         gp_multipoint2, gp_multiline2,
