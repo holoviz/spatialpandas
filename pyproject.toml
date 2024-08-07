@@ -61,7 +61,9 @@ addopts = [
 minversion = "7"
 xfail_strict = true
 log_cli_level = "INFO"
-filterwarnings = []
+filterwarnings = [
+    "error",
+]
 
 [tool.ruff]
 fix = true
