@@ -63,9 +63,22 @@ class GeoDataFrame(pd.DataFrame):
     def _constructor(self):
         return _MaybeGeoDataFrame
 
+    def _constructor_from_mgr(self, mgr, axes):
+        if not any(isinstance(block.dtype, GeometryDtype) for block in mgr.blocks):
+            return pd.DataFrame._from_mgr(mgr, axes)
+
+        return GeoDataFrame._from_mgr(mgr, axes)
+
     @property
     def _constructor_sliced(self):
         return _MaybeGeoSeries
+
+    def _constructor_sliced_from_mgr(self, mgr, axes):
+        is_row_proxy = mgr.index.is_(self.columns)
+
+        if isinstance(mgr.blocks[0].dtype, GeometryDtype) and not is_row_proxy:
+            return GeoSeries._from_mgr(mgr, axes)
+        return pd.Series._from_mgr(mgr, axes)
 
     def set_geometry(self, geometry, inplace=False):
         if (geometry not in self or
