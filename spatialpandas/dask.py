@@ -190,7 +190,11 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
-        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle=shuffle)
+        try:
+            ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle_method=shuffle)
+        except TypeError:
+            # Changed to shuffle_method in 2024.1, https://github.com/dask/dask/pull/10738
+            ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle=shuffle)
 
         if ddf.npartitions != npartitions:
             # set_index doesn't change the number of partitions if the partitions
