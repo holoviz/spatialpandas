@@ -30,7 +30,9 @@ from ..io.utils import (
 PANDAS_GE_12 = Version(pd.__version__) >= Version("1.2.0")
 
 # When we drop support for pyarrow < 5 all code related to this can be removed.
-LEGACY_PYARROW = Version(pa.__version__) < Version("5.0.0")
+_pa_version = Version(pa.__version__)
+PYARROW_LT_5 = _pa_version < Version("5.0.0")
+PYARROW_GE_15 = _pa_version >= Version("15.0.0")
 
 
 def _load_parquet_pandas_metadata(
@@ -45,8 +47,10 @@ def _load_parquet_pandas_metadata(
         raise ValueError("Path not found: " + path)
 
     if filesystem.isdir(path):
-        if LEGACY_PYARROW:
+        if PYARROW_LT_5:
             basic_kwargs = dict(validate_schema=False)
+        elif PYARROW_GE_15:
+            basic_kwargs = {}
         else:
             basic_kwargs = dict(use_legacy_dataset=False)
 
@@ -57,7 +61,7 @@ def _load_parquet_pandas_metadata(
             **engine_kwargs,
         )
 
-        if LEGACY_PYARROW:
+        if PYARROW_LT_5:
             common_metadata = pqds.common_metadata
             if common_metadata is None:
                 # Get metadata for first piece
@@ -128,8 +132,10 @@ def read_parquet(
     engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
-    if LEGACY_PYARROW:
+    if PYARROW_LT_5:
         basic_kwargs = dict(validate_schema=False)
+    elif PYARROW_GE_15:
+        basic_kwargs = {}
     else:
         basic_kwargs = dict(use_legacy_dataset=False)
 
@@ -142,7 +148,7 @@ def read_parquet(
         **kwargs,
     )
 
-    if LEGACY_PYARROW:
+    if PYARROW_LT_5:
         metadata = _load_parquet_pandas_metadata(
             path,
             filesystem=filesystem,
@@ -338,8 +344,10 @@ def _perform_read_parquet_dask(
         filesystem,
         storage_options,
     )
-    if LEGACY_PYARROW:
+    if PYARROW_LT_5:
         basic_kwargs = dict(validate_schema=False)
+    elif PYARROW_GE_15:
+        basic_kwargs = {}
     else:
         basic_kwargs = dict(use_legacy_dataset=False)
 
@@ -420,7 +428,7 @@ def _perform_read_parquet_dask(
     else:
         cols_no_index = None
 
-    if LEGACY_PYARROW:
+    if PYARROW_LT_5:
         files = paths
     else:
         files = getattr(datasets[0], "files", paths)
@@ -524,7 +532,7 @@ def _read_metadata(filename, filesystem):
 def _load_partition_bounds(pqds, filesystem=None):
     partition_bounds = None
 
-    if LEGACY_PYARROW:
+    if PYARROW_LT_5:
         common_metadata = pqds.common_metadata
     else:
         filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
