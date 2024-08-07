@@ -69,7 +69,10 @@ addopts = [
 minversion = "7"
 xfail_strict = true
 log_cli_level = "INFO"
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    "ignore:datetime.datetime.utcnow():DeprecationWarning:botocore", # https://github.com/boto/boto3/issues/3889
+]
 
 [tool.ruff]
 fix = true
