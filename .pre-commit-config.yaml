@@ -17,10 +17,6 @@ repos:
     hooks:
       - id: ruff
         files: spatialpandas/
-  - repo: https://github.com/hoxbro/clean_notebook
-    rev: v0.1.15
-    hooks:
-      - id: clean-notebook
   # - repo: https://github.com/codespell-project/codespell
   #   rev: v2.3.0
   #   hooks:
