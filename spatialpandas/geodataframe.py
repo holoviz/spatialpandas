@@ -67,7 +67,10 @@ class GeoDataFrame(pd.DataFrame):
         if not any(isinstance(block.dtype, GeometryDtype) for block in mgr.blocks):
             return pd.DataFrame._from_mgr(mgr, axes)
 
-        return GeoDataFrame._from_mgr(mgr, axes)
+        gdf = GeoDataFrame._from_mgr(mgr, axes)
+        if (gdf.columns == "geometry").sum() == 1:  # only if "geometry" is single col
+            gdf._geometry = "geometry"
+        return gdf
 
     @property
     def _constructor_sliced(self):
