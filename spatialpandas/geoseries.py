@@ -52,6 +52,22 @@ class GeoSeries(pd.Series):
         from .geodataframe import GeoDataFrame
         return GeoDataFrame
 
+    def _constructor_expanddim_from_mgr(self, mgr, axes):
+        from .geodataframe import GeoDataFrame
+        df = pd.DataFrame._from_mgr(mgr, axes)
+        geo_cols = [col for col in df.columns if isinstance(df[col].dtype, GeometryDtype)]
+        if geo_cols:
+            if len(geo_cols) == 1:
+                geo_col_name = geo_cols
+            else:
+                geo_col_name = None
+
+            if geo_col_name is None or not isinstance(getattr(df, "dtype", None), GeometryDtype):
+                df = GeoDataFrame(df)
+            else:
+                df = df.set_geometry(geo_col_name)
+        return df
+
     @property
     def bounds(self):
         return pd.DataFrame(
