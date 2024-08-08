@@ -6,10 +6,9 @@
 
 |    |    |
 | --- | --- |
-| Downloads | ![https://pypistats.org/packages/spatialpandas](https://img.shields.io/pypi/dm/spatialpandas?label=pypi) ![https://anaconda.org/pyviz/spatialpandas](https://pyviz.org/_static/cache/spatialpandas_conda_downloads_badge.svg)
 | Build Status | [![Build Status](https://github.com/holoviz/spatialpandas/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/holoviz/spatialpandas/actions/workflows/test.yaml?query=branch%3Amain) |
 | Coverage | [![codecov](https://codecov.io/gh/holoviz/spatialpandas/branch/main/graph/badge.svg)](https://codecov.io/gh/holoviz/spatialpandas) |
-| Latest dev release | [![Github tag](https://img.shields.io/github/tag/holoviz/spatialpandas.svg?label=tag&colorB=11ccbb)](https://github.com/holoviz/spatialpandas/tags) [![dev-site](https://img.shields.io/website-up-down-green-red/http/dev.spatialpandas.org.svg?label=dev%20website)](https://dev.spatialpandas.org) |
+| Latest dev release | [![Github tag](https://img.shields.io/github/tag/holoviz/spatialpandas.svg?label=tag&colorB=11ccbb)](https://github.com/holoviz/spatialpandas/tags) |
 | Latest release | [![Github release](https://img.shields.io/github/release/holoviz/spatialpandas.svg?label=tag&colorB=11ccbb)](https://github.com/holoviz/spatialpandas/releases) [![PyPI version](https://img.shields.io/pypi/v/spatialpandas.svg?colorB=cc77dd)](https://pypi.python.org/pypi/spatialpandas) [![spatialpandas version](https://img.shields.io/conda/v/pyviz/spatialpandas.svg?colorB=4488ff&style=flat)](https://anaconda.org/pyviz/spatialpandas) [![conda-forge version](https://img.shields.io/conda/v/conda-forge/spatialpandas.svg?label=conda%7Cconda-forge&colorB=4488ff)](https://anaconda.org/conda-forge/spatialpandas) [![defaults version](https://img.shields.io/conda/v/anaconda/spatialpandas.svg?label=conda%7Cdefaults&style=flat&colorB=4488ff)](https://anaconda.org/anaconda/spatialpandas) |
 | Python | [![Python support](https://img.shields.io/pypi/pyversions/spatialpandas.svg)](https://pypi.org/project/spatialpandas/) |
 | Support | [![Discourse](https://img.shields.io/discourse/status?server=https%3A%2F%2Fdiscourse.holoviz.org)](https://discourse.holoviz.org/) |
