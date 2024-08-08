@@ -57,12 +57,9 @@ class GeoSeries(pd.Series):
         df = pd.DataFrame._from_mgr(mgr, axes)
         geo_cols = [col for col in df.columns if isinstance(df[col].dtype, GeometryDtype)]
         if geo_cols:
-            if len(geo_cols) == 1:
-                geo_col_name = geo_cols
-            else:
-                geo_col_name = None
+            geo_col_name = geo_cols if len(geo_cols) == 1 else None
 
-            if geo_col_name is None or not isinstance(getattr(df, "dtype", None), GeometryDtype):
+            if geo_col_name is None or not isinstance(getattr(df[geo_col_name], "dtype", None), GeometryDtype):
                 df = GeoDataFrame(df)
             else:
                 df = df.set_geometry(geo_col_name)
