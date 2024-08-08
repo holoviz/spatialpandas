@@ -8,7 +8,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
 import pandas as pd
-import pyarrow as pa
 from dask import delayed
 from dask.dataframe import from_delayed, from_pandas
 from dask.dataframe import read_parquet as dd_read_parquet
@@ -29,11 +28,6 @@ from ..io.utils import (
 # improve pandas compatibility, based on geopandas _compat.py
 PANDAS_GE_12 = Version(pd.__version__) >= Version("1.2.0")
 
-# When we drop support for pyarrow < 5 all code related to this can be removed.
-_pa_version = Version(pa.__version__)
-PYARROW_LT_5 = _pa_version < Version("5.0.0")
-PYARROW_GE_15 = _pa_version >= Version("15.0.0")
-
 
 def _load_parquet_pandas_metadata(
     path,
@@ -47,37 +41,20 @@ def _load_parquet_pandas_metadata(
         raise ValueError("Path not found: " + path)
 
     if filesystem.isdir(path):
-        if PYARROW_LT_5:
-            basic_kwargs = dict(validate_schema=False)
-        elif PYARROW_GE_15:
-            basic_kwargs = {}
-        else:
-            basic_kwargs = dict(use_legacy_dataset=False)
-
         pqds = ParquetDataset(
             path,
             filesystem=filesystem,
-            **basic_kwargs,
             **engine_kwargs,
         )
 
-        if PYARROW_LT_5:
-            common_metadata = pqds.common_metadata
-            if common_metadata is None:
-                # Get metadata for first piece
-                piece = pqds.pieces[0]
-                metadata = piece.get_metadata().metadata
-            else:
-                metadata = pqds.common_metadata.metadata
-        else:
-            filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
-            try:
-                common_metadata = _read_metadata(filename, filesystem=filesystem)
-            except FileNotFoundError:
-                # Common metadata doesn't exist, so get metadata for first piece instead
-                filename = pqds.files[0]
-                common_metadata = _read_metadata(filename, filesystem=filesystem)
-            metadata = common_metadata.metadata
+        filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
+        try:
+            common_metadata = _read_metadata(filename, filesystem=filesystem)
+        except FileNotFoundError:
+            # Common metadata doesn't exist, so get metadata for first piece instead
+            filename = pqds.files[0]
+            common_metadata = _read_metadata(filename, filesystem=filesystem)
+        metadata = common_metadata.metadata
     else:
         with filesystem.open(path) as f:
             pf = ParquetFile(f)
@@ -132,31 +109,15 @@ def read_parquet(
     engine_kwargs = engine_kwargs or {}
     filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
-    if PYARROW_LT_5:
-        basic_kwargs = dict(validate_schema=False)
-    elif PYARROW_GE_15:
-        basic_kwargs = {}
-    else:
-        basic_kwargs = dict(use_legacy_dataset=False)
-
     # Load using pyarrow to handle parquet files and directories across filesystems
     dataset = ParquetDataset(
         path,
         filesystem=filesystem,
-        **basic_kwargs,
         **engine_kwargs,
         **kwargs,
     )
 
-    if PYARROW_LT_5:
-        metadata = _load_parquet_pandas_metadata(
-            path,
-            filesystem=filesystem,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-        )
-    else:
-        metadata = dataset.schema.pandas_metadata
+    metadata = dataset.schema.pandas_metadata
 
     # If columns specified, prepend index columns to it
     if columns is not None:
@@ -344,13 +305,6 @@ def _perform_read_parquet_dask(
         filesystem,
         storage_options,
     )
-    if PYARROW_LT_5:
-        basic_kwargs = dict(validate_schema=False)
-    elif PYARROW_GE_15:
-        basic_kwargs = {}
-    else:
-        basic_kwargs = dict(use_legacy_dataset=False)
-
     datasets = []
     for path in paths:
         if filesystem.isdir(path):
@@ -361,7 +315,6 @@ def _perform_read_parquet_dask(
         d = ParquetDataset(
             path,
             filesystem=filesystem,
-            **basic_kwargs,
             **engine_kwargs,
         )
         datasets.append(d)
@@ -428,10 +381,7 @@ def _perform_read_parquet_dask(
     else:
         cols_no_index = None
 
-    if PYARROW_LT_5:
-        files = paths
-    else:
-        files = getattr(datasets[0], "files", paths)
+    files = getattr(datasets[0], "files", paths)
 
     meta = dd_read_parquet(
         files[0],
@@ -532,14 +482,11 @@ def _read_metadata(filename, filesystem):
 def _load_partition_bounds(pqds, filesystem=None):
     partition_bounds = None
 
-    if PYARROW_LT_5:
-        common_metadata = pqds.common_metadata
-    else:
-        filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
-        try:
-            common_metadata = _read_metadata(filename, filesystem=filesystem)
-        except FileNotFoundError:
-            common_metadata = None
+    filename = "/".join([_get_parent_path(pqds.files[0]), "_common_metadata"])
+    try:
+        common_metadata = _read_metadata(filename, filesystem=filesystem)
+    except FileNotFoundError:
+        common_metadata = None
 
     if common_metadata is not None and b'spatialpandas' in common_metadata.metadata:
         spatial_metadata = json.loads(
