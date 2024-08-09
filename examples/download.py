@@ -6,6 +6,8 @@ except ImportError:
 
 
 def download_map(dataset):
+    if dataset not in ("naturalearth_lowres", "naturalearth_cities"):
+        raise ValueError(f"Unknown dataset: {dataset}, supported datasets are 'naturalearth_lowres' and 'naturalearth_cities'")
     url = f"https://api.github.com/repos/geopandas/geopandas/contents/geopandas/datasets/{dataset}?ref=v0.14.4"
     local_dir = user_cache_path() / "spatialpandas" / dataset
 
