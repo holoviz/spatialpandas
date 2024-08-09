@@ -511,17 +511,11 @@ def polygons_intersect_bounds(
     if y1 < y0:
         y0, y1, = y1, y0
 
-    if x0 == x1 or y0 == y1:
-        # Zero width/height rect does not intersect with anything
-        return
-
     for i in range(n):
         _perform_polygon_intersect_bounds(
             i, x0, y0, x1, y1, flat_values,
             start_offsets0, stop_offsets0, offsets1, result
         )
-
-    return result
 
 
 @ngjit
@@ -560,10 +554,6 @@ def multipolygons_intersect_bounds(
         x0, x1 = x1, x0
     if y1 < y0:
         y0, y1, = y1, y0
-
-    if x0 == x1 or y0 == y1:
-        # Zero width/height rect does not intersect with anything
-        return
 
     # Populate results
     for i in range(n):
