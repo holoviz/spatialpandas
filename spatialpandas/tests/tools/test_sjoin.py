@@ -42,8 +42,10 @@ def test_sjoin(how, gp_points, gp_polygons):
     gp_expected = gp_expected.rename(columns={"v_x": "v_left", "v_y": "v_right"})
     if how == "right":
         gp_expected.index.name = right_gpdf.index.name
+        gp_expected = gp_expected.rename(columns={"a_left": "index_left", "a_right": "a"})  # geopandas 1.0 compability
     else:
         gp_expected.index.name = left_gpdf.index.name
+        gp_expected = gp_expected.rename(columns={"b": "index_right", "a_right": "a"})  # geopandas 1.0 compability
 
     # join with spatialpandas
     left_spdf = GeoDataFrame(left_gpdf)

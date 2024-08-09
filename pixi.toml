@@ -45,10 +45,12 @@ python = "3.12.*"
 datashader = "*"
 descartes = "*"
 distributed = "*"
-geopandas-base = "<1" # FIX: temporary upper pin
-pyogrio = "*"
+geopandas-base = "*"
 holoviews = "*"
 matplotlib-base = "*"
+platformdirs = "*"
+pyogrio = "*"
+requests = "*"
 
 # =============================================
 # =================== TESTS ===================
