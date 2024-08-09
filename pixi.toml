@@ -46,9 +46,11 @@ datashader = "*"
 descartes = "*"
 distributed = "*"
 geopandas-base = "*"
-pyogrio = "*"
 holoviews = "*"
 matplotlib-base = "*"
+platformdirs = "*"
+pyogrio = "*"
+requests = "*"
 
 # =============================================
 # =================== TESTS ===================
