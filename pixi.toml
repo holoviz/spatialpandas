@@ -24,9 +24,10 @@ lint = ["py311", "lint"]
 dask-core = "*"
 fsspec = "*"
 numba = "*"
-pandas = "<2.2" # FIX: Temporary upper pin
+packaging = "*"
+pandas = "*"
 pip = "*"
-pyarrow = ">=10,<15" # FIX: Temporary upper pin
+pyarrow = ">=10"
 retrying = "*"
 
 [feature.py39.dependencies]

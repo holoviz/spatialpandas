@@ -26,7 +26,15 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-dependencies = ['dask', 'fsspec >=2022.8', 'numba', 'pandas', 'pyarrow >=10', 'retrying']
+dependencies = [
+    'dask',
+    'fsspec >=2022.8',
+    'numba',
+    'packaging',
+    'pandas',
+    'pyarrow >=10',
+    'retrying',
+]
 
 [project.urls]
 Homepage = "https://github.com/holoviz/spatialpandas"
@@ -61,7 +69,10 @@ addopts = [
 minversion = "7"
 xfail_strict = true
 log_cli_level = "INFO"
-filterwarnings = []
+filterwarnings = [
+    "error",
+    "ignore:datetime.datetime.utcnow():DeprecationWarning:botocore", # https://github.com/boto/boto3/issues/3889
+]
 
 [tool.ruff]
 fix = true

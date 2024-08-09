@@ -1,5 +1,4 @@
 import pandas as pd
-from packaging.version import Version
 
 from .geometry import GeometryDtype, Geometry
 
@@ -36,24 +35,13 @@ class GeoSeries(pd.Series):
         super().__init__(data, index=index, name=name, **kwargs)
 
     def _constructor_from_mgr(self, mgr, axes):
-        if Version(pd.__version__) < Version('2.1'):
-            return super()._constructor_from_mgr(mgr, axes)
+        from pandas.core.internals import SingleBlockManager
+        assert isinstance(mgr, SingleBlockManager)
 
-        # Copied from pandas.Series._constructor_from_mgr
-        # https://github.com/pandas-dev/pandas/blob/80a1a8bc3e07972376284ffce425a2abd1e58604/pandas/core/series.py#L582-L590
-        # Changed if statement to use GeoSeries instead of Series.
-        # REF: https://github.com/pandas-dev/pandas/pull/52132
-        # REF: https://github.com/pandas-dev/pandas/pull/53871
+        if not isinstance(mgr.blocks[0].dtype, GeometryDtype):
+            return pd.Series._from_mgr(mgr, axes)
 
-        ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-
-        if type(self) is GeoSeries:  # Changed line
-            # fastpath avoiding constructor call
-            return ser
-        else:
-            assert axes is mgr.axes
-            return self._constructor(ser, copy=False)
+        return GeoSeries._from_mgr(mgr, axes)
 
     @property
     def _constructor(self):
@@ -63,6 +51,19 @@ class GeoSeries(pd.Series):
     def _constructor_expanddim(self):
         from .geodataframe import GeoDataFrame
         return GeoDataFrame
+
+    def _constructor_expanddim_from_mgr(self, mgr, axes):
+        from .geodataframe import GeoDataFrame
+        df = pd.DataFrame._from_mgr(mgr, axes)
+        geo_cols = [col for col in df.columns if isinstance(df[col].dtype, GeometryDtype)]
+        if geo_cols:
+            geo_col_name = geo_cols if len(geo_cols) == 1 else None
+
+            if geo_col_name is None or not isinstance(getattr(df[geo_col_name], "dtype", None), GeometryDtype):
+                df = GeoDataFrame(df)
+            else:
+                df = df.set_geometry(geo_col_name)
+        return df
 
     @property
     def bounds(self):
