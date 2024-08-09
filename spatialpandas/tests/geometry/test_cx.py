@@ -100,6 +100,18 @@ def test_polygon_cx_selection(gp_polygon, rect):
 
 
 @pytest.mark.slow
+def test_polygon_cx_selection_point():
+    import geopandas as gpd
+    from shapely.geometry import shape
+
+    geometry = {"type": "Polygon", "coordinates": [[[0, 50], [20, 50], [50, 20], [50, 0]]]}
+    gp_multipolygon = gpd.GeoSeries([shape(geometry)])
+    xslice, yslice = slice(None, 0, None), slice(50, None, None)
+    expected = PolygonArray.from_geopandas(gp_multipolygon.cx[xslice, yslice])
+    result = PolygonArray.from_geopandas(gp_multipolygon).cx[xslice, yslice]
+    assert all(expected == result)
+
+@pytest.mark.slow
 @given(
     st_multipolygon_array(min_size=1, geoseries=True),
     st_bounds(
@@ -121,6 +133,18 @@ def test_multipolygon_cx_selection(gp_multipolygon, rect):
             ).cx[xslice, yslice]
             assert all(expected == result)
 
+
+@pytest.mark.slow
+def test_multipolygon_cx_selection_point():
+    import geopandas as gpd
+    from shapely.geometry import shape
+
+    geometry = {"type": "MultiPolygon", "coordinates": [[[[0, 50], [20, 50], [50, 20], [50, 0]]]]}
+    gp_multipolygon = gpd.GeoSeries([shape(geometry)])
+    xslice, yslice = slice(None, 0, None), slice(50, None, None)
+    expected = MultiPolygonArray.from_geopandas(gp_multipolygon.cx[xslice, yslice])
+    result = MultiPolygonArray.from_geopandas(gp_multipolygon).cx[xslice, yslice]
+    assert all(expected == result)
 
 @given(st_multipoint_array(min_size=1, geoseries=True), st_bounds(orient=True))
 @hyp_settings
