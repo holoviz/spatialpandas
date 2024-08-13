@@ -9,7 +9,7 @@ from spatialpandas.geometry import PointArray, PointDtype
 
 def test_equality():
     a = PointArray([[0, 1], [1, 2], None, [-1, -2], [7, 3]], dtype='float64')
-    assert all(a == a)
+    assert all(a == a)  # noqa: PLR0124
     assert all(a[1:-1] == a[[1, 2, 3]])
     assert not any(a[1:-1] == a[[2, 3, 1]])
 

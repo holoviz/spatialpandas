@@ -24,7 +24,6 @@ def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
                     nesting_levels)
             )
         pyarrow_element_type = pyarrow_element_type.value_type
-    pyarrow_element_type = pyarrow_element_type
     numpy_element_dtype = pyarrow_element_type.to_pandas_dtype()
     if (numpy_element_dtype() is None
             or numpy_element_dtype().dtype.kind not in ('i', 'u', 'f')):

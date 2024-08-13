@@ -93,10 +93,9 @@ def to_parquet(
 
     if PANDAS_GE_12:
         to_parquet_args.update({"storage_options": storage_options})
-    else:
-        if filesystem is None:
-            filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
-            to_parquet_args.update({"filesystem": filesystem})
+    elif filesystem is None:
+        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+        to_parquet_args.update({"filesystem": filesystem})
 
     pd_to_parquet(**to_parquet_args)
 
