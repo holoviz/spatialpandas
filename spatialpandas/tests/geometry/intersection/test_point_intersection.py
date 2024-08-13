@@ -2,17 +2,8 @@ import numpy as np
 import pandas as pd
 import shapely.geometry as sg
 from geopandas.array import from_shapely
-from hypothesis import example, given
-from hypothesis import strategies as st
+from hypothesis import example, given, strategies as st
 
-from ..strategies import (
-    hyp_settings,
-    st_line_array,
-    st_multipoint_array,
-    st_multipolygon_array,
-    st_point_array,
-    st_polygon_array,
-)
 from spatialpandas import GeoSeries
 from spatialpandas.geometry import (
     Line,
@@ -22,6 +13,15 @@ from spatialpandas.geometry import (
     Point,
     PointArray,
     Polygon,
+)
+
+from ..strategies import (
+    hyp_settings,
+    st_line_array,
+    st_multipoint_array,
+    st_multipolygon_array,
+    st_point_array,
+    st_polygon_array,
 )
 
 

@@ -786,8 +786,15 @@ def is_geometry_array(data):
 
 
 def to_geometry_array(data, dtype=None):
-    from . import (LineArray, MultiLineArray, MultiPointArray,
-                   MultiPolygonArray, PointArray, PolygonArray, RingArray)
+    from . import (
+        LineArray,
+        MultiLineArray,
+        MultiPointArray,
+        MultiPolygonArray,
+        PointArray,
+        PolygonArray,
+        RingArray,
+    )
     if sg is not None:
         shapely_to_spatialpandas = {
             sg.Point: PointArray,

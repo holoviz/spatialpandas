@@ -1,7 +1,8 @@
 import itertools
+
+import pandas as pd
 import pandas.tests.extension.base as eb
 import pytest
-import pandas as pd
 
 from spatialpandas.geometry import PointArray, PointDtype
 

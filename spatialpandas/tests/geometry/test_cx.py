@@ -3,6 +3,16 @@ import pytest
 from hypothesis import given
 from pandas.testing import assert_frame_equal, assert_series_equal
 
+from spatialpandas import GeoDataFrame, GeoSeries
+from spatialpandas.geometry import (
+    LineArray,
+    MultiLineArray,
+    MultiPointArray,
+    MultiPolygonArray,
+    PointArray,
+    PolygonArray,
+)
+
 from .strategies import (
     hyp_settings,
     st_bounds,
@@ -12,15 +22,6 @@ from .strategies import (
     st_multipolygon_array,
     st_point_array,
     st_polygon_array,
-)
-from spatialpandas import GeoDataFrame, GeoSeries
-from spatialpandas.geometry import (
-    LineArray,
-    MultiLineArray,
-    MultiPointArray,
-    MultiPolygonArray,
-    PointArray,
-    PolygonArray,
 )
 
 

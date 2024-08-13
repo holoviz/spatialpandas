@@ -3,19 +3,6 @@ import pytest
 from hypothesis import example, given
 from shapely import geometry as sg
 
-from ..strategies import (
-    coord,
-    hyp_settings,
-    st_bounds,
-    st_line_array,
-    st_multiline_array,
-    st_multipoint_array,
-    st_multipolygon_array,
-    st_point_array,
-    st_points,
-    st_polygon,
-    st_polygon_array,
-)
 from spatialpandas.geometry import (
     LineArray,
     MultiLineArray,
@@ -29,6 +16,20 @@ from spatialpandas.geometry._algorithms.intersection import (
     point_intersects_polygon,
     segment_intersects_point,
     segments_intersect,
+)
+
+from ..strategies import (
+    coord,
+    hyp_settings,
+    st_bounds,
+    st_line_array,
+    st_multiline_array,
+    st_multipoint_array,
+    st_multipolygon_array,
+    st_point_array,
+    st_points,
+    st_polygon,
+    st_polygon_array,
 )
 
 

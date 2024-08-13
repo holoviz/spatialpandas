@@ -5,9 +5,10 @@ import pytest
 from hypothesis import given
 
 import spatialpandas as sp
-from ..test_parquet import hyp_settings
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
+
+from ..test_parquet import hyp_settings
 
 gp = pytest.importorskip("geopandas")
 rtree = pytest.importorskip("rtree")

@@ -8,7 +8,6 @@ import numpy as np
 from ..utils import ngjit
 
 
-
 @ngjit
 def _int_2_binary(v, width):
     """Return a binary byte array representation of `v` zero padded to `width`

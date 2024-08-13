@@ -6,8 +6,11 @@ import pyarrow as pa
 from ..geometry.base import Geometry, GeometryArray, GeometryDtype
 from ..geometry.baselist import _lexographic_lt
 from ..utils import _asarray_maybe_ragged
-from ._algorithms.bounds import (bounds_interleaved, total_bounds_interleaved,
-                                 total_bounds_interleaved_1d)
+from ._algorithms.bounds import (
+    bounds_interleaved,
+    total_bounds_interleaved,
+    total_bounds_interleaved_1d,
+)
 
 
 @total_ordering

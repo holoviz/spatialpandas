@@ -2,6 +2,8 @@ import pytest
 from hypothesis import given
 from pandas.testing import assert_series_equal
 
+from spatialpandas import GeoSeries
+
 from .strategies import (
     hyp_settings,
     st_line_array,
@@ -12,7 +14,6 @@ from .strategies import (
     st_polygon_array,
     st_ring_array,
 )
-from spatialpandas import GeoSeries
 
 
 @given(st_point_array(geoseries=True))

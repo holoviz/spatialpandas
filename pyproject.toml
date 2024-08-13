@@ -79,6 +79,23 @@ fix = true
 line-length = 100
 
 [tool.ruff.lint]
+select = [
+    # "B",
+    "E",
+    "F",
+    # "FLY",
+    "I",
+    # "ICN",
+    # "NPY",
+    # "PIE",
+    # "PLC",
+    # "PLE",
+    # "PLR",
+    # "PLW",
+    # "RUF",
+    # "UP",
+    "W",
+]
 ignore = [
     "E402", # Module level import not at top of file
     "E501", # Line too long
@@ -100,9 +117,6 @@ extend-unsafe-fixes = [
     "F841", # Unused variables
 ]
 
-[tool.isort]
-force_grid_wrap = 4
-multi_line_output = 5
-combine_as_imports = true
-lines_between_types = 1
-include_trailing_comma = true
+[tool.ruff.lint.isort]
+known-first-party = ["spatialpandas"]
+combine-as-imports = true

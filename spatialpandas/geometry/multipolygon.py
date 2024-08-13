@@ -1,6 +1,7 @@
+import warnings
+
 import numpy as np
 import pyarrow as pa
-import warnings
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 

@@ -5,8 +5,11 @@ import pyarrow as pa
 from numba import jit, prange
 
 from ..geometry.base import Geometry, GeometryArray
-from ._algorithms.bounds import (bounds_interleaved, total_bounds_interleaved,
-                                 total_bounds_interleaved_1d)
+from ._algorithms.bounds import (
+    bounds_interleaved,
+    total_bounds_interleaved,
+    total_bounds_interleaved_1d,
+)
 
 
 def _validate_nested_arrow_type(nesting_levels, pyarrow_type):

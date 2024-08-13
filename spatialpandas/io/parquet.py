@@ -2,17 +2,20 @@ import json
 from functools import reduce
 from glob import has_magic
 from numbers import Number
-from packaging.version import Version
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
 import pandas as pd
 from dask import delayed
-from dask.dataframe import from_delayed, from_pandas
-from dask.dataframe import read_parquet as dd_read_parquet
-from dask.dataframe import to_parquet as dd_to_parquet  # noqa
+from dask.dataframe import (
+    from_delayed,
+    from_pandas,
+    read_parquet as dd_read_parquet,
+    to_parquet as dd_to_parquet,  # noqa
+)
 from dask.utils import natural_sort_key
+from packaging.version import Version
 from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow.parquet import ParquetDataset, ParquetFile, read_metadata
 

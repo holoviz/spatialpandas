@@ -4,22 +4,22 @@ import os
 import uuid
 from inspect import signature
 
+import dask
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from retrying import retry
-from packaging.version import Version
-
-import dask
-import dask.dataframe as dd
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
-from dask.dataframe.partitionquantiles import partition_quantiles
 from dask.dataframe.extensions import make_array_nonempty
+from dask.dataframe.partitionquantiles import partition_quantiles
+from packaging.version import Version
+from retrying import retry
+
 try:
-    from dask.dataframe.dispatch import make_meta_dispatch
     from dask.dataframe.backends import meta_nonempty
+    from dask.dataframe.dispatch import make_meta_dispatch
 except ImportError:
     from dask.dataframe.utils import make_meta as make_meta_dispatch, meta_nonempty
 

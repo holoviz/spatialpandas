@@ -2,8 +2,7 @@ import numpy as np
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from ..geometry._algorithms.intersection import (point_intersects_polygon,
-                                                 segment_intersects_point)
+from ..geometry._algorithms.intersection import point_intersects_polygon, segment_intersects_point
 from ..geometry.base import GeometryDtype
 from ..geometry.basefixed import GeometryFixed, GeometryFixedArray
 from ..utils import ngpjit
