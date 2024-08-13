@@ -12,7 +12,7 @@ from dask.dataframe import (
     from_delayed,
     from_pandas,
     read_parquet as dd_read_parquet,
-    to_parquet as dd_to_parquet,  # noqa
+    to_parquet as dd_to_parquet,
 )
 from dask.utils import natural_sort_key
 from packaging.version import Version
