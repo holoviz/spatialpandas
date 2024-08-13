@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from geopandas import GeoSeries
 from geopandas.array import from_shapely
@@ -11,7 +12,7 @@ from shapely.ops import unary_union, polygonize
 
 hyp_settings = settings(
     deadline=None,
-    max_examples=100,
+    max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 100)),
     suppress_health_check=[HealthCheck.too_slow],
 )
 
