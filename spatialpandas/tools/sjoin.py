@@ -6,7 +6,7 @@ from dask.dataframe import from_delayed, from_pandas
 
 def _record_reset_index(df, suffix):
     # Record original index name(s), generate new index name(s), reset index column(s)
-    new_column_name = ["index_%s" % suffix]
+    new_column_name = [f"index_{suffix}"]
     df = df.copy(deep=True)
     try:
         old_index_name = [df.index.name]
@@ -212,7 +212,7 @@ def _sjoin_pandas_pandas(
                 right_df.drop(right_df.geometry.name, axis=1),
                 left_on="_key_right",
                 right_index=True,
-                suffixes=("_%s" % lsuffix, "_%s" % rsuffix),
+                suffixes=(f"_{lsuffix}", f"_{rsuffix}"),
             ).set_index(
                 index_left
             ).drop(
@@ -234,7 +234,7 @@ def _sjoin_pandas_pandas(
                 how="left",
                 left_on="_key_right",
                 right_index=True,
-                suffixes=("_%s" % lsuffix, "_%s" % rsuffix),
+                suffixes=(f"_{lsuffix}", f"_{rsuffix}"),
             ).set_index(
                 index_left
             ).drop(
@@ -256,7 +256,7 @@ def _sjoin_pandas_pandas(
                 ),
                 left_index=True,
                 right_on="_key_left",
-                suffixes=("_%s" % lsuffix, "_%s" % rsuffix),
+                suffixes=(f"_{lsuffix}", f"_{rsuffix}"),
                 how="right",
             ).set_index(
                 index_right

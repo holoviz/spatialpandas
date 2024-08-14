@@ -170,7 +170,7 @@ class Geometry:
 
     def intersects(self, shape):
         raise NotImplementedError(
-            "intersects not yet implemented for %s objects" % type(self).__name__
+            f"intersects not yet implemented for {type(self).__name__} objects"
         )
 
 
@@ -620,7 +620,7 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
             with the supplied shape
         """
         raise NotImplementedError(
-            "intersects not yet implemented for %s objects" % type(self).__name__
+            f"intersects not yet implemented for {type(self).__name__} objects"
         )
 
     def _pad_or_backfill(self, method, **kwargs):

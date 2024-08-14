@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import fsspec
 
@@ -11,7 +11,7 @@ PathType = Union[PathLike, str, Path]
 def validate_coerce_filesystem(
     path: PathType,
     filesystem: Optional[Union[str, fsspec.AbstractFileSystem]] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> fsspec.AbstractFileSystem:
     """

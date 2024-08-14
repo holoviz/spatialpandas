@@ -146,7 +146,7 @@ or MultiPoint""")
         elif isinstance(shape, MultiPolygon):
             return self._intersects_polygon(shape)
         else:
-            raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
+            raise ValueError(f"Unsupported intersection type {type(shape).__name__}")
 
 
 class PointArray(GeometryFixedArray):
@@ -252,7 +252,7 @@ class PointArray(GeometryFixedArray):
         elif isinstance(shape, MultiPolygon):
             return self._intersects_polygon(shape, inds)
         else:
-            raise ValueError("Unsupported intersection type %s" % type(shape).__name__)
+            raise ValueError(f"Unsupported intersection type {type(shape).__name__}")
 
 
 @ngpjit
