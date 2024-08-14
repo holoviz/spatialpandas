@@ -33,7 +33,7 @@ st_points = arrays(
 def st_point_array(draw, min_size=0, max_size=30, geoseries=False):
     n = draw(st.integers(min_size, max_size))
     points = []
-    for i in range(n):
+    for _ in range(n):
         x_mid = draw(st.floats(-50, 50))
         y_mid = draw(st.floats(-50, 50))
         point = (np.random.rand(2) - 0.5) * 5
@@ -51,7 +51,7 @@ def st_point_array(draw, min_size=0, max_size=30, geoseries=False):
 def st_multipoint_array(draw, min_size=0, max_size=30, geoseries=False):
     n = draw(st.integers(min_size, max_size))
     lines = []
-    for i in range(n):
+    for _ in range(n):
         num_points = draw(st.integers(1, 10))
         x_mid = draw(st.floats(-50, 50))
         y_mid = draw(st.floats(-50, 50))
@@ -70,7 +70,7 @@ def st_multipoint_array(draw, min_size=0, max_size=30, geoseries=False):
 def st_line_array(draw, min_size=0, max_size=30, geoseries=False):
     n = draw(st.integers(min_size, max_size))
     lines = []
-    for i in range(n):
+    for _ in range(n):
         line_len = draw(st.integers(2, 10))
         x_mid = draw(st.floats(-50, 50))
         y_mid = draw(st.floats(-50, 50))
@@ -105,7 +105,7 @@ def st_ring_array(draw, min_size=3, max_size=30, geoseries=False):
     assert min_size >= 3
     n = draw(st.integers(min_size, max_size))
     rings = []
-    for i in range(n):
+    for _ in range(n):
         rings.append(sg.LinearRing(get_unique_points(n)))
 
     result = from_shapely(rings)
@@ -118,10 +118,10 @@ def st_ring_array(draw, min_size=3, max_size=30, geoseries=False):
 def st_multiline_array(draw, min_size=0, max_size=5, geoseries=False):
     n = draw(st.integers(min_size, max_size))
     multilines = []
-    for i in range(n):
+    for _ in range(n):
         m = draw(st.integers(1, 5))
         lines = []
-        for j in range(m):
+        for _ in range(m):
             line_len = draw(st.integers(2, 3))
             x_mid = draw(st.floats(-50, 50))
             y_mid = draw(st.floats(-50, 50))

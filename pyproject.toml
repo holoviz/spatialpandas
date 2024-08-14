@@ -80,7 +80,7 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
-    # "B",
+    "B",
     "E",
     "F",
     "FLY",
