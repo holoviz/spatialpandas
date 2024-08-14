@@ -54,27 +54,27 @@ def sjoin(
         raise ValueError(
             "`left_df` must be a spatialpandas.GeoDataFrame or "
             "spatialpandas.dask.DaskGeoDataFrame\n"
-            "    Received value of type: {typ}".format(typ=type(left_df)))
+            f"    Received value of type: {type(left_df)}")
 
     if not isinstance(right_df, GeoDataFrame):
         raise ValueError(
             "`right_df` must be a spatialpandas.GeoDataFrame\n"
-            "    Received value of type: {typ}".format(typ=type(right_df)))
+            f"    Received value of type: {type(right_df)}")
 
     # Validate op
     valid_op = ["intersects"]
     if op not in valid_op:
         raise ValueError(
-            "`op` must be one of {valid_op}\n"
-            "    Received: {val}".format(val=repr(how), valid_op=valid_op)
+            f"`op` must be one of {valid_op}\n"
+            f"    Received: {how!r}"
         )
 
     # Validate join type
     valid_how = ["left", "right", "inner"]
     if how not in valid_how:
         raise ValueError(
-            "`how` must be one of {valid_how}\n"
-            "    Received: {val}".format(val=repr(how), valid_how=valid_how)
+            f"`how` must be one of {valid_how}\n"
+            f"    Received: {how!r}"
         )
 
     # Validate suffixes
@@ -153,8 +153,8 @@ def _sjoin_pandas_pandas(
             original_right_df.columns.isin(index_left + index_right)
     ):
         raise ValueError(
-            "'{0}' and '{1}' cannot be column names in the GeoDataFrames being"
-            " joined".format(index_left, index_right)
+            f"'{index_left}' and '{index_right}' cannot be column names in the GeoDataFrames being"
+            " joined"
         )
 
     # Get spatial index for left frame

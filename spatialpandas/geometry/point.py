@@ -29,9 +29,9 @@ class Point(GeometryFixed):
             # Single point
             return np.asarray(shape.coords).ravel()
         else:
-            raise ValueError("""
-Received invalid value of type {typ}. Must be an instance of Point,
-or MultiPoint""".format(typ=type(shape).__name__))
+            raise ValueError(f"""
+Received invalid value of type {type(shape).__name__}. Must be an instance of Point,
+or MultiPoint""")
 
     def to_shapely(self):
         """

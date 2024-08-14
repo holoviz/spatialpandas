@@ -35,7 +35,7 @@ class GeometryFixed(Geometry):
         return 8 * len(self.data.as_py()) // self.pyarrow_type.bit_width
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self.flat_values.tolist())
+        return f"{self.__class__.__name__}({self.flat_values.tolist()})"
 
     @property
     def flat_values(self):
@@ -71,15 +71,13 @@ class GeometryFixedArray(GeometryArray):
 
         def invalid_array():
             err_msg = (
-                "Invalid array with type {typ}\n"
-                "A {cls} may be constructed from:\n"
-                "    - A 1-d array with length divisible by {n} of interleaved\n"
+                f"Invalid array with type {type(array)}\n"
+                f"A {self.__class__.__name__} may be constructed from:\n"
+                f"    - A 1-d array with length divisible by {self._element_len} of interleaved\n"
                 "      x y coordinates\n"
-                "    - A tuple of {n} 1-d arrays\n"
+                f"    - A tuple of {self._element_len} 1-d arrays\n"
                 "    - A pyarrow.FixedSizeBinaryArray. In this case the dtype\n"
                 "      argument must also be specified"
-            ).format(
-                typ=type(array), cls=self.__class__.__name__, n=self._element_len,
             )
             raise ValueError(err_msg)
 

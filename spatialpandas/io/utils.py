@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import fsspec
 
@@ -37,9 +38,7 @@ def validate_coerce_filesystem(
             return fsspec.filesystem(filesystem, **fsspec_opts)
         except ValueError:
             raise ValueError(
-                "Received invalid filesystem value with type: {typ}".format(
-                    typ=type(filesystem)
-                )
+                f"Received invalid filesystem value with type: {type(filesystem)}"
             )
 
 

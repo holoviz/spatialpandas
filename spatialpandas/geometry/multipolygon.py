@@ -49,9 +49,9 @@ class MultiPolygon(GeometryList):
         elif isinstance(shape, sg.Polygon):
             return [Polygon._shapely_to_coordinates(shape)]
         else:
-            raise ValueError("""
-Received invalid value of type {typ}. Must be an instance of Polygon or MultiPolygon
-""".format(typ=type(shape).__name__))
+            raise ValueError(f"""
+Received invalid value of type {type(shape).__name__}. Must be an instance of Polygon or MultiPolygon
+""")
 
     def to_shapely(self):
         """
