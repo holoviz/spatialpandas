@@ -443,7 +443,7 @@ def _perform_read_parquet_dask(
             div_maxes = partitions_df.div_maxes
 
     if load_divisions:
-        divisions = div_mins + [div_maxes[-1]]
+        divisions = [*div_mins, div_maxes[-1]]
         if divisions != sorted(divisions):
             raise ValueError(
                 "Cannot load divisions because the discovered divisions are unsorted.\n"

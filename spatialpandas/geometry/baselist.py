@@ -71,7 +71,7 @@ class _ListArrayBufferMixin:
             for i in range(3, len(buffers) - 1, 2)
         )
 
-        return (offsets1,) + remaining_offsets
+        return (offsets1, *remaining_offsets)
 
     @property
     def flat_values(self):
