@@ -130,6 +130,8 @@ jobs:
           pixi run -e ${{ matrix.environment }} test-unit $COV
       - name: Test Examples
         if: needs.setup.outputs.code_change == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For download data
         run: |
           pixi run -e ${{ matrix.environment }} test-example
       - uses: codecov/codecov-action@v4
