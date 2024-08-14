@@ -22,7 +22,9 @@ def download_map(dataset):
     if response.ok:
         files = response.json()
     else:
-        raise ValueError(f"Failed to retrieve contents: {response.status_code}")
+        raise ValueError(
+            f"Failed to retrieve contents ({response.status_code}): \n {response.text}"
+        )
 
     if not local_dir.exists():
         local_dir.mkdir(parents=True)
@@ -33,7 +35,7 @@ def download_map(dataset):
         file_response = requests.get(file_url)
         if not file_response.ok:
             rmtree(local_dir)
-            raise ValueError(f"Failed to download file: {file_name}")
+            raise ValueError(f"Failed to download file: {file_name}, \n{file_response.text}")
         with open(local_dir / file_name, "wb") as f:
             f.write(file_response.content)
 
