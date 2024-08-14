@@ -119,7 +119,6 @@ extend-unsafe-fixes = [
 [tool.ruff.lint.per-file-ignores]
 "spatialpandas/tests/**" = [
     "NPY002", # Replace legacy `np.random.rand` call with Generator
-    # "B904", # Within an `except` clause, raise exceptions with from err or None
 ]
 
 [tool.ruff.lint.isort]
