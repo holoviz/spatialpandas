@@ -7,7 +7,7 @@ except ImportError:
     raise ImportError("requests and platformdirs are needed to download data") from None
 
 
-def download_map(dataset, force=False):
+def download_map(dataset):
     if dataset not in ("naturalearth_lowres", "naturalearth_cities"):
         raise ValueError(
             f"Unknown dataset: {dataset}, supported datasets are 'naturalearth_lowres' and 'naturalearth_cities'"
@@ -15,7 +15,7 @@ def download_map(dataset, force=False):
     url = f"https://api.github.com/repos/geopandas/geopandas/contents/geopandas/datasets/{dataset}?ref=v0.14.4"
     local_dir = user_cache_path() / "spatialpandas" / dataset
 
-    if local_dir.exists() and not force:
+    if local_dir.exists():
         return local_dir
 
     response = requests.get(url)
