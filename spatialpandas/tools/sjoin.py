@@ -13,7 +13,7 @@ def _record_reset_index(df, suffix):
         df.index = df.index.rename(new_column_name[0])
     except TypeError:
         new_column_name = [
-            "index_%s" % suffix + str(l) for l, ix in
+            f"index_{suffix}{l}" for l, ix in
             enumerate(df.index.names)
         ]
         old_index_name = df.index.names

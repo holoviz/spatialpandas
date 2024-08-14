@@ -74,7 +74,7 @@ class GeometryDtype(ExtensionDtype):
             raise TypeError(
                 f"'construct_from_string' expects a string, got {type(string)}")
 
-        msg = "Cannot construct a '%s' from '{}'" % cls.__name__
+        msg = f"Cannot construct a '{cls.__name__}' from '{{}}'"
         if string.startswith(cls._geometry_name.lower()):
             # Extract subtype
             try:
