@@ -124,6 +124,10 @@ jobs:
         if: needs.setup.outputs.code_change == 'true'
         with:
           environments: ${{ matrix.environment }}
+      - name: Download data
+        if: needs.setup.outputs.code_change == 'true'
+        run: |
+          pixi run -e ${{ matrix.environment }} python examples/download.py
       - name: Test Unit
         if: needs.setup.outputs.code_change == 'true'
         run: |
