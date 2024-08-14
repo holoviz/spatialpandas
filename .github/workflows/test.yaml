@@ -124,18 +124,14 @@ jobs:
         if: needs.setup.outputs.code_change == 'true'
         with:
           environments: ${{ matrix.environment }}
-      - name: Download data
-        if: needs.setup.outputs.code_change == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          pixi run -e ${{ matrix.environment }} python examples/download.py
       - name: Test Unit
         if: needs.setup.outputs.code_change == 'true'
         run: |
           pixi run -e ${{ matrix.environment }} test-unit $COV
       - name: Test Examples
         if: needs.setup.outputs.code_change == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # For download data
         run: |
           pixi run -e ${{ matrix.environment }} test-example
       - uses: codecov/codecov-action@v4
