@@ -126,6 +126,8 @@ jobs:
           environments: ${{ matrix.environment }}
       - name: Download data
         if: needs.setup.outputs.code_change == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pixi run -e ${{ matrix.environment }} python examples/download.py
       - name: Test Unit

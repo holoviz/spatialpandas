@@ -1,3 +1,4 @@
+import os
 from shutil import rmtree
 
 try:
@@ -5,6 +6,12 @@ try:
     from platformdirs import user_cache_path
 except ImportError:
     raise ImportError("requests and platformdirs are needed to download data") from None
+
+
+if os.environ.get("GITHUB_TOKEN"):
+    HEADERS = {"Authorization": f"token {os.environ['GITHUB_TOKEN']}"}
+else:
+    HEADERS = None
 
 
 def download_map(dataset):
@@ -18,7 +25,7 @@ def download_map(dataset):
     if local_dir.exists():
         return local_dir
 
-    response = requests.get(url)
+    response = requests.get(url, headers=HEADERS)
     if response.ok:
         files = response.json()
     else:
@@ -32,7 +39,7 @@ def download_map(dataset):
     for file in files:
         file_url = file["download_url"]
         file_name = file["name"]
-        file_response = requests.get(file_url)
+        file_response = requests.get(file_url, headers=HEADERS)
         if not file_response.ok:
             rmtree(local_dir)
             raise ValueError(f"Failed to download file: {file_name}, \n{file_response.text}")
