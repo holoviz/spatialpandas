@@ -31,9 +31,9 @@ class Line(GeometryList):
             # Single line
             return np.asarray(shape.coords).ravel()
         else:
-            raise ValueError("""
-Received invalid value of type {typ}. Must be an instance of LineString
-or LinearRing""".format(typ=type(shape).__name__))
+            raise ValueError(f"""
+Received invalid value of type {type(shape).__name__}. Must be an instance of LineString
+or LinearRing""")
 
     def to_shapely(self):
         """

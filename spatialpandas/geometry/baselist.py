@@ -20,17 +20,14 @@ def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
     for i in range(nesting_levels):
         if not isinstance(pyarrow_element_type, pa.ListType):
             raise ValueError(
-                "Expected input data to have {} nested layer(s)".format(
-                    nesting_levels)
+                f"Expected input data to have {nesting_levels} nested layer(s)"
             )
         pyarrow_element_type = pyarrow_element_type.value_type
     numpy_element_dtype = pyarrow_element_type.to_pandas_dtype()
     if (numpy_element_dtype() is None
             or numpy_element_dtype().dtype.kind not in ('i', 'u', 'f')):
         raise ValueError(
-            "Invalid nested element type {}, expected numeric type".format(
-                pyarrow_element_type
-            ))
+            f"Invalid nested element type {pyarrow_element_type}, expected numeric type")
     return pyarrow_element_type
 
 

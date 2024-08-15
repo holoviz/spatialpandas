@@ -59,8 +59,7 @@ class GeometryDtype(ExtensionDtype):
         elif dtype_string == cls._geometry_name.lower():
             subtype_string = 'float64'
         else:
-            raise ValueError("Cannot parse {dtype_string}".format(
-                dtype_string=dtype_string))
+            raise ValueError(f"Cannot parse {dtype_string}")
 
         return subtype_string
 
@@ -73,10 +72,9 @@ class GeometryDtype(ExtensionDtype):
                 raise AttributeError
         except AttributeError:
             raise TypeError(
-                "'construct_from_string' expects a string, got {typ}".format(
-                    typ=type(string)))
+                f"'construct_from_string' expects a string, got {type(string)}")
 
-        msg = "Cannot construct a '%s' from '{}'" % cls.__name__
+        msg = f"Cannot construct a '{cls.__name__}' from '{{}}'"
         if string.startswith(cls._geometry_name.lower()):
             # Extract subtype
             try:
@@ -95,7 +93,7 @@ class GeometryDtype(ExtensionDtype):
 
         # Validate the subtype is numeric
         if self.subtype.kind not in ('i', 'u', 'f'):
-            raise ValueError("Received non-numeric type of kind '{}'".format(self.kind))
+            raise ValueError(f"Received non-numeric type of kind '{self.kind}'")
 
         array_type = self.construct_array_type()
         self.arrow_dtype = array_type._arrow_type_from_numpy_element_dtype(subtype)
@@ -104,10 +102,10 @@ class GeometryDtype(ExtensionDtype):
         return hash((self.__class__, self.arrow_dtype))
 
     def __str__(self):
-        return "{}[{}]".format(self._geometry_name, str(self.subtype.name))
+        return f"{self._geometry_name}[{self.subtype.name!s}]"
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__,  str(self.subtype.name))
+        return f"{self.__class__.__name__}({self.subtype.name!s})"
 
     @property
     def type(self):
@@ -137,7 +135,7 @@ class Geometry:
             self.data = pa.array([data])[0]
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, self.data.as_py())
+        return f"{self.__class__.__name__}({self.data.as_py()})"
 
     def __hash__(self):
         return hash((self.__class__, np.array(self.data.as_py()).tobytes()))
@@ -172,7 +170,7 @@ class Geometry:
 
     def intersects(self, shape):
         raise NotImplementedError(
-            "intersects not yet implemented for %s objects" % type(self).__name__
+            f"intersects not yet implemented for {type(self).__name__} objects"
         )
 
 
@@ -247,9 +245,7 @@ class GeometryArray(ExtensionArray):
             array = pa.concat_arrays(array.chunks)
         else:
             raise ValueError(
-                "Unsupported type passed for {}: {}".format(
-                    self.__class__.__name__, type(array)
-                )
+                f"Unsupported type passed for {self.__class__.__name__}: {type(array)}"
             )
 
         # Save off pyarrow array
@@ -326,13 +322,10 @@ class GeometryArray(ExtensionArray):
     def __eq__(self, other):
         if type(other) is type(self):
             if len(other) != len(self):
-                raise ValueError("""
-Cannot check equality of {typ} instances of unequal length
-    len(ra1) == {len_a1}
-    len(ra2) == {len_a2}""".format(
-                    typ=type(self).__name__,
-                    len_a1=len(self),
-                    len_a2=len(other)))
+                raise ValueError(f"""
+Cannot check equality of {type(self).__name__} instances of unequal length
+    len(ra1) == {len(self)}
+    len(ra2) == {len(other)}""")
             result = np.zeros(len(self), dtype=np.bool_)
             for i in range(len(self)):
                 result[i] = self[i] == other[i]
@@ -342,9 +335,9 @@ Cannot check equality of {typ} instances of unequal length
             for i in range(len(self)):
                 result[i] = self[i] == other
             return result
-        raise ValueError("""
-Cannot check equality of {typ} of length {a_len} with:
-    {other}""".format(typ=type(self).__name__, a_len=len(self), other=repr(other)))
+        raise ValueError(f"""
+Cannot check equality of {type(self).__name__} of length {len(self)} with:
+    {other!r}""")
 
     def __contains__(self, item) -> bool:
         raise NotImplementedError
@@ -364,7 +357,7 @@ Cannot check equality of {typ} of length {a_len} with:
         if isinstance(item, Integral):
             item = int(item)
             if item < -len(self) or item >= len(self):
-                raise IndexError("{item} is out of bounds".format(item=item))
+                raise IndexError(f"{item} is out of bounds")
             else:
                 # Convert negative item index
                 if item < 0:
@@ -396,8 +389,8 @@ Cannot check equality of {typ} of length {a_len} with:
                 # Check mask length is compatible
                 if len(item) != len(self):
                     raise IndexError(
-                        "Boolean index has wrong length: {} instead of {}"
-                        .format(len(item), len(self))
+                        f"Boolean index has wrong length: {len(item)} instead of {len(self)}"
+
                     )
 
                 # check for NA values
@@ -429,9 +422,7 @@ Cannot check equality of {typ} of length {a_len} with:
         # Validate self non-empty (Pandas expects this error when array is empty)
         if (len(self) == 0 and len(indices) > 0 and
                 (not allow_fill or any(indices >= 0))):
-            raise IndexError("cannot do a non-empty take from an empty axes|out of bounds on {typ}".format(
-                typ=self.__class__.__name__,
-            ))
+            raise IndexError(f"cannot do a non-empty take from an empty axes|out of bounds on {self.__class__.__name__}")
 
         # Validate fill values
         if allow_fill and not (
@@ -447,12 +438,8 @@ Cannot check equality of {typ} of length {a_len} with:
 
         if any(invalid_mask):
             raise IndexError(
-                "Index value out of bounds for {typ} of length {n}: "
-                "{idx}".format(
-                    typ=self.__class__.__name__,
-                    n=len(self),
-                    idx=indices[invalid_mask][0]
-                )
+                f"Index value out of bounds for {self.__class__.__name__} of length {len(self)}: "
+                f"{indices[invalid_mask][0]}"
             )
 
         if allow_fill:
@@ -460,11 +447,8 @@ Cannot check equality of {typ} of length {a_len} with:
             if any(invalid_mask):
                 # ValueError expected by pandas ExtensionArray test suite
                 raise ValueError(
-                    "Invalid index value for {typ} with allow_fill=True: "
-                    "{idx}".format(
-                        typ=self.__class__.__name__,
-                        idx=indices[invalid_mask][0]
-                    )
+                    f"Invalid index value for {self.__class__.__name__} with allow_fill=True: "
+                    f"{indices[invalid_mask][0]}"
                 )
 
             # Build pyarrow array of indices
@@ -523,8 +507,8 @@ Cannot check equality of {typ} of length {a_len} with:
         if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError(
-                    "Length of 'value' does not match. Got ({}) "
-                    " expected {}".format(len(value), len(self))
+                    f"Length of 'value' does not match. Got ({len(value)}) "
+                    f" expected {len(self)}"
                 )
             value = value[mask]
 
@@ -636,7 +620,7 @@ Cannot check equality of {typ} of length {a_len} with:
             with the supplied shape
         """
         raise NotImplementedError(
-            "intersects not yet implemented for %s objects" % type(self).__name__
+            f"intersects not yet implemented for {type(self).__name__} objects"
         )
 
     def _pad_or_backfill(self, method, **kwargs):
