@@ -36,10 +36,10 @@ def validate_coerce_filesystem(
     else:
         try:
             return fsspec.filesystem(filesystem, **fsspec_opts)
-        except ValueError:
+        except ValueError as e:
             raise ValueError(
                 f"Received invalid filesystem value with type: {type(filesystem)}"
-            )
+            ) from e
 
 
 def _maybe_prepend_protocol(

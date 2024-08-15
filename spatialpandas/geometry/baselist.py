@@ -17,7 +17,7 @@ def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
         return pa.null()
 
     pyarrow_element_type = pyarrow_type
-    for i in range(nesting_levels):
+    for _ in range(nesting_levels):
         if not isinstance(pyarrow_element_type, pa.ListType):
             raise ValueError(
                 f"Expected input data to have {nesting_levels} nested layer(s)"
@@ -192,7 +192,7 @@ class GeometryListArray(GeometryArray, _ListArrayBufferMixin):
         arrow_dtype = pa.from_numpy_dtype(dtype)
 
         # Wrap dtype with appropriate number of nesting levels
-        for i in range(cls._nesting_levels):
+        for _ in range(cls._nesting_levels):
             arrow_dtype = pa.list_(arrow_dtype)
 
         return arrow_dtype
@@ -202,7 +202,7 @@ class GeometryListArray(GeometryArray, _ListArrayBufferMixin):
             return pa.null()
 
         pyarrow_element_type = pyarrow_type
-        for i in range(self._nesting_levels):
+        for _ in range(self._nesting_levels):
             pyarrow_element_type = pyarrow_element_type.value_type
 
         return pyarrow_element_type.to_pandas_dtype()

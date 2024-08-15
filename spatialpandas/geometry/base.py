@@ -72,7 +72,8 @@ class GeometryDtype(ExtensionDtype):
                 raise AttributeError
         except AttributeError:
             raise TypeError(
-                f"'construct_from_string' expects a string, got {type(string)}")
+                f"'construct_from_string' expects a string, got {type(string)}"
+            ) from None
 
         msg = f"Cannot construct a '{cls.__name__}' from '{{}}'"
         if string.startswith(cls._geometry_name.lower()):
@@ -80,8 +81,8 @@ class GeometryDtype(ExtensionDtype):
             try:
                 subtype_string = cls._parse_subtype(string)
                 return cls(subtype_string)
-            except Exception:
-                raise TypeError(msg.format(string))
+            except Exception as e:
+                raise TypeError(msg.format(string)) from e
         else:
             raise TypeError(msg.format(string))
 

@@ -48,7 +48,7 @@ def test_active_geometry(use_dask):
     # Select columns not including active geometry
     selected_gdf = gdf[['a', 'points']]
     with pytest.raises(ValueError):
-        selected_gdf.geometry
+        selected_gdf.geometry  # noqa: B018
 
     assert selected_gdf.set_geometry('points').geometry.name == 'points'
 

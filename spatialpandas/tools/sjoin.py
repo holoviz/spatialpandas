@@ -111,7 +111,7 @@ def _sjoin_dask_pandas(
 
     # Build list of delayed sjoin results
     joined_dfs = []
-    for df, (i, bounds) in zip(dfs, partition_bounds.iterrows()):
+    for df, (_idx, bounds) in zip(dfs, partition_bounds.iterrows()):
         right_inds = right_sindex.intersects(bounds.values)
         if how == "left" or len(right_inds) > 0:
             joined_dfs.append(

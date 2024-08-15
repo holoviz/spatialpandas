@@ -504,7 +504,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         # Build spatial metadata for parquet dataset
         partition_bounds = {}
         for col, bounds in all_bounds.items():
-            partition_bounds[col] = pd.DataFrame(all_bounds[col]).to_dict()
+            partition_bounds[col] = pd.DataFrame(bounds).to_dict()
 
         spatial_metadata = {'partition_bounds': partition_bounds}
         b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
