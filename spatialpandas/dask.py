@@ -271,9 +271,7 @@ class DaskGeoDataFrame(dd.DataFrame):
                 filesystem.rm(file_path, recursive=True)
                 if filesystem.exists(file_path):
                     # Make sure we keep retrying until file does not exist
-                    raise ValueError("Deletion of {path} not yet complete".format(
-                        path=file_path
-                    ))
+                    raise ValueError(f"Deletion of {file_path} not yet complete")
 
         @retryit
         def mkdirs_retry(dir_path):
@@ -301,11 +299,9 @@ class DaskGeoDataFrame(dd.DataFrame):
             tempdir_format = os.path.join(path, "part.{partition}.parquet")
         elif not isinstance(tempdir_format, str) or "{partition" not in tempdir_format:
             raise ValueError(
-                "tempdir_format must be a string containing a {{partition}} "
+                "tempdir_format must be a string containing a {partition} "
                 "replacement field\n"
-                "    Received: {tempdir_format}".format(
-                    tempdir_format=repr(tempdir_format)
-                )
+                f"    Received: {tempdir_format!r}"
             )
 
         # Compute number of output partitions
@@ -419,15 +415,10 @@ class DaskGeoDataFrame(dd.DataFrame):
                 extras = set(ls_res) - set(subpart_paths)
                 raise ValueError(
                     "Filesystem not yet consistent\n"
-                    "  Expected len: {expected}\n"
-                    "  Found len: {received}\n"
-                    "  Missing: {missing}\n"
-                    "  Extras: {extras}".format(
-                        expected=len(subpart_paths),
-                        received=len(ls_res),
-                        missing=list(missing),
-                        extras=list(extras)
-                    )
+                    f"  Expected len: {len(subpart_paths)}\n"
+                    f"  Found len: {len(ls_res)}\n"
+                    f"  Missing: {list(missing)}\n"
+                    f"  Extras: {list(extras)}"
                 )
             return read_parquet(
                 parts_tmp_path,

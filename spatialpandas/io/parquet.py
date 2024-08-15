@@ -1,9 +1,10 @@
 import json
+from collections.abc import Iterable
 from functools import reduce
 from glob import has_magic
 from numbers import Number
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import fsspec
 import pandas as pd
@@ -74,7 +75,7 @@ def to_parquet(
     compression: Optional[str] = "snappy",
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
     index: Optional[bool] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> None:
     if filesystem is not None:
@@ -104,8 +105,8 @@ def read_parquet(
     path: PathType,
     columns: Optional[Iterable[str]] = None,
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
-    engine_kwargs: Optional[Dict[str, Any]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
+    engine_kwargs: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> GeoDataFrame:
     engine_kwargs = engine_kwargs or {}
@@ -149,8 +150,8 @@ def to_parquet_dask(
     path: PathType,
     compression: Optional[str] = "snappy",
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
-    engine_kwargs: Optional[Dict[str, Any]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
+    engine_kwargs: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> None:
     engine_kwargs = engine_kwargs or {}
@@ -192,11 +193,11 @@ def read_parquet_dask(
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
     load_divisions: Optional[bool] = False,
     geometry: Optional[str] = None,
-    bounds: Optional[Tuple[Number, Number, Number, Number]] = None,
-    categories: Optional[Union[List[str], Dict[str, str]]] = None,
+    bounds: Optional[tuple[Number, Number, Number, Number]] = None,
+    categories: Optional[Union[list[str], dict[str, str]]] = None,
     build_sindex: Optional[bool] = False,
-    storage_options: Optional[Dict[str, Any]] = None,
-    engine_kwargs: Optional[Dict[str, Any]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
+    engine_kwargs: Optional[dict[str, Any]] = None,
 ) -> DaskGeoDataFrame:
     """Read spatialpandas parquet dataset(s) as DaskGeoDataFrame.
 

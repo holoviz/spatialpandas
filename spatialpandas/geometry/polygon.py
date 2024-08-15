@@ -48,9 +48,9 @@ class Polygon(GeometryList):
 
             return polygon_coords
         else:
-            raise ValueError("""
-Received invalid value of type {typ}. Must be an instance of Polygon
-""".format(typ=type(shape).__name__))
+            raise ValueError(f"""
+Received invalid value of type {type(shape).__name__}. Must be an instance of Polygon
+""")
 
     def to_shapely(self):
         """

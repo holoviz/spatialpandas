@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Optional, Union
 
 import fsspec
 
@@ -10,7 +11,7 @@ PathType = Union[PathLike, str, Path]
 def validate_coerce_filesystem(
     path: PathType,
     filesystem: Optional[Union[str, fsspec.AbstractFileSystem]] = None,
-    storage_options: Optional[Dict[str, Any]] = None,
+    storage_options: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> fsspec.AbstractFileSystem:
     """
@@ -37,9 +38,7 @@ def validate_coerce_filesystem(
             return fsspec.filesystem(filesystem, **fsspec_opts)
         except ValueError as e:
             raise ValueError(
-                "Received invalid filesystem value with type: {typ}".format(
-                    typ=type(filesystem)
-                )
+                f"Received invalid filesystem value with type: {type(filesystem)}"
             ) from e
 
 
