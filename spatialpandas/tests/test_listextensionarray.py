@@ -1,14 +1,15 @@
 import itertools
+
+import pandas as pd
 import pandas.tests.extension.base as eb
 import pytest
-import pandas as pd
 
 from spatialpandas.geometry import LineArray, LineDtype
 
 
 def test_equality():
     a = LineArray([[0, 1], [1, 2, 3, 4], None, [-1, -2], []], dtype='float64')
-    assert all(a == a)
+    assert all(a == a)  # noqa: PLR0124
     assert all(a[1:-1] == a[[1, 2, 3]])
     assert not any(a[1:-1] == a[[2, 3, 1]])
 

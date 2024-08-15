@@ -2,15 +2,16 @@
 # The files can be created with particular version of pyarrow and dask, and
 # checked that they can be read with different versions of them.
 
+import os
+import warnings
+
 import dask.dataframe as dd
 from hypothesis.errors import NonInteractiveExampleWarning
-import os
 from pyarrow import __version__ as pyarrow_version
+
 from spatialpandas import GeoDataFrame
 from spatialpandas.io import to_parquet
 from spatialpandas.tests.geometry.strategies import st_multiline_array
-import warnings
-
 
 directory = "test_data"
 

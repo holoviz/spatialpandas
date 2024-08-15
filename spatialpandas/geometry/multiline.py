@@ -2,12 +2,10 @@ import numpy as np
 from dask.dataframe.extensions import make_array_nonempty
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
-from ..geometry._algorithms.intersection import (lines_intersect_bounds,
-                                                 multilines_intersect_bounds)
+from ..geometry._algorithms.intersection import lines_intersect_bounds, multilines_intersect_bounds
 from ..geometry._algorithms.measures import compute_line_length
 from ..geometry.base import GeometryDtype
-from ..geometry.baselist import (GeometryList, GeometryListArray,
-                                 _geometry_map_nested2)
+from ..geometry.baselist import GeometryList, GeometryListArray, _geometry_map_nested2
 
 
 @register_extension_dtype

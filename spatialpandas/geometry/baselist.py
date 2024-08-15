@@ -5,8 +5,11 @@ import pyarrow as pa
 from numba import jit, prange
 
 from ..geometry.base import Geometry, GeometryArray
-from ._algorithms.bounds import (bounds_interleaved, total_bounds_interleaved,
-                                 total_bounds_interleaved_1d)
+from ._algorithms.bounds import (
+    bounds_interleaved,
+    total_bounds_interleaved,
+    total_bounds_interleaved_1d,
+)
 
 
 def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
@@ -21,7 +24,6 @@ def _validate_nested_arrow_type(nesting_levels, pyarrow_type):
                     nesting_levels)
             )
         pyarrow_element_type = pyarrow_element_type.value_type
-    pyarrow_element_type = pyarrow_element_type
     numpy_element_dtype = pyarrow_element_type.to_pandas_dtype()
     if (numpy_element_dtype() is None
             or numpy_element_dtype().dtype.kind not in ('i', 'u', 'f')):
@@ -69,7 +71,7 @@ class _ListArrayBufferMixin:
             for i in range(3, len(buffers) - 1, 2)
         )
 
-        return (offsets1,) + remaining_offsets
+        return (offsets1, *remaining_offsets)
 
     @property
     def flat_values(self):

@@ -147,7 +147,7 @@ def test_multipolygon_array():
 
 def test_multipolygon_array_from_exterior_coords():
     pytest.importorskip("shapely")
-    from shapely import Polygon, MultiPolygon
+    from shapely import MultiPolygon, Polygon
     p = Polygon(sample_polygon_exterior)
     mp = MultiPolygon([p, p])
 

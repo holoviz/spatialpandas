@@ -1,6 +1,6 @@
 import pandas as pd
 
-from .geometry import GeometryDtype, Geometry
+from .geometry import Geometry, GeometryDtype
 
 
 class _MaybeGeoSeries(pd.Series):

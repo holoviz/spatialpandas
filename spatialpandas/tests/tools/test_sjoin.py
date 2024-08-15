@@ -5,13 +5,14 @@ import pytest
 from hypothesis import given
 
 import spatialpandas as sp
-from ..test_parquet import hyp_settings
 from spatialpandas import GeoDataFrame
 from spatialpandas.dask import DaskGeoDataFrame
 
+from ..test_parquet import hyp_settings
+
 gp = pytest.importorskip("geopandas")
 rtree = pytest.importorskip("rtree")
-from ..geometry.strategies import st_point_array, st_polygon_array  # noqa: E402
+from ..geometry.strategies import st_point_array, st_polygon_array
 
 
 @pytest.mark.slow

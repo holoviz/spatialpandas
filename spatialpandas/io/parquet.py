@@ -2,17 +2,20 @@ import json
 from functools import reduce
 from glob import has_magic
 from numbers import Number
-from packaging.version import Version
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import fsspec
 import pandas as pd
 from dask import delayed
-from dask.dataframe import from_delayed, from_pandas
-from dask.dataframe import read_parquet as dd_read_parquet
-from dask.dataframe import to_parquet as dd_to_parquet  # noqa
+from dask.dataframe import (
+    from_delayed,
+    from_pandas,
+    read_parquet as dd_read_parquet,
+    to_parquet as dd_to_parquet,
+)
 from dask.utils import natural_sort_key
+from packaging.version import Version
 from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow.parquet import ParquetDataset, ParquetFile, read_metadata
 
@@ -90,10 +93,9 @@ def to_parquet(
 
     if PANDAS_GE_12:
         to_parquet_args.update({"storage_options": storage_options})
-    else:
-        if filesystem is None:
-            filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
-            to_parquet_args.update({"filesystem": filesystem})
+    elif filesystem is None:
+        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
+        to_parquet_args.update({"filesystem": filesystem})
 
     pd_to_parquet(**to_parquet_args)
 
@@ -441,7 +443,7 @@ def _perform_read_parquet_dask(
             div_maxes = partitions_df.div_maxes
 
     if load_divisions:
-        divisions = div_mins + [div_maxes[-1]]
+        divisions = [*div_mins, div_maxes[-1]]
         if divisions != sorted(divisions):
             raise ValueError(
                 "Cannot load divisions because the discovered divisions are unsorted.\n"

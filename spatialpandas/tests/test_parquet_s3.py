@@ -9,7 +9,6 @@ from spatialpandas import GeoDataFrame, GeoSeries
 from spatialpandas.geometry import PointArray
 from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet, to_parquet_dask
 
-
 pytest.importorskip("moto")
 geopandas = pytest.importorskip("geopandas")
 s3fs = pytest.importorskip("s3fs")
