@@ -8,7 +8,8 @@ from typing import Any, Optional, Union
 
 import fsspec
 import pandas as pd
-from dask import delayed
+import pyarrow as pa
+from dask import config as dask_config, delayed
 from dask.dataframe import (
     from_delayed,
     from_pandas,
@@ -107,6 +108,7 @@ def read_parquet(
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
     storage_options: Optional[dict[str, Any]] = None,
     engine_kwargs: Optional[dict[str, Any]] = None,
+    convert_string: bool = False,
     **kwargs: Any,
 ) -> GeoDataFrame:
     engine_kwargs = engine_kwargs or {}
@@ -139,7 +141,12 @@ def read_parquet(
 
         columns = extra_index_columns + list(columns)
 
-    df = dataset.read(columns=columns).to_pandas()
+    # References:
+    # https://arrow.apache.org/docs/python/pandas.html
+    # https://pandas.pydata.org/docs/user_guide/pyarrow.html
+    # https://docs.dask.org/en/stable/changelog.html#v2023-7-1
+    type_mapping = {pa.string(): pd.StringDtype("pyarrow")} if convert_string else {}
+    df = dataset.read(columns=columns).to_pandas(types_mapper=type_mapping.get)
 
     # Return result
     return GeoDataFrame(df)
@@ -332,6 +339,7 @@ def _perform_read_parquet_dask(
         dataset_pieces = sorted(fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
+    convert_string = dask_config.get("dataframe.convert_string", False)
     delayed_partitions = [
         delayed(read_parquet)(
             piece.path,
@@ -339,6 +347,7 @@ def _perform_read_parquet_dask(
             filesystem=filesystem,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            convert_string=convert_string,
         )
         for piece in pieces
     ]
@@ -457,7 +466,7 @@ def _perform_read_parquet_dask(
     if delayed_partitions:
         result = from_delayed(
             delayed_partitions, divisions=divisions, meta=meta, verify_meta=False
-        ).astype(meta.dtypes)
+        )
     else:
         # Single partition empty result
         result = from_pandas(meta, npartitions=1)
