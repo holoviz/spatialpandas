@@ -9,7 +9,7 @@ from typing import Any, Optional, Union
 import fsspec
 import pandas as pd
 import pyarrow as pa
-from dask import config as dask_config, delayed
+from dask import delayed
 from dask.dataframe import (
     from_delayed,
     from_pandas,
@@ -339,7 +339,12 @@ def _perform_read_parquet_dask(
         dataset_pieces = sorted(fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
-    convert_string = dask_config.get("dataframe.convert_string", False)
+    try:
+        from dask.dataframe.utils import pyarrow_strings_enabled
+
+        convert_string = pyarrow_strings_enabled()
+    except (ImportError, RuntimeError):
+        convert_string = False
     delayed_partitions = [
         delayed(read_parquet)(
             piece.path,
