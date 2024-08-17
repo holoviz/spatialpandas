@@ -457,7 +457,7 @@ def _perform_read_parquet_dask(
     if delayed_partitions:
         result = from_delayed(
             delayed_partitions, divisions=divisions, meta=meta, verify_meta=False
-        )
+        ).astype(meta.dtypes)
     else:
         # Single partition empty result
         result = from_pandas(meta, npartitions=1)
