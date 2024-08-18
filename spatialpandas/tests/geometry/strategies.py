@@ -16,9 +16,11 @@ hyp_settings = settings(
     suppress_health_check=[HealthCheck.too_slow],
 )
 
+resolution = abs(int(np.abs(np.log10(np.finfo(1.0).resolution))))
+
 coord = st.floats(
     allow_infinity=False, allow_nan=False, max_value=1000, min_value=-1000,
-).map(lambda x: round(x, 15))
+).map(lambda x: round(x, resolution - 1))
 
 st_points = arrays(
     elements=st.floats(
