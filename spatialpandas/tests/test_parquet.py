@@ -449,13 +449,14 @@ def test_parquet_dask_string_conversion():
 
 @pytest.mark.parametrize("convert_string", [True, False])
 def test_parquet_dask_string_convert(convert_string, tmp_path):
-    with dask.config.set({"dataframe.convert-string": convert_string}):
-        result_dtype = pd.StringDtype("pyarrow") if convert_string else np.dtype("object")
+    with dask.config.set({"dataframe.convert-string": False}):  # If True it will have data.compute() as string[python]
         square = geometry.Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
         sdf = GeoDataFrame({"geometry": GeoSeries([square, square]), "name": ["A", "B"]})
         sddf = dd.from_pandas(sdf, 2)
         sddf.to_parquet(tmp_path / "test.parq")
-        data = read_parquet_dask(tmp_path / "test.parq")
 
-        assert data["name"].dtype == result_dtype
-        assert data.compute()["name"].dtype == result_dtype
+    with dask.config.set({"dataframe.convert-string": convert_string}):
+        dtype = pd.StringDtype("pyarrow") if convert_string else np.dtype("object")
+        data = read_parquet_dask(tmp_path / "test.parq")
+        assert data["name"].dtype == dtype
+        assert data.compute()["name"].dtype == dtype
