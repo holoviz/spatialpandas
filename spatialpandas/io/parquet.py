@@ -145,7 +145,7 @@ def read_parquet(
     # https://arrow.apache.org/docs/python/pandas.html
     # https://pandas.pydata.org/docs/user_guide/pyarrow.html
     type_mapping = {pa.string(): pd.StringDtype("pyarrow")} if convert_string else {}
-    df = dataset.read(columns=columns).to_pandas(types_mapper=type_mapping.get)
+    df = dataset.read(columns=columns).to_pandas(types_mapper=type_mapping.get, self_destruct=True)
 
     # Return result
     return GeoDataFrame(df)
