@@ -144,7 +144,6 @@ def read_parquet(
     # References:
     # https://arrow.apache.org/docs/python/pandas.html
     # https://pandas.pydata.org/docs/user_guide/pyarrow.html
-    # https://docs.dask.org/en/stable/changelog.html#v2023-7-1
     type_mapping = {pa.string(): pd.StringDtype("pyarrow")} if convert_string else {}
     df = dataset.read(columns=columns).to_pandas(types_mapper=type_mapping.get)
 
@@ -339,6 +338,7 @@ def _perform_read_parquet_dask(
         dataset_pieces = sorted(fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
+    # https://docs.dask.org/en/stable/changelog.html#v2023-7-1
     try:
         from dask.dataframe.utils import pyarrow_strings_enabled
 

@@ -440,3 +440,7 @@ def test_read_parquet_dask(directory, repartitioned):
     assert partition_bounds["multiline"].index.name == "partition"
     assert ddf["multiline"].partition_bounds.index.name == "partition"
     assert all(partition_bounds["multiline"] == ddf["multiline"].partition_bounds)
+
+def test_parquet_dask_string_conversion():
+    from dask.dataframe.utils import pyarrow_strings_enabled
+    assert isinstance(pyarrow_strings_enabled(), bool)
