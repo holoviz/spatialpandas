@@ -444,19 +444,27 @@ def test_read_parquet_dask(directory, repartitioned):
 
 def test_parquet_dask_string_conversion():
     from dask.dataframe.utils import pyarrow_strings_enabled
+
     assert isinstance(pyarrow_strings_enabled(), bool)
 
 
-@pytest.mark.parametrize("convert_string", [True, False])
-def test_parquet_dask_string_convert(convert_string, tmp_path):
-    with dask.config.set({"dataframe.convert-string": False}):  # If True it will have data.compute() as string[python]
+@pytest.mark.parametrize("save_convert_string", [True, False])
+@pytest.mark.parametrize("load_convert_string", [True, False])
+def test_parquet_dask_string_convert(save_convert_string, load_convert_string, tmp_path):
+    with dask.config.set({"dataframe.convert-string": save_convert_string}):
         square = geometry.Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
         sdf = GeoDataFrame({"geometry": GeoSeries([square, square]), "name": ["A", "B"]})
         sddf = dd.from_pandas(sdf, 2)
         sddf.to_parquet(tmp_path / "test.parq")
 
-    with dask.config.set({"dataframe.convert-string": convert_string}):
-        dtype = pd.StringDtype("pyarrow") if convert_string else np.dtype("object")
+    if load_convert_string:
+        dtype = pd.StringDtype("pyarrow")
+    elif save_convert_string:
+        dtype = pd.StringDtype("python")
+    else:
+        dtype = np.dtype("object")
+
+    with dask.config.set({"dataframe.convert-string": load_convert_string}):
         data = read_parquet_dask(tmp_path / "test.parq")
         assert data["name"].dtype == dtype
         assert data.compute()["name"].dtype == dtype

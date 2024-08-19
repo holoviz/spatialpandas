@@ -144,7 +144,7 @@ def read_parquet(
     # References:
     # https://arrow.apache.org/docs/python/pandas.html
     # https://pandas.pydata.org/docs/user_guide/pyarrow.html
-    type_mapping = {pa.string(): pd.StringDtype("pyarrow")} if convert_string else {}
+    type_mapping = {pa.string(): pd.StringDtype("pyarrow"), pa.large_string(): pd.StringDtype("pyarrow")} if convert_string else {}
     df = dataset.read(columns=columns).to_pandas(types_mapper=type_mapping.get, self_destruct=True)
 
     # Return result
