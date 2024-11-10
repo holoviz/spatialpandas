@@ -72,6 +72,8 @@ log_cli_level = "INFO"
 filterwarnings = [
     "error",
     "ignore:datetime.datetime.utcnow():DeprecationWarning:botocore", # https://github.com/boto/boto3/issues/3889
+    # 2024-11
+    "ignore:The legacy Dask DataFrame implementation is deprecated:FutureWarning", # https://github.com/holoviz/spatialpandas/issues/146
 ]
 
 [tool.ruff]
