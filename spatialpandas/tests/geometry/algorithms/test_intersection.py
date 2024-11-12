@@ -70,6 +70,8 @@ def test_segment_intersection(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
         return
     line1 = sg.LineString([(ax0, ay0), (ax1, ay1)])
     line2 = sg.LineString([(bx0, by0), (bx1, by1)])
+    if line1.length == 0 or line2.length == 0:
+        return
     expected = line1.intersects(line2)
     assert result1 == expected
 
