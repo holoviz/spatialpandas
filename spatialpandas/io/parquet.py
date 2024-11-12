@@ -8,6 +8,7 @@ from typing import Any, Optional, Union
 
 import fsspec
 import pandas as pd
+import pyarrow as pa
 from dask import delayed
 from dask.dataframe import (
     from_delayed,
@@ -107,6 +108,7 @@ def read_parquet(
     filesystem: Optional[fsspec.AbstractFileSystem] = None,
     storage_options: Optional[dict[str, Any]] = None,
     engine_kwargs: Optional[dict[str, Any]] = None,
+    convert_string: bool = False,
     **kwargs: Any,
 ) -> GeoDataFrame:
     engine_kwargs = engine_kwargs or {}
@@ -139,7 +141,11 @@ def read_parquet(
 
         columns = extra_index_columns + list(columns)
 
-    df = dataset.read(columns=columns).to_pandas()
+    # References:
+    # https://arrow.apache.org/docs/python/pandas.html
+    # https://pandas.pydata.org/docs/user_guide/pyarrow.html
+    type_mapping = {pa.string(): pd.StringDtype("pyarrow"), pa.large_string(): pd.StringDtype("pyarrow")} if convert_string else {}
+    df = dataset.read(columns=columns).to_pandas(types_mapper=type_mapping.get, self_destruct=True)
 
     # Return result
     return GeoDataFrame(df)
@@ -332,6 +338,13 @@ def _perform_read_parquet_dask(
         dataset_pieces = sorted(fragments, key=lambda piece: natural_sort_key(piece.path))
         pieces.extend(dataset_pieces)
 
+    # https://docs.dask.org/en/stable/changelog.html#v2023-7-1
+    try:
+        from dask.dataframe.utils import pyarrow_strings_enabled
+
+        convert_string = pyarrow_strings_enabled()
+    except (ImportError, RuntimeError):
+        convert_string = False
     delayed_partitions = [
         delayed(read_parquet)(
             piece.path,
@@ -339,6 +352,7 @@ def _perform_read_parquet_dask(
             filesystem=filesystem,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            convert_string=convert_string,
         )
         for piece in pieces
     ]

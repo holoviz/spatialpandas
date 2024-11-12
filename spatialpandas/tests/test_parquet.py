@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 from hypothesis import HealthCheck, Phase, Verbosity, given, settings
 
-from spatialpandas import GeoDataFrame, GeoSeries
+from spatialpandas import GeoDataFrame, GeoSeries, geometry
 from spatialpandas.dask import DaskGeoDataFrame
 from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet
 
@@ -440,3 +440,31 @@ def test_read_parquet_dask(directory, repartitioned):
     assert partition_bounds["multiline"].index.name == "partition"
     assert ddf["multiline"].partition_bounds.index.name == "partition"
     assert all(partition_bounds["multiline"] == ddf["multiline"].partition_bounds)
+
+
+def test_parquet_dask_string_conversion():
+    from dask.dataframe.utils import pyarrow_strings_enabled
+
+    assert isinstance(pyarrow_strings_enabled(), bool)
+
+
+@pytest.mark.parametrize("save_convert_string", [True, False])
+@pytest.mark.parametrize("load_convert_string", [True, False])
+def test_parquet_dask_string_convert(save_convert_string, load_convert_string, tmp_path):
+    with dask.config.set({"dataframe.convert-string": save_convert_string}):
+        square = geometry.Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
+        sdf = GeoDataFrame({"geometry": GeoSeries([square, square]), "name": ["A", "B"]})
+        sddf = dd.from_pandas(sdf, 2)
+        sddf.to_parquet(tmp_path / "test.parq")
+
+    if load_convert_string:
+        dtype = pd.StringDtype("pyarrow")
+    elif save_convert_string:
+        dtype = pd.StringDtype("python")
+    else:
+        dtype = np.dtype("object")
+
+    with dask.config.set({"dataframe.convert-string": load_convert_string}):
+        data = read_parquet_dask(tmp_path / "test.parq")
+        assert data["name"].dtype == dtype
+        assert data.compute()["name"].dtype == dtype
