@@ -42,6 +42,9 @@ python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
 
+[feature.py312.activation.env]
+COVERAGE_CORE = "sysmon"
+
 [feature.example.dependencies]
 datashader = "*"
 descartes = "*"
