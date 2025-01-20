@@ -21,7 +21,7 @@ build = ["py311", "build"]
 lint = ["py311", "lint"]
 
 [dependencies]
-dask-core = "*"
+dask-core = "<2025.1"  # TODO: Does not work with new DataFrame interface
 fsspec = "*"
 numba = "*"
 packaging = "*"
