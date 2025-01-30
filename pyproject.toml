@@ -27,7 +27,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    'dask <2025.1',
+    'dask >=2025.1',
     'fsspec >=2022.8',
     'numba',
     'packaging',

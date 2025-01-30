@@ -8,11 +8,9 @@ install = 'python -m pip install --no-deps --disable-pip-version-check -e .'
 
 [activation.env]
 PYTHONIOENCODING = "utf-8"
-DASK_DATAFRAME__QUERY_PLANNING = "False" # TODO: Support query planning
 USE_PYGEOS = '0'
 
 [environments]
-test-39 = ["py39", "test-core", "test", "test-task", "example", "test-example"]
 test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example"]
 test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example"]
 test-312 = ["py312", "test-core", "test", "test-task", "example", "test-example"]
@@ -22,16 +20,13 @@ lint = ["py311", "lint"]
 
 [dependencies]
 numba = "*"
-dask-core = "<2025.1"  # TODO: Does not work with new DataFrame interface
+dask-core = ">=2025.1"
 fsspec = "*"
 packaging = "*"
 pandas = "*"
 pip = "*"
 pyarrow = ">=10"
 retrying = "*"
-
-[feature.py39.dependencies]
-python = "3.9.*"
 
 [feature.py310.dependencies]
 python = "3.10.*"
