@@ -13,15 +13,9 @@ import pyarrow.parquet as pq
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.extensions import make_array_nonempty
-from dask.dataframe.partitionquantiles import partition_quantiles
+from dask.dataframe.utils import make_meta as make_meta_dispatch, meta_nonempty
 from packaging.version import Version
 from retrying import retry
-
-try:
-    from dask.dataframe.backends import meta_nonempty
-    from dask.dataframe.dispatch import make_meta_dispatch
-except ImportError:
-    from dask.dataframe.utils import make_meta as make_meta_dispatch, meta_nonempty
 
 from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
@@ -312,6 +306,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         ddf = self._with_hilbert_distance_column(p)
 
         # Compute output hilbert_distance divisions
+        from dask.dataframe.partitionquantiles import partition_quantiles
         quantiles = partition_quantiles(
             ddf.hilbert_distance, npartitions
         ).compute().values
