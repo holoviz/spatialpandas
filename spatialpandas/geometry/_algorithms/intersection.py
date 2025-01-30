@@ -84,12 +84,12 @@ def segments_intersect(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1):
     a_zero = ax0 == ax1 and ay0 == ay1
     b_zero = bx0 == bx1 and by0 == by1
     if a_zero and not b_zero and (
-            ax0 == bx0 and ay0 == by0 or ax0 == bx1 and ay0 == by1
+            (ax0 == bx0 and ay0 == by0) or (ax0 == bx1 and ay0 == by1)
     ):
         # a is zero length line that is identical to an end point of b
         return True
     elif b_zero and not a_zero and (
-            bx0 == ax0 and by0 == ay0 or bx0 == ax1 and by0 == ay1
+            (bx0 == ax0 and by0 == ay0) or (bx0 == ax1 and by0 == ay1)
     ):
         # a is zero length line that is identical to an end point of b
         return True
@@ -224,7 +224,7 @@ def multipoints_intersect_bounds(
         for j in range(start, stop, 2):
             x = flat_values[j]
             y = flat_values[j + 1]
-            if x0 <= x and x <= x1 and y0 <= y and y <= y1:
+            if x0 <= x <= x1 and y0 <= y <= y1:
                 point_in_rect = True
                 break
 
@@ -249,8 +249,8 @@ def _perform_line_intersect_bounds(
         # bounds outside of rect, does not intersect
         return
 
-    if (bounds[0] >= x0 and bounds[2] <= x1 or
-            bounds[1] >= y0 and bounds[3] <= y1):
+    if ((bounds[0] >= x0 and bounds[2] <= x1) or
+            (bounds[1] >= y0 and bounds[3] <= y1)):
         # bounds is fully contained in rect when both are projected onto the
         # x or y axis
         result[i] = True
@@ -261,7 +261,7 @@ def _perform_line_intersect_bounds(
     for j in range(start, stop, 2):
         x = flat_values[j]
         y = flat_values[j + 1]
-        if x0 <= x and x <= x1 and y0 <= y and y <= y1:
+        if x0 <= x <= x1 and y0 <= y <= y1:
             vert_in_rect = True
             break
 
@@ -410,8 +410,8 @@ def _perform_polygon_intersect_bounds(i, x0, y0, x1, y1, flat_values, start_offs
         # bounds outside of rect, does not intersect
         return
 
-    if (bounds[0] >= x0 and bounds[2] <= x1 or
-            bounds[1] >= y0 and bounds[3] <= y1):
+    if ((bounds[0] >= x0 and bounds[2] <= x1) or
+            (bounds[1] >= y0 and bounds[3] <= y1)):
         # bounds is fully contained in rect when both are projected onto the
         # x or y axis
         result[i] = True
@@ -422,7 +422,7 @@ def _perform_polygon_intersect_bounds(i, x0, y0, x1, y1, flat_values, start_offs
     for k in range(start1, stop1, 2):
         x = flat_values[k]
         y = flat_values[k + 1]
-        if x0 <= x and x <= x1 and y0 <= y and y <= y1:
+        if x0 <= x <= x1 and y0 <= y <= y1:
             vert_in_rect = True
             break
 
