@@ -428,7 +428,7 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
         # Validate fill values
         if allow_fill and not (
                 fill_value is None or
-                np.isscalar(fill_value) and np.isnan(fill_value)):
+                (np.isscalar(fill_value) and np.isnan(fill_value))):
 
             raise ValueError('non-None fill value not supported')
 
@@ -803,7 +803,7 @@ def to_geometry_array(data, dtype=None):
         pass
     elif (is_array_like(data) or
             isinstance(data, (list, tuple))
-            or gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray))):
+            or (gp and isinstance(data, (gp.GeoSeries, gp.array.GeometryArray)))):
 
         if dtype is not None:
             data = dtype.construct_array_type()(data, dtype=dtype)

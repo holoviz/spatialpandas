@@ -32,7 +32,7 @@ class GeoDataFrame(pd.DataFrame):
         first_geometry_col = None
         for col in self.columns:
             if (isinstance(self[col].dtype, GeometryDtype) or
-                    gp and isinstance(self[col].dtype, gp.array.GeometryDtype)):
+                    (gp and isinstance(self[col].dtype, gp.array.GeometryDtype))):
                 self[col] = GeoSeries(self[col])
                 first_geometry_col = first_geometry_col or col
 
