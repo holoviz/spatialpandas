@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.extensions import make_array_nonempty
-from dask.dataframe.utils import make_meta as make_meta_dispatch, meta_nonempty
+from dask.dataframe.utils import make_meta_obj, meta_nonempty
 from packaging.version import Version
 from retrying import retry
 
@@ -24,6 +24,9 @@ from .spatialindex import HilbertRtree
 
 
 class DaskGeoSeries(dd.Series):
+
+    _partition_type = GeoSeries
+
     def __init__(self, dsk, name, meta, divisions, *args, **kwargs):
         super().__init__(dsk, name, meta, divisions)
 
@@ -99,7 +102,7 @@ class DaskGeoSeries(dd.Series):
         )
 
 
-@make_meta_dispatch(GeoSeries)
+@make_meta_obj.register(GeoSeries)
 def make_meta_series(s, index=None):
     result = s.head(0)
     if index is not None:
@@ -118,6 +121,8 @@ def get_parallel_type_dataframe(df):
 
 
 class DaskGeoDataFrame(dd.DataFrame):
+    _partition_type = GeoDataFrame
+
     def __init__(self, dsk, name, meta, divisions):
         super().__init__(dsk, name, meta, divisions)
         self._partition_sindex = {}
@@ -579,7 +584,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         return result
 
 
-@make_meta_dispatch(GeoDataFrame)
+@make_meta_obj.register(GeoDataFrame)
 def make_meta_dataframe(df, index=None):
     result = df.head(0)
     if index is not None:
