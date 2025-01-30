@@ -316,8 +316,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         ddf = self._with_hilbert_distance_column(p)
 
         # Compute output hilbert_distance divisions
-        from dask.dataframe.partitionquantiles import partition_quantiles
-        quantiles = partition_quantiles(
+        quantiles = dd.partitionquantiles(
             ddf.hilbert_distance, npartitions
         ).compute().values
 
