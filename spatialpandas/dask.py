@@ -27,8 +27,8 @@ class DaskGeoSeries(dd.Series):
 
     _partition_type = GeoSeries
 
-    def __init__(self, dsk, name, meta, divisions, *args, **kwargs):
-        super().__init__(dsk, name, meta, divisions)
+    def __init__(self, expr, *args, **kwargs):
+        super().__init__(expr, *args, **kwargs)
 
         # Init backing properties
         self._partition_bounds = None
@@ -116,15 +116,20 @@ def meta_nonempty_series(s, index=None):
 
 
 @get_parallel_type.register(GeoSeries)
-def get_parallel_type_dataframe(df):
+def get_parallel_type_series(df):
+    return DaskGeoSeries
+
+
+@dd.get_collection_type.register(GeoSeries)
+def get_collection_type_series(df):
     return DaskGeoSeries
 
 
 class DaskGeoDataFrame(dd.DataFrame):
     _partition_type = GeoDataFrame
 
-    def __init__(self, dsk, name, meta, divisions):
-        super().__init__(dsk, name, meta, divisions)
+    def __init__(self, expr, *args, **kwargs):
+        super().__init__(expr, *args, **kwargs)
         self._partition_sindex = {}
         self._partition_bounds = {}
 
@@ -598,9 +603,13 @@ def meta_nonempty_dataframe(df, index=None):
 
 
 @get_parallel_type.register(GeoDataFrame)
-def get_parallel_type_series(s):
+def get_parallel_type_dataframe(s):
     return DaskGeoDataFrame
 
+
+@dd.get_collection_type.register(GeoDataFrame)
+def get_collection_type_dataframe(df):
+    return DaskGeoDataFrame
 
 class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, sindex):
