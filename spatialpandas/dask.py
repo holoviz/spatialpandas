@@ -99,7 +99,7 @@ class DaskGeoSeries(dd.Series):
         )
 
 
-@make_meta_dispatch.register(GeoSeries)
+@make_meta_dispatch(GeoSeries)
 def make_meta_series(s, index=None):
     result = s.head(0)
     if index is not None:
@@ -579,7 +579,7 @@ class DaskGeoDataFrame(dd.DataFrame):
         return result
 
 
-@make_meta_dispatch.register(GeoDataFrame)
+@make_meta_dispatch(GeoDataFrame)
 def make_meta_dataframe(df, index=None):
     result = df.head(0)
     if index is not None:
