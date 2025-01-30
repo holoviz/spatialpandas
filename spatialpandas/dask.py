@@ -328,7 +328,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition in out_partitions
         ]
         part_output_paths = [
-            os.path.join(path, f"part.{out_partition}.parquet")
+            os.path.join(path, f"part.{int(out_partition)}.parquet")
             for out_partition in out_partitions
         ]
 
