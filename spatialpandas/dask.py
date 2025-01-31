@@ -333,7 +333,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition in out_partitions
         ]
         part_output_paths = [
-            os.path.join(path, f"part.{int(out_partition)}.parquet")
+            os.path.join(path, f"part.{out_partition}.parquet")
             for out_partition in out_partitions
         ]
 
@@ -343,7 +343,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             rm_retry(path)
 
         for out_partition in out_partitions:
-            part_dir = os.path.join(path, f"part.{int(out_partition)}.parquet" )
+            part_dir = os.path.join(path, f"part.{out_partition}.parquet" )
             mkdirs_retry(part_dir)
             tmp_part_dir = tempdir_format.format(partition=out_partition, uuid=dataset_uuid)
             mkdirs_retry(tmp_part_dir)
@@ -365,7 +365,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    f'part{int(i)}.parquet',
+                    f'part{i}.parquet',
                 )
                 df_part = (
                     df_part
