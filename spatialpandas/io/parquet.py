@@ -1,4 +1,5 @@
 import json
+import warnings
 from collections.abc import Iterable
 from functools import reduce
 from glob import has_magic
@@ -180,17 +181,24 @@ def to_parquet_dask(
     spatial_metadata = {'partition_bounds': partition_bounds}
     b_spatial_metadata = json.dumps(spatial_metadata).encode('utf')
 
-    dd_to_parquet(
-        ddf,
-        path,
-        engine="pyarrow",
-        compression=compression,
-        storage_options=storage_options,
-        custom_metadata={b'spatialpandas': b_spatial_metadata},
-        write_metadata_file=True,
-        **engine_kwargs,
-        **kwargs,
-    )
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=UserWarning,
+            message="Dask annotations .* detected. Annotations will be ignored when using query-planning.",
+        )
+        dd_to_parquet(
+            ddf,
+            path,
+            engine="pyarrow",
+            compression=compression,
+            storage_options=storage_options,
+            custom_metadata={b'spatialpandas': b_spatial_metadata},
+            write_metadata_file=True,
+            **engine_kwargs,
+            **kwargs,
+        )
 
 
 def read_parquet_dask(
