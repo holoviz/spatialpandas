@@ -104,6 +104,8 @@ class DaskGeoSeries(dd.Series):
 
 @make_meta_obj.register(GeoSeries)
 def make_meta_series(s, index=None):
+    if hasattr(s, "__array__") or isinstance(s, np.ndarray):
+        return s[:0]
     result = s.head(0)
     if index is not None:
         result = result.reindex(index[:0])
@@ -591,6 +593,8 @@ class DaskGeoDataFrame(dd.DataFrame):
 
 @make_meta_obj.register(GeoDataFrame)
 def make_meta_dataframe(df, index=None):
+    if hasattr(df, "__array__") or isinstance(df, np.ndarray):
+        return df[:0]
     result = df.head(0)
     if index is not None:
         result = result.reindex(index[:0])
