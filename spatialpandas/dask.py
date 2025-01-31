@@ -317,14 +317,14 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Compute output hilbert_distance divisions
         from dask.dataframe.dask_expr import RepartitionQuantiles, new_collection
-        quantiles, *_ = dask.compute(
-            new_collection(RepartitionQuantiles(ddf.hilbert_distance, npartitions))
-        )
+        quantiles = new_collection(
+            RepartitionQuantiles(ddf.hilbert_distance, npartitions)
+        ).compute().values
 
         # Add _partition column containing output partition number of each row
         ddf = ddf.map_partitions(
             lambda df: df.assign(
-                _partition=np.digitize(df.hilbert_distance, quantiles.values[1:], right=True))
+                _partition=np.digitize(df.hilbert_distance, quantiles[1:], right=True))
         )
 
         # Compute part paths
