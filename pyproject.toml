@@ -78,6 +78,7 @@ filterwarnings = [
 [tool.ruff]
 fix = true
 line-length = 100
+target-version = "py39"  # TODO: Remove in follow up PR
 
 [tool.ruff.lint]
 select = [
