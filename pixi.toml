@@ -81,6 +81,9 @@ test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'
 [feature.test-example.dependencies]
 nbval = "*"
 
+[feature.test-example.activation.env]
+DASK_SCHEDULER = "single-threaded"
+
 [feature.test-example.tasks]
 test-example = 'pytest -n logical --dist loadscope --nbval-lax examples'
 
