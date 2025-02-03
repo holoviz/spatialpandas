@@ -23,9 +23,9 @@ numba = "*"
 dask-core = ">=2025.1"
 fsspec = "*"
 packaging = "*"
-pandas = "*"
+pandas = ">=2.0"
 pip = "*"
-pyarrow = ">=10"
+pyarrow = ">=14.0.1"
 retrying = "*"
 
 [feature.py310.dependencies]
