@@ -18,7 +18,6 @@ from dask.dataframe import (
     to_parquet as dd_to_parquet,
 )
 from dask.utils import natural_sort_key
-from packaging.version import Version
 from pandas.io.parquet import to_parquet as pd_to_parquet
 from pyarrow.parquet import ParquetDataset, ParquetFile, read_metadata
 
@@ -30,9 +29,6 @@ from ..io.utils import (
     _maybe_prepend_protocol,
     validate_coerce_filesystem,
 )
-
-# improve pandas compatibility, based on geopandas _compat.py
-PANDAS_GE_12 = Version(pd.__version__) >= Version("1.2.0")
 
 
 def _load_parquet_pandas_metadata(
@@ -91,14 +87,9 @@ def to_parquet(
         "compression": compression,
         "filesystem": filesystem,
         "index": index,
+        "storage_options": storage_options,
         **kwargs,
     }
-
-    if PANDAS_GE_12:
-        to_parquet_args.update({"storage_options": storage_options})
-    elif filesystem is None:
-        filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
-        to_parquet_args.update({"filesystem": filesystem})
 
     pd_to_parquet(**to_parquet_args)
 
