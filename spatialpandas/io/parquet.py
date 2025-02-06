@@ -177,7 +177,7 @@ def to_parquet_dask(
         warnings.filterwarnings(
             "ignore",
             category=UserWarning,
-            message="Dask annotations .* detected. Annotations will be ignored when using query-planning.",
+            message="Dask annotations {'retries': 5} detected",
         )
         dd_to_parquet(
             ddf,
