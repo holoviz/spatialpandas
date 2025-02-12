@@ -262,7 +262,7 @@ def _lexographic_lt0(a1, a2):
     comparison:
         True if a1 < a2, False otherwise
     """
-    for e1, e2 in zip(a1, a2):
+    for e1, e2 in zip(a1, a2):  # noqa: B905
         if e1 < e2:
             return True
         elif e1 > e2:
@@ -276,7 +276,7 @@ def _lexographic_lt(a1, a2):
         return _lexographic_lt0(a1, a2)
     elif a1.dtype == np.dtype(object) and a1.dtype == np.dtype(object):
         # a1 and a2 object, process recursively
-        for e1, e2 in zip(a1, a2):
+        for e1, e2 in zip(a1, a2, strict=False):
             if _lexographic_lt(e1, e2):
                 return True
             elif _lexographic_lt(e2, e1):

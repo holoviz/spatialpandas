@@ -20,7 +20,7 @@ def st_bounds(draw, n_min=1, n_max=3):
     n = draw(st.integers(min_value=n_min, max_value=n_max))
     dim_starts = [draw(st.floats(0, 10**(i + 1) - 1)) for i in range(n)]
     dim_widths = [draw(st.floats(0, 10 ** i)) for i in range(n)]
-    dim_ends = [s + w for s, w in zip(dim_starts, dim_widths)]
+    dim_ends = [s + w for s, w in zip(dim_starts, dim_widths, strict=True)]
     return tuple(dim_starts + dim_ends)
 
 

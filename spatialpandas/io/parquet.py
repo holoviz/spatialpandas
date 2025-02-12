@@ -350,7 +350,7 @@ def _perform_read_parquet_dask(
     if load_divisions:
         div_mins_list, div_maxes_list = zip(*[
             _load_divisions(dataset) for dataset in datasets
-        ])
+        ], strict=True)
 
         div_mins = reduce(lambda a, b: a + b, div_mins_list, [])
         div_maxes = reduce(lambda a, b: a + b, div_maxes_list, [])
@@ -538,6 +538,6 @@ def _load_divisions(pqds):
     mins, maxes = zip(*[
         (rg.column(div_col).statistics.min, rg.column(div_col).statistics.max)
         for rg in row_groups
-    ])
+    ], strict=True)
 
     return list(mins), list(maxes)

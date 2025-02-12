@@ -475,10 +475,10 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Handle empty partitions.
         input_paths, write_info = zip(*[
-            (pp, wi) for (pp, wi) in zip(part_output_paths, write_info) if wi is not None
-        ])
+            (pp, wi) for (pp, wi) in zip(part_output_paths, write_info, strict=True) if wi is not None
+        ], strict=True)
         output_paths = part_output_paths[:len(input_paths)]
-        for p1, p2 in zip(input_paths, output_paths):
+        for p1, p2 in zip(input_paths, output_paths, strict=True):
             if p1 != p2:
                 move_retry(p1, p2)
 
@@ -629,7 +629,7 @@ class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
 
         ddf = self._obj.partitions[all_partition_inds]
         delayed_dfs = []
-        for partition_ind, delayed_df in zip(all_partition_inds, ddf.to_delayed()):
+        for partition_ind, delayed_df in zip(all_partition_inds, ddf.to_delayed(), strict=True):
             if partition_ind in overlaps_inds:
                 delayed_dfs.append(
                     cx_fn(delayed_df)
