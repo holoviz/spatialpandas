@@ -1,11 +1,11 @@
 from collections.abc import Iterable
 from os import PathLike
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import fsspec
 
-PathType = Union[PathLike, str, Path]
+PathType = Union[PathLike, str, Path]  # noqa: UP007
 
 
 def validate_coerce_filesystem(

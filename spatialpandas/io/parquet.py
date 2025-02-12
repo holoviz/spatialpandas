@@ -4,7 +4,7 @@ from functools import reduce
 from glob import has_magic
 from numbers import Number
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import fsspec
 import pandas as pd

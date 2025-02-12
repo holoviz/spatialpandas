@@ -113,6 +113,8 @@ ignore = [
     "PLR2004", # Magic value used in comparison
     "PLW2901", # `for` loop variable is overwritten
     "RUF012", # Mutable class attributes should use `typing.ClassVar`
+    "UP038", # isinstance and issubclass uses a |-separated union
+    "B905", # `zip()` without an explicit `strict=` parameter
 ]
 extend-unsafe-fixes = [
     "F401", # Unused imports
