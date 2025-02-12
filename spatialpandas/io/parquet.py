@@ -79,18 +79,16 @@ def to_parquet(
         filesystem = validate_coerce_filesystem(path, filesystem, storage_options)
 
     # Standard pandas to_parquet with pyarrow engine
-    to_parquet_args = {
-        "df": df,
-        "path": path,
-        "engine": "pyarrow",
-        "compression": compression,
-        "filesystem": filesystem,
-        "index": index,
-        "storage_options": storage_options,
+    pd_to_parquet(
+        df=df,
+        path=path,
+        engine="pyarrow",
+        compression=compression,
+        filesystem=filesystem,
+        index=index,
+        storage_options=storage_options,
         **kwargs,
-    }
-
-    pd_to_parquet(**to_parquet_args)
+    )
 
 
 def read_parquet(
