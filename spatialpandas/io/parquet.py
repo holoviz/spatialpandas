@@ -69,10 +69,10 @@ def _load_parquet_pandas_metadata(
 def to_parquet(
     df: GeoDataFrame,
     path: PathType,
-    compression: Optional[str] = "snappy",
-    filesystem: Optional[fsspec.AbstractFileSystem] = None,
-    index: Optional[bool] = None,
-    storage_options: Optional[dict[str, Any]] = None,
+    compression: str | None = "snappy",
+    filesystem: fsspec.AbstractFileSystem | None = None,
+    index: bool | None = None,
+    storage_options: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     if filesystem is not None:
@@ -93,10 +93,10 @@ def to_parquet(
 
 def read_parquet(
     path: PathType,
-    columns: Optional[Iterable[str]] = None,
-    filesystem: Optional[fsspec.AbstractFileSystem] = None,
-    storage_options: Optional[dict[str, Any]] = None,
-    engine_kwargs: Optional[dict[str, Any]] = None,
+    columns: Iterable[str] | None = None,
+    filesystem: fsspec.AbstractFileSystem | None = None,
+    storage_options: dict[str, Any] | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
     convert_string: bool = False,
     **kwargs: Any,
 ) -> GeoDataFrame:
@@ -143,10 +143,10 @@ def read_parquet(
 def to_parquet_dask(
     ddf: DaskGeoDataFrame,
     path: PathType,
-    compression: Optional[str] = "snappy",
-    filesystem: Optional[fsspec.AbstractFileSystem] = None,
-    storage_options: Optional[dict[str, Any]] = None,
-    engine_kwargs: Optional[dict[str, Any]] = None,
+    compression: str | None = "snappy",
+    filesystem: fsspec.AbstractFileSystem | None = None,
+    storage_options: dict[str, Any] | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     engine_kwargs = engine_kwargs or {}
@@ -184,15 +184,15 @@ def to_parquet_dask(
 
 def read_parquet_dask(
     path: PathType,
-    columns: Optional[Iterable[str]] = None,
-    filesystem: Optional[fsspec.AbstractFileSystem] = None,
-    load_divisions: Optional[bool] = False,
-    geometry: Optional[str] = None,
-    bounds: Optional[tuple[Number, Number, Number, Number]] = None,
-    categories: Optional[Union[list[str], dict[str, str]]] = None,
-    build_sindex: Optional[bool] = False,
-    storage_options: Optional[dict[str, Any]] = None,
-    engine_kwargs: Optional[dict[str, Any]] = None,
+    columns: Iterable[str] | None = None,
+    filesystem: fsspec.AbstractFileSystem | None = None,
+    load_divisions: bool | None = False,
+    geometry: str | None = None,
+    bounds: tuple[Number, Number, Number, Number] | None = None,
+    categories: list[str] | dict[str, str] | None = None,
+    build_sindex: bool | None = False,
+    storage_options: dict[str, Any] | None = None,
+    engine_kwargs: dict[str, Any] | None = None,
 ) -> DaskGeoDataFrame:
     """Read spatialpandas parquet dataset(s) as DaskGeoDataFrame.
 

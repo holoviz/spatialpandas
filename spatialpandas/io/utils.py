@@ -10,8 +10,8 @@ PathType = Union[PathLike, str, Path]
 
 def validate_coerce_filesystem(
     path: PathType,
-    filesystem: Optional[Union[str, fsspec.AbstractFileSystem]] = None,
-    storage_options: Optional[dict[str, Any]] = None,
+    filesystem: str | fsspec.AbstractFileSystem | None = None,
+    storage_options: dict[str, Any] | None = None,
     **kwargs: Any,
 ) -> fsspec.AbstractFileSystem:
     """
