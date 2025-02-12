@@ -24,9 +24,6 @@ from .spatialindex import HilbertRtree
 
 
 class DaskGeoSeries(dd.Series):
-
-    _partition_type = GeoSeries
-
     def __init__(self, expr, *args, **kwargs):
         super().__init__(expr, *args, **kwargs)
 
@@ -128,8 +125,6 @@ def get_collection_type_series(df):
 
 
 class DaskGeoDataFrame(dd.DataFrame):
-    _partition_type = GeoDataFrame
-
     def __init__(self, expr, *args, **kwargs):
         super().__init__(expr, *args, **kwargs)
         self._partition_sindex = {}
