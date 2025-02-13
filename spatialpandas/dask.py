@@ -14,7 +14,6 @@ from dask import delayed
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.extensions import make_array_nonempty
 from dask.dataframe.utils import make_meta_obj, meta_nonempty
-from packaging.version import Version
 from retrying import retry
 
 from .geodataframe import GeoDataFrame
@@ -192,11 +191,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
-        if Version(dask.__version__) >= Version('2024.1'):
-            shuffle_kwargs = {'shuffle_method': shuffle}
-        else:
-            shuffle_kwargs = {'shuffle': shuffle}
-        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, **shuffle_kwargs)
+        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle_method=shuffle)
 
         if ddf.npartitions != npartitions:
             # set_index doesn't change the number of partitions if the partitions
