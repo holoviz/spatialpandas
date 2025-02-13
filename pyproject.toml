@@ -80,7 +80,6 @@ filterwarnings = [
 [tool.ruff]
 fix = true
 line-length = 100
-target-version = "py39" # TODO: Remove in follow up PR
 
 [tool.ruff.lint]
 select = [
@@ -114,6 +113,7 @@ ignore = [
     "PLR2004", # Magic value used in comparison
     "PLW2901", # `for` loop variable is overwritten
     "RUF012", # Mutable class attributes should use `typing.ClassVar`
+    "UP038", # isinstance and issubclass uses a |-separated union
 ]
 extend-unsafe-fixes = [
     "F401", # Unused imports
