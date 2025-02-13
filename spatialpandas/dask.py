@@ -13,15 +13,8 @@ import pyarrow.parquet as pq
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.extensions import make_array_nonempty
-from dask.dataframe.partitionquantiles import partition_quantiles
-from packaging.version import Version
+from dask.dataframe.utils import make_meta_obj, meta_nonempty
 from retrying import retry
-
-try:
-    from dask.dataframe.backends import meta_nonempty
-    from dask.dataframe.dispatch import make_meta_dispatch
-except ImportError:
-    from dask.dataframe.utils import make_meta as make_meta_dispatch, meta_nonempty
 
 from .geodataframe import GeoDataFrame
 from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
@@ -30,8 +23,8 @@ from .spatialindex import HilbertRtree
 
 
 class DaskGeoSeries(dd.Series):
-    def __init__(self, dsk, name, meta, divisions, *args, **kwargs):
-        super().__init__(dsk, name, meta, divisions)
+    def __init__(self, expr, *args, **kwargs):
+        super().__init__(expr, *args, **kwargs)
 
         # Init backing properties
         self._partition_bounds = None
@@ -105,8 +98,10 @@ class DaskGeoSeries(dd.Series):
         )
 
 
-@make_meta_dispatch.register(GeoSeries)
+@make_meta_obj.register(GeoSeries)
 def make_meta_series(s, index=None):
+    if hasattr(s, "__array__") or isinstance(s, np.ndarray):
+        return s[:0]
     result = s.head(0)
     if index is not None:
         result = result.reindex(index[:0])
@@ -119,13 +114,18 @@ def meta_nonempty_series(s, index=None):
 
 
 @get_parallel_type.register(GeoSeries)
-def get_parallel_type_dataframe(df):
+def get_parallel_type_series(df):
+    return DaskGeoSeries
+
+
+@dd.get_collection_type.register(GeoSeries)
+def get_collection_type_series(df):
     return DaskGeoSeries
 
 
 class DaskGeoDataFrame(dd.DataFrame):
-    def __init__(self, dsk, name, meta, divisions):
-        super().__init__(dsk, name, meta, divisions)
+    def __init__(self, expr, *args, **kwargs):
+        super().__init__(expr, *args, **kwargs)
         self._partition_sindex = {}
         self._partition_bounds = {}
 
@@ -191,11 +191,7 @@ class DaskGeoDataFrame(dd.DataFrame):
 
         # Set index to distance. This will trigger an expensive shuffle
         # sort operation
-        if Version(dask.__version__) >= Version('2024.1'):
-            shuffle_kwargs = {'shuffle_method': shuffle}
-        else:
-            shuffle_kwargs = {'shuffle': shuffle}
-        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, **shuffle_kwargs)
+        ddf = ddf.set_index('hilbert_distance', npartitions=npartitions, shuffle_method=shuffle)
 
         if ddf.npartitions != npartitions:
             # set_index doesn't change the number of partitions if the partitions
@@ -312,8 +308,9 @@ class DaskGeoDataFrame(dd.DataFrame):
         ddf = self._with_hilbert_distance_column(p)
 
         # Compute output hilbert_distance divisions
-        quantiles = partition_quantiles(
-            ddf.hilbert_distance, npartitions
+        from dask.dataframe.dask_expr import RepartitionQuantiles, new_collection
+        quantiles = new_collection(
+            RepartitionQuantiles(ddf.hilbert_distance, npartitions)
         ).compute().values
 
         # Add _partition column containing output partition number of each row
@@ -328,7 +325,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition in out_partitions
         ]
         part_output_paths = [
-            os.path.join(path, f"part.{int(out_partition)}.parquet")
+            os.path.join(path, f"part.{out_partition}.parquet")
             for out_partition in out_partitions
         ]
 
@@ -338,7 +335,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             rm_retry(path)
 
         for out_partition in out_partitions:
-            part_dir = os.path.join(path, f"part.{int(out_partition)}.parquet" )
+            part_dir = os.path.join(path, f"part.{out_partition}.parquet" )
             mkdirs_retry(part_dir)
             tmp_part_dir = tempdir_format.format(partition=out_partition, uuid=dataset_uuid)
             mkdirs_retry(tmp_part_dir)
@@ -360,7 +357,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             for out_partition, df_part in df.groupby('_partition'):
                 part_path = os.path.join(
                     tempdir_format.format(partition=out_partition, uuid=dataset_uuid),
-                    f'part{int(i)}.parquet',
+                    f'part{i}.parquet',
                 )
                 df_part = (
                     df_part
@@ -584,8 +581,10 @@ class DaskGeoDataFrame(dd.DataFrame):
         return result
 
 
-@make_meta_dispatch.register(GeoDataFrame)
+@make_meta_obj.register(GeoDataFrame)
 def make_meta_dataframe(df, index=None):
+    if hasattr(df, "__array__") or isinstance(df, np.ndarray):
+        return df[:0]
     result = df.head(0)
     if index is not None:
         result = result.reindex(index[:0])
@@ -598,9 +597,13 @@ def meta_nonempty_dataframe(df, index=None):
 
 
 @get_parallel_type.register(GeoDataFrame)
-def get_parallel_type_series(s):
+def get_parallel_type_dataframe(s):
     return DaskGeoDataFrame
 
+
+@dd.get_collection_type.register(GeoDataFrame)
+def get_collection_type_dataframe(df):
+    return DaskGeoDataFrame
 
 class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, sindex):

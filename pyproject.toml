@@ -8,14 +8,13 @@ dynamic = ["version"]
 description = 'Pandas extension arrays for spatial/geometric operations'
 readme = "README.md"
 license = { text = "BSD-2-Clause" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [{ name = "HoloViz developers", email = "developers@holoviz.org" }]
 maintainers = [{ name = "HoloViz developers", email = "developers@holoviz.org" }]
 classifiers = [
     "License :: OSI Approved :: BSD License",
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -27,12 +26,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    'dask <2025.1',
+    'dask >=2025.1',
     'fsspec >=2022.8',
     'numba',
     'packaging',
-    'pandas',
-    'pyarrow >=10',
+    'pandas >=2.0',
+    'pyarrow >=14.0.1',
     'retrying',
 ]
 
@@ -74,11 +73,14 @@ filterwarnings = [
     "ignore:datetime.datetime.utcnow():DeprecationWarning:botocore", # https://github.com/boto/boto3/issues/3889
     # 2024-11
     "ignore:The legacy Dask DataFrame implementation is deprecated:FutureWarning", # https://github.com/holoviz/spatialpandas/issues/146
+    # 2025-02
+    "ignore:Dask annotations ..retries.. 5. detected:UserWarning", # https://github.com/dask/dask/issues/11721
 ]
 
 [tool.ruff]
 fix = true
 line-length = 100
+target-version = "py39" # TODO: Remove in follow up PR
 
 [tool.ruff.lint]
 select = [
