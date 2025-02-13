@@ -14,7 +14,8 @@ USE_PYGEOS = '0'
 test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example"]
 test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example"]
 test-312 = ["py312", "test-core", "test", "test-task", "example", "test-example"]
-test-core = ["py312", "test-core", "test-core-task"]
+test-313 = ["py313", "test-core", "test", "test-task", "example", "test-example"]
+test-core = ["py313", "test-core", "test-core-task"]
 build = ["py311", "build"]
 lint = ["py311", "lint"]
 
@@ -38,6 +39,12 @@ python = "3.11.*"
 python = "3.12.*"
 
 [feature.py312.activation.env]
+COVERAGE_CORE = "sysmon"
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+[feature.py313.activation.env]
 COVERAGE_CORE = "sysmon"
 
 [feature.example.dependencies]
