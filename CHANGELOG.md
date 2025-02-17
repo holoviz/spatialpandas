@@ -1,3 +1,45 @@
+## Version 0.5.0
+
+Date: 2025-02-19
+
+This release adds support for the new Dask DataFrame query-planning API.
+This also updates the minimum Python version to 3.10 and the minimum Pandas version to 2.0.
+It also includes several enhancements and compatibility changes with upstream packages.
+Many thanks to @Azaya89 for contributing to this release and to @maximlt and @hoxbro for maintaining the project on an ongoing basis.
+
+Enhancements
+
+- Support the new Dask DataFrame query-planning API ([#171](https://github.com/holoviz/spatialpandas/pull/171))
+- Ensure that pandas dtype matches dask when loading data from parquet ([#156](https://github.com/holoviz/spatialpandas/pull/156))
+
+Compatibility:
+
+- Numpy 2.0 ([#140](https://github.com/holoviz/spatialpandas/pull/140), [#141](https://github.com/holoviz/spatialpandas/pull/141))
+- Pandas 2.2 ([#143](https://github.com/holoviz/spatialpandas/pull/143))
+- Geopandas 1.0 ([#148](https://github.com/holoviz/spatialpandas/pull/148))
+- Numba 0.61 and Python 3.13 ([#172](https://github.com/holoviz/spatialpandas/pull/172))
+
+Bug fix:
+
+- Use `importlib.util.find_spec` for `dask` detection ([#163](https://github.com/holoviz/spatialpandas/pull/163))
+
+Tests:
+
+- Allow point comparison ([#149](https://github.com/holoviz/spatialpandas/pull/149))
+- Add example conftest ([#150](https://github.com/holoviz/spatialpandas/pull/150))
+- Fix download data for examples ([#155](https://github.com/holoviz/spatialpandas/pull/155))
+- Update resolution for floats in tests ([#157](https://github.com/holoviz/spatialpandas/pull/157))
+- Don't compare line length of zero size ([#161](https://github.com/holoviz/spatialpandas/pull/161))
+
+Infrastructure / CI:
+
+- Move infrastructure to Pixi, Hatchling, Pre-commit, and Ruff ([#142](https://github.com/holoviz/spatialpandas/pull/142))
+- Enable Ruff rules ([#151](https://github.com/holoviz/spatialpandas/pull/151), [#153](https://github.com/holoviz/spatialpandas/pull/153), [#154](https://github.com/holoviz/spatialpandas/pull/154), [#173](https://github.com/holoviz/spatialpandas/pull/173))
+- Update test to use collector ([#162](https://github.com/holoviz/spatialpandas/pull/162))
+- Small updates to build infrastructure ([#165](https://github.com/holoviz/spatialpandas/pull/165))
+- Modify nighly-lock workflow to exclude forks ([#174](https://github.com/holoviz/spatialpandas/pull/174))
+
+
 ## Version 0.4.10
 
 Date: 2024-01-10
