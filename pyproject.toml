@@ -129,3 +129,8 @@ extend-unsafe-fixes = [
 [tool.ruff.lint.isort]
 known-first-party = ["spatialpandas"]
 combine-as-imports = true
+
+[tool.codespell]
+ignore-words-list = "ser,vor,secondy"
+skip = "examples/Overview.ipynb"
+write-changes = true
