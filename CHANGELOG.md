@@ -1,6 +1,6 @@
 ## Version 0.5.0
 
-Date: 2025-02-19
+Date: 2025-02-18
 
 This release adds support for the new Dask DataFrame query-planning API.
 This also updates the minimum Python version to 3.10 and the minimum Pandas version to 2.0.
