@@ -229,7 +229,7 @@ Bug fixes:
  - `read_parquet_dask` fails to read from s3 glob ([#34](https://github.com/holoviz/spatialpandas/issues/34))
  - Tests failing with `ValueError: Cannot mask with a boolean indexer containing NA values` ([#41](https://github.com/holoviz/spatialpandas/issues/41))
  - Tests in `test_parquet` failing with `TypeError: argument of type 'PosixPath' is not iterable` ([#42](https://github.com/holoviz/spatialpandas/issues/42))
- - Create temp directory for partitions explitictly, fixes failure of test `test_pack_partitions_to_parquet`
+ - Create temp directory for partitions explicitly, fixes failure of test `test_pack_partitions_to_parquet`
 
 Compatibility:
 
