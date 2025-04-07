@@ -12,7 +12,7 @@ from shapely.ops import polygonize, unary_union
 
 hyp_settings = settings(
     deadline=None,
-    max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 100)),
+    max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', "100")),
     suppress_health_check=[HealthCheck.too_slow],
 )
 

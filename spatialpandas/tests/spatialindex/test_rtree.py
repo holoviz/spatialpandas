@@ -10,7 +10,7 @@ from hypothesis.extra.numpy import arrays
 from spatialpandas.spatialindex import HilbertRtree
 
 # ### hypothesis settings ###
-hyp_settings = settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 100)))
+hyp_settings = settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', "100")))
 
 
 # ### Custom strategies ###

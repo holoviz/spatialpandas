@@ -19,7 +19,7 @@ from spatialpandas.spatialindex.hilbert_curve import (
     distances_from_coordinates,
 )
 
-hyp_settings = settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', 100)))
+hyp_settings = settings(deadline=None, max_examples=int(os.environ.get('HYPOTHESIS_MAX_EXAMPLES', "100")))
 
 # ### strategies ###
 st_p = st.integers(min_value=1, max_value=5)
