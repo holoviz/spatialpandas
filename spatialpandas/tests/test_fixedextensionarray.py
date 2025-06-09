@@ -174,6 +174,10 @@ class TestGeometryGetitem(eb.BaseGetitemTests):
     def test_getitem_series_integer_with_missing_raises(self, data, idx):
         pass
 
+    @pytest.mark.filterwarnings("ignore::pytest.PytestWarning")
+    def test_take_pandas_style_negative_raises(self, data, na_value):
+        super().test_take_pandas_style_negative_raises(data, na_value)
+
 
 class TestGeometryGroupby(eb.BaseGroupbyTests):
     @pytest.mark.skip(
@@ -196,6 +200,10 @@ class TestGeometryInterface(eb.BaseInterfaceTests):
     @pytest.mark.skip(reason="contains not supported")
     def test_contains(self):
         pass
+
+    @pytest.mark.xfail(reason="copy=False not supported")
+    def test_array_interface_copy(self, data):
+        super().test_array_interface_copy(data)
 
 
 class TestGeometryMethods(eb.BaseMethodsTests):
@@ -248,6 +256,10 @@ class TestGeometryMethods(eb.BaseMethodsTests):
     @pytest.mark.skip(reason="ragged does not support where on elements")
     def test_where_series(self):
         pass
+
+    @pytest.mark.filterwarnings("ignore::pytest.PytestWarning")
+    def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
+        super().test_argmax_argmin_no_skipna_notimplemented(data_missing_for_sorting)
 
 
 class TestGeometryPrinting(eb.BasePrintingTests):
