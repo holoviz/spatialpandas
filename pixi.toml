@@ -91,6 +91,7 @@ nbval = "*"
 
 [feature.test-example.activation.env]
 DASK_SCHEDULER = "single-threaded"
+MALLOC_TRIM_THRESHOLD_ = '0'
 
 [feature.test-example.tasks]
 test-example = 'pytest -n logical --dist loadscope --nbval-lax examples'
