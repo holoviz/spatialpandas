@@ -200,6 +200,9 @@ class TestGeometryInterface(eb.BaseInterfaceTests):
     def test_contains(self):
         pass
 
+    @pytest.mark.xfail(reason="copy=False not supported")
+    def test_array_interface_copy(self, data):
+        super().test_array_interface_copy(data)
 
 class TestGeometryMethods(eb.BaseMethodsTests):
     # # AttributeError: 'RaggedArray' object has no attribute 'value_counts'
