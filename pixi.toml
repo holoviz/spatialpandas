@@ -21,7 +21,6 @@ lint = ["py311", "lint"]
 
 [dependencies]
 numba = "*"
-numpy = "<2.3" # Wrong pin on conda-forge: https://github.com/conda-forge/numba-feedstock/pull/154#issuecomment-2792633316
 dask-core = ">=2025.1"
 fsspec = "*"
 packaging = "*"
