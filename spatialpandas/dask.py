@@ -18,14 +18,9 @@ from dask.dataframe.utils import meta_nonempty
 from retrying import retry
 
 from .geodataframe import GeoDataFrame
-from .geometry.base import GeometryArray, GeometryDtype, _BaseCoordinateIndexer
+from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
 from .geoseries import GeoSeries
 from .spatialindex import HilbertRtree
-
-
-@make_array_nonempty.register(GeometryDtype)
-def make_geometry_array(dtype):
-    return GeometryArray([], dtype=dtype)
 
 
 class DaskGeoSeries(dd.Series):
