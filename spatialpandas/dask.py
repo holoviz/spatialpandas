@@ -12,14 +12,20 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from dask import delayed
 from dask.dataframe.core import get_parallel_type
+from dask.dataframe.dispatch import make_meta_dispatch
 from dask.dataframe.extensions import make_array_nonempty
-from dask.dataframe.utils import make_meta_obj, meta_nonempty
+from dask.dataframe.utils import meta_nonempty
 from retrying import retry
 
 from .geodataframe import GeoDataFrame
-from .geometry.base import GeometryDtype, _BaseCoordinateIndexer
+from .geometry.base import GeometryArray, GeometryDtype, _BaseCoordinateIndexer
 from .geoseries import GeoSeries
 from .spatialindex import HilbertRtree
+
+
+@make_array_nonempty.register(GeometryDtype)
+def make_geometry_array(dtype):
+    return GeometryArray([], dtype=dtype)
 
 
 class DaskGeoSeries(dd.Series):
@@ -98,10 +104,8 @@ class DaskGeoSeries(dd.Series):
         )
 
 
-@make_meta_obj.register(GeoSeries)
+@make_meta_dispatch.register(GeoSeries)
 def make_meta_series(s, index=None):
-    if hasattr(s, "__array__") or isinstance(s, np.ndarray):
-        return s[:0]
     result = s.head(0)
     if index is not None:
         result = result.reindex(index[:0])
@@ -581,10 +585,8 @@ class DaskGeoDataFrame(dd.DataFrame):
         return result
 
 
-@make_meta_obj.register(GeoDataFrame)
+@make_meta_dispatch.register(GeoDataFrame)
 def make_meta_dataframe(df, index=None):
-    if hasattr(df, "__array__") or isinstance(df, np.ndarray):
-        return df[:0]
     result = df.head(0)
     if index is not None:
         result = result.reindex(index[:0])
@@ -597,13 +599,14 @@ def meta_nonempty_dataframe(df, index=None):
 
 
 @get_parallel_type.register(GeoDataFrame)
-def get_parallel_type_dataframe(s):
+def get_parallel_type_dataframe(df):
     return DaskGeoDataFrame
 
 
 @dd.get_collection_type.register(GeoDataFrame)
 def get_collection_type_dataframe(df):
     return DaskGeoDataFrame
+
 
 class _DaskCoordinateIndexer(_BaseCoordinateIndexer):
     def __init__(self, obj, sindex):
