@@ -179,6 +179,8 @@ class GeometryArray(ExtensionArray):
     _element_type = Geometry
     _can_hold_na = True
 
+    __hash__: None  # Copied from ExtensionArray
+
     # Import / export methods
     @classmethod
     def from_geopandas(cls, ga):
