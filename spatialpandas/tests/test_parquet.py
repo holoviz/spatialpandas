@@ -8,11 +8,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from hypothesis import HealthCheck, Phase, Verbosity, given, settings
-from packaging.version import Version
 
 from spatialpandas import GeoDataFrame, GeoSeries, geometry
 from spatialpandas.dask import DaskGeoDataFrame
 from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet
+from spatialpandas.utils import PANDAS_GE_3_0_0
 
 from .geometry.strategies import (
     st_bounds,
@@ -20,9 +20,6 @@ from .geometry.strategies import (
     st_multipoint_array,
     st_point_array,
 )
-
-PANDAS_VERSION = Version(pd.__version__).release
-PANDAS_GE_3_0_0 = PANDAS_VERSION >= (3, 0, 0)
 
 dask.config.set(scheduler="single-threaded")
 

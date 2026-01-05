@@ -1,7 +1,12 @@
 import warnings
 
 import numpy as np
+import pandas as pd
 from numba import jit
+from packaging.version import Version
+
+PANDAS_VERSION = Version(pd.__version__).release
+PANDAS_GE_3_0_0 = PANDAS_VERSION >= (3, 0, 0)
 
 ngjit = jit(nopython=True, nogil=True)
 ngpjit = jit(nopython=True, nogil=True, parallel=True)
