@@ -461,7 +461,7 @@ def test_parquet_dask_string_convert(save_convert_string, load_convert_string, t
     if load_convert_string:
         dtype = pd.StringDtype(storage="pyarrow")
     elif save_convert_string:
-        dtype = pd.StringDtype(storage="pyarrow") if PANDAS_GE_3_0_0 else pd.StringDtype("python")
+        dtype = pd.StringDtype(storage="pyarrow") if PANDAS_GE_3_0_0 else pd.StringDtype(storage="python")
     else:
         dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan) if PANDAS_GE_3_0_0 else np.dtype("object")
 
