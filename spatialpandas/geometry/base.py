@@ -496,7 +496,7 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
             dtype=to_concat[0].dtype
         )
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(self, value=None, method=None, limit=None, copy=True):
         from pandas.api.types import is_array_like
         from pandas.core.missing import get_fill_func
         from pandas.util._validators import validate_fillna_kwargs
