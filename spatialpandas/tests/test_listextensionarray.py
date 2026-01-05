@@ -5,6 +5,7 @@ import pandas.tests.extension.base as eb
 import pytest
 
 from spatialpandas.geometry import LineArray, LineDtype
+from spatialpandas.utils import PANDAS_GE_3_0_0
 
 
 def test_equality():
@@ -200,9 +201,18 @@ class TestGeometryInterface(eb.BaseInterfaceTests):
     def test_contains(self):
         pass
 
-    @pytest.mark.xfail(reason="copy=False not supported")
+    @pytest.mark.xfail(condition=not PANDAS_GE_3_0_0, reason="copy=False not supported")
     def test_array_interface_copy(self, data):
         super().test_array_interface_copy(data)
+
+    def test_len(self, data):
+        # We have len/size of 100
+        assert len(data) == 100
+
+    def test_size(self, data):
+        # We have len/size of 100
+        assert data.size == 100
+
 
 class TestGeometryMethods(eb.BaseMethodsTests):
     # # AttributeError: 'RaggedArray' object has no attribute 'value_counts'

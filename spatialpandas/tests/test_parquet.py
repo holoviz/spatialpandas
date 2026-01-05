@@ -12,6 +12,7 @@ from hypothesis import HealthCheck, Phase, Verbosity, given, settings
 from spatialpandas import GeoDataFrame, GeoSeries, geometry
 from spatialpandas.dask import DaskGeoDataFrame
 from spatialpandas.io import read_parquet, read_parquet_dask, to_parquet
+from spatialpandas.utils import PANDAS_GE_3_0_0
 
 from .geometry.strategies import (
     st_bounds,
@@ -458,11 +459,11 @@ def test_parquet_dask_string_convert(save_convert_string, load_convert_string, t
         sddf.to_parquet(tmp_path / "test.parq")
 
     if load_convert_string:
-        dtype = pd.StringDtype("pyarrow")
+        dtype = pd.StringDtype(storage="pyarrow")
     elif save_convert_string:
-        dtype = pd.StringDtype("python")
+        dtype = pd.StringDtype(storage="pyarrow") if PANDAS_GE_3_0_0 else pd.StringDtype(storage="python")
     else:
-        dtype = np.dtype("object")
+        dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan) if PANDAS_GE_3_0_0 else np.dtype("object")
 
     with dask.config.set({"dataframe.convert-string": load_convert_string}):
         data = read_parquet_dask(tmp_path / "test.parq")

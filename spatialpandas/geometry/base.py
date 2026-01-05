@@ -11,7 +11,7 @@ from pandas.api.types import is_array_like
 from .._optional_imports import gp, sg
 from ..spatialindex import HilbertRtree
 from ..spatialindex.rtree import _distances_from_bounds
-from ..utils import ngjit
+from ..utils import PANDAS_GE_3_0_0, ngjit
 
 
 def _unwrap_geometry(a, element_dtype):
@@ -366,13 +366,19 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
 
                 value = self.data[item].as_py()
                 if value is not None:
-                    return self._element_type(value, self.numpy_dtype)
+                    arr =  self._element_type(value, self.numpy_dtype)
+                    if hasattr(self, "_readonly"):
+                        arr._readonly = self._readonly
+                    return arr
                 else:
                     return None
         elif isinstance(item, slice):
             if item.step is None or item.step == 1:
                 # pyarrow only supports slice with step of 1
-                return self.__class__(self.data[item], dtype=self.dtype)
+                arr = self.__class__(self.data[item], dtype=self.dtype)
+                if hasattr(self, "_readonly"):
+                    arr._readonly = self._readonly
+                return arr
             else:
                 selected_indices = np.arange(len(self))[item]
                 return self.take(selected_indices, allow_fill=False)
@@ -462,7 +468,10 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
             # Build pyarrow array of indices
             indices = pa.array(indices.astype('int'))
 
-        return self.__class__(self.data.take(indices), dtype=self.dtype)
+        arr = self.__class__(self.data.take(indices), dtype=self.dtype)
+        if hasattr(self, "_readonly"):
+            arr._readonly = self._readonly
+        return arr
 
     take.__doc__ = ExtensionArray.take.__doc__
 
@@ -496,12 +505,18 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
             dtype=to_concat[0].dtype
         )
 
-    def fillna(self, value=None, method=None, limit=None):
+    def fillna(self, value=None, method=None, limit=None, copy=True):
         from pandas.api.types import is_array_like
         from pandas.core.missing import get_fill_func
         from pandas.util._validators import validate_fillna_kwargs
 
-        value, method = validate_fillna_kwargs(value, method)
+        if getattr(self, "_readonly", None) and not copy:
+            raise ValueError("Cannot modify read-only array")
+
+        if value is not None or method is not None:
+            value, method = validate_fillna_kwargs(value, method)
+        else:
+            return self if copy else self.copy()
 
         mask = self.isna()
 
@@ -516,7 +531,10 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
         if mask.any():
             if method is not None:
                 func = get_fill_func(method)
-                new_values = func(self.astype(object), limit=limit, mask=mask)
+                kwargs = {"limit": limit, "mask": mask}
+                if PANDAS_GE_3_0_0:
+                    kwargs["copy"] = copy
+                new_values = func(self.astype(object), **kwargs)
                 # From pandas 1.3, get_fill_func also return mask
                 new_values = new_values[0] if isinstance(new_values, tuple) else new_values
                 new_values = self._from_sequence(new_values, self._dtype)
@@ -525,10 +543,16 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
                 new_values = np.asarray(self)
                 if isinstance(value, Geometry):
                     value = [value]
-                new_values[mask] = value
+                if limit is not None:
+                    na_indices = np.where(mask)[0]
+                    fill_mask = np.zeros(len(self), dtype=bool)
+                    fill_mask[na_indices[:limit]] = True
+                    new_values[fill_mask] = value
+                else:
+                    new_values[mask] = value
                 new_values = self.__class__(new_values, dtype=self.dtype)
         else:
-            new_values = self.copy()
+            new_values = self.copy() if copy else self
         return new_values
 
     fillna.__doc__ = ExtensionArray.fillna.__doc__
