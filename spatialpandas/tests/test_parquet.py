@@ -459,13 +459,11 @@ def test_parquet_dask_string_convert(save_convert_string, load_convert_string, t
         sddf.to_parquet(tmp_path / "test.parq")
 
     if load_convert_string:
-        dtype = pd.StringDtype("pyarrow")
-    elif PANDAS_GE_3_0_0:
-        dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan)
+        dtype = pd.StringDtype(storage="pyarrow")
     elif save_convert_string:
-        dtype = pd.StringDtype("python")
+        dtype = pd.StringDtype(storage="pyarrow") if PANDAS_GE_3_0_0 else pd.StringDtype("python")
     else:
-        dtype = np.dtype("object")
+        dtype = pd.StringDtype(storage="pyarrow", na_value=np.nan) if PANDAS_GE_3_0_0 else np.dtype("object")
 
     with dask.config.set({"dataframe.convert-string": load_convert_string}):
         data = read_parquet_dask(tmp_path / "test.parq")
