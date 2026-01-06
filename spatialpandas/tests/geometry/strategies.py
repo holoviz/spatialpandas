@@ -221,14 +221,14 @@ def st_multipolygon_array(draw, min_size=0, max_size=5, geoseries=False):
         polygons = [polygon] * m
 
         # translate polygons so they don't overlap
-        _, _, last_x1, last_y1 = polygons[0].bounds
+        *_, last_y1 = polygons[0].bounds
         for j in range(1, m):
             polygon = scale(polygons[j], 0.8, 0.5)
-            poly_x0, poly_y0, poly_x1, poly_y1 = polygon.bounds
+            _, poly_y0, _, *_ = polygon.bounds
             new_polygon = translate(
                 polygon, yoff=last_y1 - poly_y0 + 1
             )
-            _, _, last_x1, last_y1 = new_polygon.bounds
+            *_, last_y1 = new_polygon.bounds
             polygons[j] = new_polygon
 
         sg_multipolygons.append(sg.MultiPolygon(polygons))
