@@ -1,4 +1,6 @@
 import os
+import sys
+import time
 from shutil import rmtree
 
 try:
@@ -6,6 +8,17 @@ try:
     from platformdirs import user_cache_path
 except ImportError:
     raise ImportError("requests and platformdirs are needed to download data") from None
+
+
+def retry(func, *args, **kwargs):
+    for i in range(5):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            wait = 10 * 2**i
+            print(f"Attempt {i + 1} failed: {e}. Retrying in {wait}s...", file=sys.stderr)
+            time.sleep(wait)
+    return func(*args, **kwargs)
 
 
 if os.environ.get("GITHUB_TOKEN"):
@@ -50,5 +63,5 @@ def download_map(dataset):
 
 
 if __name__ == "__main__":
-    download_map("naturalearth_lowres")
-    download_map("naturalearth_cities")
+    retry(download_map, "naturalearth_lowres")
+    retry(download_map, "naturalearth_cities")

@@ -11,6 +11,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from dask import delayed
+from dask.base import normalize_token
 from dask.dataframe.core import get_parallel_type
 from dask.dataframe.dispatch import make_meta_dispatch
 from dask.dataframe.extensions import make_array_nonempty
@@ -26,6 +27,14 @@ from .spatialindex import HilbertRtree
 @make_array_nonempty.register(GeometryDtype)
 def make_geometry_array(dtype):
     return GeometryArray([], dtype=dtype)
+
+
+@normalize_token.register(GeometryArray)
+def normalize_geometry_array(arr):
+    # The default goes through np.asarray, which creates a Python object per element.
+    # Offset and length are included as the pyarrow buffers are shared between slices.
+    data = arr.data
+    return type(arr), data.offset, len(data), normalize_token(data)
 
 
 class DaskGeoSeries(dd.Series):

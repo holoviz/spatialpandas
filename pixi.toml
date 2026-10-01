@@ -2,39 +2,61 @@
 name = "spatialpandas"
 channels = ["pyviz/label/dev", "conda-forge"]
 platforms = ["linux-64", "osx-arm64", "win-64"]
+preview = ["pixi-build"]
+requires-pixi = ">=0.68.1"
 
-[tasks]
-install = 'python -m pip install --no-deps --disable-pip-version-check -e .'
+[package]
+name = "spatialpandas"
+version = "9999.0.0" # dynamic versioning: https://github.com/prefix-dev/pixi/issues/5360
 
-[activation.env]
-PYTHONIOENCODING = "utf-8"
-USE_PYGEOS = '0'
+[package.build]
+backend = { name = "pixi-build-python", version = ">=0.4.4" }
+
+[package.host-dependencies]
+hatchling = "*"
+hatch-vcs = "*"
 
 [environments]
-test-310 = ["py310", "test-core", "test", "test-task", "example", "test-example"]
-test-311 = ["py311", "test-core", "test", "test-task", "example", "test-example"]
-test-312 = ["py312", "test-core", "test", "test-task", "example", "test-example"]
-test-313 = ["py313", "test-core", "test", "test-task", "example", "test-example", "pandas3"]
-test-314 = ["py314", "test-core", "test", "test-task", "example", "test-example"]
-test-core = ["py314", "test-core", "test-core-task", "pandas3"]
-build = ["py311", "build"]
-lint = ["py311", "lint"]
+default = ["required", "py314", "optional", "test-core", "test-example", "test-task", "lint", "dev"]
 
-[dependencies]
+[environments.test-312]
+features = ["required", "py312", "optional", "test-core", "test-task", "test-example"]
+no-default-feature = true
+
+[environments.test-313]
+features = ["required", "py313", "optional", "test-core", "test-task", "test-example"]
+no-default-feature = true
+
+[environments.test-314]
+features = ["required", "py314", "optional", "test-core", "test-task", "test-example"]
+no-default-feature = true
+
+[environments.test-core]
+features = ["required", "py314", "test-core", "test-task"]
+no-default-feature = true
+
+[environments.build]
+features = ["required", "py314", "build"]
+no-default-feature = true
+
+[environments.lint]
+features = ["lint"]
+no-default-feature = true
+
+[feature.required.activation.env]
+PYTHONIOENCODING = "utf-8"
+USE_PYGEOS = '0'
+COVERAGE_CORE = "sysmon"
+
+[feature.required.dependencies]
+spatialpandas = { path = "." }
 numba = "*"
 dask-core = ">=2025.1"
 fsspec = "*"
 packaging = "*"
 pandas = ">=2.0"
-pip = "*"
 pyarrow = ">=14.0.1"
 retrying = "*"
-
-[feature.py310.dependencies]
-python = "3.10.*"
-
-[feature.py311.dependencies]
-python = "3.11.*"
 
 [feature.py312.dependencies]
 python = "3.12.*"
@@ -54,22 +76,36 @@ python = "3.14.*"
 [feature.py314.activation.env]
 COVERAGE_CORE = "sysmon"
 
-[feature.pandas3]
-channels = ["conda-forge/label/pandas_rc"]
-
-[feature.pandas3.dependencies]
-pandas = { version = "3.0.*", channel = "conda-forge/label/pandas_rc" }
-
-[feature.example.dependencies]
+[feature.optional.dependencies]
 datashader = "*"
 descartes = "*"
 distributed = "*"
 geopandas-base = "*"
+hilbertcurve = "*"
 holoviews = "*"
 matplotlib-base = "*"
+moto = "*"
 platformdirs = "*"
 pyogrio = "*"
+python-snappy = "*"
 requests = "*"
+rtree = "*"
+s3fs = ">=2022.8"
+scipy = "*"
+shapely = "*"
+
+[feature.optional.tasks]
+download-data = 'python examples/download.py'
+
+[feature.dev.dependencies]
+jupyterlab = "*"
+jupyterlab-myst = "*"
+pip = "*"
+setuptools_scm = "*"
+
+[feature.dev.tasks]
+lab = 'jupyter lab'
+setup-dev = { depends-on = ["lint-install"] }
 
 # =============================================
 # =================== TESTS ===================
@@ -81,19 +117,6 @@ pytest = "*"
 pytest-cov = "*"
 pytest-github-actions-annotate-failures = "*"
 pytest-xdist = "*"
-
-[feature.test-core-task.tasks]
-test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup --skip-slow'
-
-[feature.test.dependencies]
-geopandas-base = "*"
-hilbertcurve = "*"
-moto = "*"
-python-snappy = "*"
-rtree = "*"
-s3fs = ">=2022.8"
-scipy = "*"
-shapely = "*"
 
 [feature.test-task.tasks]
 test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'
@@ -123,8 +146,8 @@ build-pip = 'python -m build .'
 # =================== LINT ====================
 # =============================================
 [feature.lint.dependencies]
-pre-commit = "*"
+prek = "*"
 
 [feature.lint.tasks]
-lint = 'pre-commit run --all-files'
-lint-install = 'pre-commit install'
+lint = 'prek run --all-files'
+lint-install = 'prek install'
