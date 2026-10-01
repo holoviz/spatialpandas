@@ -1,5 +1,6 @@
 import numpy as np
 from dask.dataframe.extensions import make_array_nonempty
+from numba import prange
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
 from ..geometry._algorithms.intersection import point_intersects_polygon, segment_intersects_point
@@ -261,7 +262,8 @@ def _perform_intersects_multipoint(flat_points, flat_multipoint, inds):
     multi_xs = flat_multipoint[0::2]
     multi_ys = flat_multipoint[1::2]
     result = np.zeros(n, dtype=np.bool_)
-    for i, j in enumerate(inds):
+    for i in prange(n):
+        j = inds[i]
         x = flat_points[2 * j]
         y = flat_points[2 * j + 1]
         result[i] = np.any((multi_xs == x) & (multi_ys == y))
@@ -273,7 +275,8 @@ def _perform_intersects_multipoint(flat_points, flat_multipoint, inds):
 def _perform_intersects_line(flat_points, flat_lines, offsets, inds):
     n = len(inds)
     result = np.zeros(n, dtype=np.bool_)
-    for i, j in enumerate(inds):
+    for i in prange(n):
+        j = inds[i]
         x = flat_points[2 * j]
         y = flat_points[2 * j + 1]
 
@@ -311,7 +314,8 @@ def _perform_intersects_line(flat_points, flat_lines, offsets, inds):
 def _perform_intersects_polygon(flat_points, flat_polygons, offsets, inds):
     n = len(inds)
     result = np.zeros(n, dtype=np.bool_)
-    for i, j in enumerate(inds):
+    for i in prange(n):
+        j = inds[i]
         x = flat_points[2 * j]
         y = flat_points[2 * j + 1]
 
