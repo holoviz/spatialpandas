@@ -469,3 +469,20 @@ def test_parquet_dask_string_convert(save_convert_string, load_convert_string, t
         data = read_parquet_dask(tmp_path / "test.parq")
         assert data["name"].dtype == dtype
         assert data.compute()["name"].dtype == dtype
+
+
+def test_read_parquet_dask_graph_as_array(tmp_path):
+    # Mimics how datashader reduces over the dataframe graph,
+    # see https://github.com/holoviz/spatialpandas/issues/178
+    import dask.array as da
+
+    points = geometry.PointArray([[0.0, 1.0], [2.0, 3.0]])
+    sddf = dd.from_pandas(GeoDataFrame({"geometry": points}), npartitions=2)
+    sddf.to_parquet(tmp_path / "test.parq")
+
+    ddf = read_parquet_dask(tmp_path / "test.parq").optimize()
+    chunks = ((1,) * ddf.npartitions,)
+    arr = da.Array(ddf.__dask_graph__(), ddf._name, chunks, meta=np.empty((0,)))
+    lengths = arr.map_blocks(lambda df: np.array([len(df)]), dtype=int)
+    result = da.compute(lengths.sum())[0]
+    assert result == 2
