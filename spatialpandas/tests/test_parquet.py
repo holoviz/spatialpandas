@@ -486,3 +486,17 @@ def test_read_parquet_dask_graph_as_array(tmp_path):
     lengths = arr.map_blocks(lambda df: np.array([len(df)]), dtype=int)
     result = da.compute(lengths.sum())[0]
     assert result == 2
+
+
+def test_pack_partitions_to_parquet_existing_path(tmp_path):
+    points = geometry.PointArray([[0.0, 0.0], [1.0, 1.0]])
+    ddf = dd.from_pandas(GeoDataFrame({"geometry": points}), npartitions=2)
+    path = tmp_path / "data.parq"
+    retry_args = dict(stop_max_attempt_number=1)
+
+    ddf.pack_partitions_to_parquet(path, _retry_args=retry_args)
+    with pytest.raises(FileExistsError, match="overwrite=True"):
+        ddf.pack_partitions_to_parquet(path, _retry_args=retry_args)
+
+    result = ddf.pack_partitions_to_parquet(path, _retry_args=retry_args, overwrite=True)
+    assert len(result.compute()) == 2

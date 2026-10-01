@@ -253,6 +253,8 @@ class DaskGeoDataFrame(dd.DataFrame):
                 of the function.
             storage_options: Key/value pairs to be passed on to the file-system backend, if any.
             engine_kwargs: pyarrow.parquet engine-related keyword arguments.
+            overwrite: If True, delete any existing data at path before writing.
+                If False (the default), an error is raised if path already contains data.
         Returns:
             DaskGeoDataFrame backed by newly written parquet dataset
         """
@@ -346,6 +348,11 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem.invalidate_cache()
         if overwrite:
             rm_retry(path)
+        elif filesystem.exists(path) and filesystem.ls(path):
+            raise FileExistsError(
+                f"Path {path!r} already exists and is not empty. "
+                "Use overwrite=True to replace it."
+            )
 
         for out_partition in out_partitions:
             part_dir = os.path.join(path, f"part.{out_partition}.parquet" )
