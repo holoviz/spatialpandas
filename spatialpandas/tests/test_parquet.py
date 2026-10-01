@@ -168,6 +168,17 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
     np.testing.assert_equal(expected_distances, hilbert_distances)
 
 
+@pytest.mark.parametrize("shuffle", ["tasks", "disk"])
+def test_pack_partitions_shuffle(shuffle):
+    points = geometry.PointArray([[-1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [-4.0, 4.0]])
+    ddf = dd.from_pandas(GeoDataFrame({"geometry": points}), npartitions=2)
+
+    ddf_packed = ddf.pack_partitions(npartitions=4, shuffle=shuffle)
+
+    assert isinstance(ddf_packed.get_partition(0).compute(), GeoDataFrame)
+    assert ddf_packed.geometry.total_bounds == (-4.0, 1.0, 3.0, 4.0)
+
+
 @pytest.mark.slow
 @given(
     gp_multipoint=st_multipoint_array(min_size=60, max_size=100, geoseries=True),
@@ -469,3 +480,34 @@ def test_parquet_dask_string_convert(save_convert_string, load_convert_string, t
         data = read_parquet_dask(tmp_path / "test.parq")
         assert data["name"].dtype == dtype
         assert data.compute()["name"].dtype == dtype
+
+
+def test_read_parquet_dask_graph_as_array(tmp_path):
+    # Mimics how datashader reduces over the dataframe graph,
+    # see https://github.com/holoviz/spatialpandas/issues/178
+    import dask.array as da
+
+    points = geometry.PointArray([[0.0, 1.0], [2.0, 3.0]])
+    sddf = dd.from_pandas(GeoDataFrame({"geometry": points}), npartitions=2)
+    sddf.to_parquet(tmp_path / "test.parq")
+
+    ddf = read_parquet_dask(tmp_path / "test.parq").optimize()
+    chunks = ((1,) * ddf.npartitions,)
+    arr = da.Array(ddf.__dask_graph__(), ddf._name, chunks, meta=np.empty((0,)))
+    lengths = arr.map_blocks(lambda df: np.array([len(df)]), dtype=int)
+    result = da.compute(lengths.sum())[0]
+    assert result == 2
+
+
+def test_pack_partitions_to_parquet_existing_path(tmp_path):
+    points = geometry.PointArray([[0.0, 0.0], [1.0, 1.0]])
+    ddf = dd.from_pandas(GeoDataFrame({"geometry": points}), npartitions=2)
+    path = tmp_path / "data.parq"
+    retry_args = dict(stop_max_attempt_number=1)
+
+    ddf.pack_partitions_to_parquet(path, _retry_args=retry_args)
+    with pytest.raises(FileExistsError, match="overwrite=True"):
+        ddf.pack_partitions_to_parquet(path, _retry_args=retry_args)
+
+    result = ddf.pack_partitions_to_parquet(path, _retry_args=retry_args, overwrite=True)
+    assert len(result.compute()) == 2

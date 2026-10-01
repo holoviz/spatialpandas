@@ -9,9 +9,8 @@ from typing import Any
 import fsspec
 import pandas as pd
 import pyarrow as pa
-from dask import delayed
 from dask.dataframe import (
-    from_delayed,
+    from_map,
     from_pandas,
     read_parquet as dd_read_parquet,
     to_parquet as dd_to_parquet,
@@ -286,6 +285,11 @@ def _expand_path(paths, filesystem):
     return files
 
 
+def _read_parquet_piece(path, **kwargs):
+    # No `columns` in the signature, as dask would then project away the geometry column
+    return read_parquet(path, **kwargs)
+
+
 def _perform_read_parquet_dask(
     paths,
     columns,
@@ -317,7 +321,6 @@ def _perform_read_parquet_dask(
         )
         datasets.append(d)
 
-    # Create delayed partition for each piece
     pieces = []
     for dataset in datasets:
         # Perform natural sort on pieces so that "part.10" comes after "part.2"
@@ -334,17 +337,7 @@ def _perform_read_parquet_dask(
         convert_string = pyarrow_strings_enabled()
     except (ImportError, RuntimeError):
         convert_string = False
-    delayed_partitions = [
-        delayed(read_parquet)(
-            piece.path,
-            columns=columns,
-            filesystem=filesystem,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-            convert_string=convert_string,
-        )
-        for piece in pieces
-    ]
+    piece_paths = [piece.path for piece in pieces]
 
     # Load divisions
     if load_divisions:
@@ -422,7 +415,7 @@ def _perform_read_parquet_dask(
 
         # Make DataFrame with bounds and parquet piece
         partitions_df = partition_bounds[geometry].assign(
-            delayed_partition=delayed_partitions
+            piece_path=piece_paths
         )
 
         if load_divisions:
@@ -441,7 +434,7 @@ def _perform_read_parquet_dask(
             partition_bounds[col].reset_index(drop=True, inplace=True)
             partition_bounds[col].index.name = "partition"
 
-        delayed_partitions = partitions_df.delayed_partition.tolist()
+        piece_paths = partitions_df.piece_path.tolist()
         if load_divisions:
             div_mins = partitions_df.div_mins
             div_maxes = partitions_df.div_maxes
@@ -457,9 +450,19 @@ def _perform_read_parquet_dask(
         divisions = None
 
     # Create DaskGeoDataFrame
-    if delayed_partitions:
-        result = from_delayed(
-            delayed_partitions, divisions=divisions, meta=meta, verify_meta=False
+    if piece_paths:
+        result = from_map(
+            _read_parquet_piece,
+            piece_paths,
+            columns=columns,
+            filesystem=filesystem,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+            convert_string=convert_string,
+            meta=meta,
+            divisions=divisions,
+            label="read-parquet",
+            enforce_metadata=False,
         )
     else:
         # Single partition empty result

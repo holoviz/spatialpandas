@@ -211,6 +211,9 @@ class DaskGeoDataFrame(dd.DataFrame):
             # happen to be already sorted
             ddf = ddf.repartition(npartitions=npartitions)
 
+        # The disk shuffle returns plain pandas DataFrames
+        ddf = ddf.map_partitions(_ensure_geodataframe, meta=ddf._meta)
+
         return ddf
 
     def pack_partitions_to_parquet(
@@ -253,6 +256,8 @@ class DaskGeoDataFrame(dd.DataFrame):
                 of the function.
             storage_options: Key/value pairs to be passed on to the file-system backend, if any.
             engine_kwargs: pyarrow.parquet engine-related keyword arguments.
+            overwrite: If True, delete any existing data at path before writing.
+                If False (the default), an error is raised if path already contains data.
         Returns:
             DaskGeoDataFrame backed by newly written parquet dataset
         """
@@ -346,6 +351,11 @@ class DaskGeoDataFrame(dd.DataFrame):
         filesystem.invalidate_cache()
         if overwrite:
             rm_retry(path)
+        elif filesystem.exists(path) and filesystem.ls(path):
+            raise FileExistsError(
+                f"Path {path!r} already exists and is not empty. "
+                "Use overwrite=True to replace it."
+            )
 
         for out_partition in out_partitions:
             part_dir = os.path.join(path, f"part.{out_partition}.parquet" )
@@ -592,6 +602,10 @@ class DaskGeoDataFrame(dd.DataFrame):
             # properties still apply
             self._propagate_props_to_dataframe(result)
         return result
+
+
+def _ensure_geodataframe(df):
+    return df if isinstance(df, GeoDataFrame) else GeoDataFrame(df)
 
 
 @make_meta_dispatch.register(GeoDataFrame)
