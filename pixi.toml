@@ -17,16 +17,7 @@ hatchling = "*"
 hatch-vcs = "*"
 
 [environments]
-default = [
-    "required",
-    "py314",
-    "optional",
-    "test-core",
-    "test-example",
-    "test-task",
-    "lint",
-    "dev",
-]
+default = ["required", "py314", "optional", "test-core", "test-example", "test-task", "lint", "dev"]
 
 [environments.test-312]
 features = ["required", "py312", "optional", "test-core", "test-task", "test-example"]
@@ -102,6 +93,9 @@ rtree = "*"
 s3fs = ">=2022.8"
 scipy = "*"
 shapely = "*"
+
+[feature.optional.tasks]
+download-data = 'python examples/download.py'
 
 [feature.dev.dependencies]
 jupyterlab = "*"
