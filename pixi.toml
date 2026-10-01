@@ -41,7 +41,7 @@ features = ["required", "py314", "optional", "test-core", "test-task", "test-exa
 no-default-feature = true
 
 [environments.test-core]
-features = ["required", "py314", "test-core", "test-core-task"]
+features = ["required", "py314", "test-core", "test-task"]
 no-default-feature = true
 
 [environments.build]
@@ -123,9 +123,6 @@ pytest = "*"
 pytest-cov = "*"
 pytest-github-actions-annotate-failures = "*"
 pytest-xdist = "*"
-
-[feature.test-core-task.tasks]
-test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup --skip-slow'
 
 [feature.test-task.tasks]
 test-unit = 'pytest spatialpandas/tests -n logical --dist loadgroup'

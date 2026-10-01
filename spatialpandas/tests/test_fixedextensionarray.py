@@ -277,6 +277,10 @@ class TestGeometryMethods(eb.BaseMethodsTests):
     def test_fillna_limit_series(self):
         pass
 
+    @pytest.mark.skip(reason="We don't handle the custom inf values")
+    def test_rank_missing(self):
+        pass
+
 
 class TestGeometryPrinting(eb.BasePrintingTests):
     pass
