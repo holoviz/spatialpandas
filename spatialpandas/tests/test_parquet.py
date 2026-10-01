@@ -168,6 +168,17 @@ def test_pack_partitions(gp_multipoint, gp_multiline):
     np.testing.assert_equal(expected_distances, hilbert_distances)
 
 
+@pytest.mark.parametrize("shuffle", ["tasks", "disk"])
+def test_pack_partitions_shuffle(shuffle):
+    points = geometry.PointArray([[-1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [-4.0, 4.0]])
+    ddf = dd.from_pandas(GeoDataFrame({"geometry": points}), npartitions=2)
+
+    ddf_packed = ddf.pack_partitions(npartitions=4, shuffle=shuffle)
+
+    assert isinstance(ddf_packed.get_partition(0).compute(), GeoDataFrame)
+    assert ddf_packed.geometry.total_bounds == (-4.0, 1.0, 3.0, 4.0)
+
+
 @pytest.mark.slow
 @given(
     gp_multipoint=st_multipoint_array(min_size=60, max_size=100, geoseries=True),

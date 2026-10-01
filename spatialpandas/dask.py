@@ -211,6 +211,9 @@ class DaskGeoDataFrame(dd.DataFrame):
             # happen to be already sorted
             ddf = ddf.repartition(npartitions=npartitions)
 
+        # The disk shuffle returns plain pandas DataFrames
+        ddf = ddf.map_partitions(_ensure_geodataframe, meta=ddf._meta)
+
         return ddf
 
     def pack_partitions_to_parquet(
@@ -599,6 +602,10 @@ class DaskGeoDataFrame(dd.DataFrame):
             # properties still apply
             self._propagate_props_to_dataframe(result)
         return result
+
+
+def _ensure_geodataframe(df):
+    return df if isinstance(df, GeoDataFrame) else GeoDataFrame(df)
 
 
 @make_meta_dispatch.register(GeoDataFrame)
