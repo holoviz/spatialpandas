@@ -114,7 +114,7 @@ monkeytype.sqlite3
 
 # pixi + hatch
 .pixi
-pixi.lock
+!pixi.lock
 _version.py
 
 # Exampel files
