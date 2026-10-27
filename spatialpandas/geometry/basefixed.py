@@ -182,6 +182,11 @@ class GeometryFixedArray(GeometryArray):
         self._numpy_dtype = numpy_dtype
         super().__init__(array, pa_type)
 
+    def _values_for_json(self):
+        values = np.empty(len(self), dtype=object)
+        values[:] = [None if el is None else el.flat_values.tolist() for el in self]
+        return values
+
     # Base geometry methods
     @property
     def flat_values(self):

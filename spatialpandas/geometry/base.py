@@ -537,6 +537,11 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
         self.data = type(self)(data, dtype=self.dtype).data
         self._sindex = None
 
+    def _values_for_json(self):
+        values = np.empty(len(self), dtype=object)
+        values[:] = self.data.to_pylist()
+        return values
+
     def _values_for_factorize(self):
         return np.array(self, dtype='object'), None
 
