@@ -430,8 +430,7 @@ def _perform_read_parquet_dask(
 
         partitions_df = partitions_df[inds]
         for col in list(partition_bounds):
-            partition_bounds[col] = partition_bounds[col][inds]
-            partition_bounds[col].reset_index(drop=True, inplace=True)
+            partition_bounds[col] = partition_bounds[col][inds].reset_index(drop=True)
             partition_bounds[col].index.name = "partition"
 
         piece_paths = partitions_df.piece_path.tolist()
