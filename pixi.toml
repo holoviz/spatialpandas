@@ -31,8 +31,12 @@ no-default-feature = true
 features = ["required", "py314", "optional", "test-core", "test-task", "test-example"]
 no-default-feature = true
 
+[environments.test-315]
+features = ["required", "py315", "optional", "test-core", "test-task", "test-example"]
+no-default-feature = true
+
 [environments.test-core]
-features = ["required", "py314", "test-core", "test-task"]
+features = ["required", "py315", "test-core", "test-task"]
 no-default-feature = true
 
 [environments.build]
@@ -61,20 +65,14 @@ retrying = "*"
 [feature.py312.dependencies]
 python = "3.12.*"
 
-[feature.py312.activation.env]
-COVERAGE_CORE = "sysmon"
-
 [feature.py313.dependencies]
 python = "3.13.*"
 
-[feature.py313.activation.env]
-COVERAGE_CORE = "sysmon"
-
 [feature.py314.dependencies]
-python = "3.14.*"
+python-gil = "3.14.*"
 
-[feature.py314.activation.env]
-COVERAGE_CORE = "sysmon"
+[feature.py315.dependencies]
+python-gil = "3.15.*"
 
 [feature.optional.dependencies]
 datashader = "*"
