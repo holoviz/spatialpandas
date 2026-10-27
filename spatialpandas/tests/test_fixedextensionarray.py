@@ -189,12 +189,7 @@ class TestGeometryGroupby(eb.BaseGroupbyTests):
 
 
 class TestGeometryInterface(eb.BaseInterfaceTests):
-    # # NotImplementedError: 'GeometryList' does not support __setitem__
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_copy(self):
-        pass
-
-    @pytest.mark.skip(reason="__setitem__ not supported")
+    @pytest.mark.skip(reason="slices are copies, not views")
     def test_view(self, data):
         pass
 
@@ -243,18 +238,6 @@ class TestGeometryMethods(eb.BaseMethodsTests):
     def test_searchsorted(self):
         pass
 
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_fillna_copy_frame(self, data):
-        pass
-
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_fillna_copy_series(self, data):
-        pass
-
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_shift_0_periods(self, data):
-        pass
-
     @pytest.mark.skip(
         reason="value_counts not yet supported"
     )
@@ -287,10 +270,6 @@ class TestGeometryPrinting(eb.BasePrintingTests):
 
 
 class TestGeometryMissing(eb.BaseMissingTests):
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_fillna_frame(self):
-        pass
-
     @pytest.mark.skip(reason="not implemented")
     def test_fillna_limit_backfill(self):
         pass
@@ -303,10 +282,6 @@ class TestGeometryMissing(eb.BaseMissingTests):
     def test_fillna_no_op_returns_copy(self):
         pass
 
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_fillna_series(self):
-        pass
-
     @pytest.mark.skip(reason="not implemented")
     def test_fillna_series_method(self):
         pass
@@ -316,10 +291,6 @@ class TestGeometryMissing(eb.BaseMissingTests):
         pass
 
 class TestGeometryReshaping(eb.BaseReshapingTests):
-    @pytest.mark.skip(reason="__setitem__ not supported")
-    def test_ravel(self):
-        pass
-
     @pytest.mark.skip(reason="transpose with numpy array elements seems not supported")
     def test_transpose(self):
         pass

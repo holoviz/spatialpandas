@@ -488,6 +488,42 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
             None if np.isscalar(v) and np.isnan(v) else v for v in scalars
         ], dtype=dtype)
 
+    def __setitem__(self, key, value):
+        from pandas.api.indexers import check_array_indexer
+
+        if getattr(self, "_readonly", False):
+            raise ValueError("Cannot modify read-only array")
+
+        if isinstance(key, Integral):
+            if key < -len(self) or key >= len(self):
+                raise IndexError(f"{key} is out of bounds")
+        elif not isinstance(key, slice):
+            key = check_array_indexer(self, key)
+
+        selected = np.arange(len(self))[key]
+        data = np.empty(len(self), dtype=object)
+        data[:] = list(self)
+
+        if np.ndim(selected) == 0:
+            data[selected] = value
+        elif isinstance(value, Geometry) or (pd.api.types.is_scalar(value) and pd.isna(value)):
+            for i in selected:
+                data[i] = value
+        else:
+            value = list(value)
+            if len(value) == 1:
+                value = value * len(selected)
+            elif len(value) != len(selected):
+                raise ValueError(
+                    f"Length of values ({len(value)}) does not match "
+                    f"length of indexer ({len(selected)})"
+                )
+            for i, v in zip(selected, value, strict=True):
+                data[i] = v
+
+        self.data = type(self)(data, dtype=self.dtype).data
+        self._sindex = None
+
     def _values_for_factorize(self):
         return np.array(self, dtype='object'), None
 
