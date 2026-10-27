@@ -77,6 +77,8 @@ filterwarnings = [
     "ignore:Dask annotations ..retries.. 5. detected:UserWarning", # https://github.com/dask/dask/issues/11721
     # 2025-04
     "ignore:The 'shapely.geos' module is deprecated, and will be removed in a future version:DeprecationWarning", # https://github.com/geopandas/geopandas/pull/3453
+    # 2026-10
+    "ignore:The inplace keyword in:DeprecationWarning:dask", # dask parquet IO, pandas 3.1
 ]
 
 [tool.ruff]

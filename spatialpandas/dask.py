@@ -471,7 +471,7 @@ class DaskGeoDataFrame(dd.DataFrame):
             rm_retry(part_output_path)
 
             # Sort by part_df by hilbert_distance index
-            part_df.sort_index(inplace=True)
+            part_df = part_df.sort_index()
 
             # Write part_df as a single parquet file, collecting metadata for later use
             # constructing the full dataset _metadata file.
