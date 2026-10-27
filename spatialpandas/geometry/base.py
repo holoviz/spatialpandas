@@ -488,6 +488,19 @@ Cannot check equality of {type(self).__name__} of length {len(self)} with:
             None if np.isscalar(v) and np.isnan(v) else v for v in scalars
         ], dtype=dtype)
 
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype):
+        # _from_sequence would pack e.g. a flat list of numbers into geometries
+        values = []
+        for v in scalars:
+            if isinstance(v, cls._element_type):
+                values.append(v)
+            elif pd.api.types.is_scalar(v) and pd.isna(v):
+                values.append(None)
+            else:
+                raise TypeError(f"{type(v).__name__} is not a {cls._element_type.__name__}")
+        return cls(values, dtype=dtype)
+
     def __setitem__(self, key, value):
         from pandas.api.indexers import check_array_indexer
 
