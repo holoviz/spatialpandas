@@ -111,7 +111,7 @@ setup-dev = { depends-on = ["lint-install"] }
 [feature.test-core.dependencies]
 hypothesis = "*"
 psutil = "*"
-pytest = "*"
+pytest = "<9.2.0"  # TODO: Remove pin when pytest-xdist>8.3.0 has been released
 pytest-cov = "*"
 pytest-github-actions-annotate-failures = "*"
 pytest-xdist = "*"
